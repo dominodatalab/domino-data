@@ -38,6 +38,9 @@ class FeatureSetVersion:
                  url: str,
                  datatype: str,
                  encoding: str,
+                 timestamp_columns: [str],
+                 key_columns: [str],
+                 result_columns: [str],
                  metadata: Mapping[str, str],
                  annotations: Mapping[str, str],
                  pending: bool):
@@ -46,6 +49,9 @@ class FeatureSetVersion:
         self.url = url
         self.datatype = datatype        # if this is all collunmar, maybe not needed yet
         self.encoding = encoding        # for internal use (e.g. parquet, etc)
+        self.timestamp_columns = key_columns
+        self.key_columns = key_columns
+        self.result_columns = result_columns
         self.metadata = metadata        # immutable
         self.annotations = annotations  # mutable
         self.pending = pending
@@ -99,10 +105,15 @@ class FeatureSetClient:
         pass
 
     def create_version(self, df: pd.DataFrame,
+                       timestamp_columns: [str],
+                       key_columns: [str],
+                       result_columns: [str],
                        metadata: Mapping[str, str],
                        annotations: Mapping[str, str]) -> FeatureSetVersion:
         try:
-            fsv = self._reg_pending_upload(metadata, annotations)
+            fsv = self._reg_pending_upload(timestamp_columns, key_columns,
+                                           result_columns, metadata,
+                                           annotations)
 
             df.to_parquet(fsv.url)
 
@@ -138,6 +149,9 @@ class FeatureSetClient:
 
     def _reg_pending_upload(
             self,
+            timestamp_columns: [str],
+            key_columns: [str],
+            result_columns: [str],
             metadata: Mapping[str, str],
             annotations: Mapping[str, str]
     ) -> FeatureSetVersion:
