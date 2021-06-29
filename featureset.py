@@ -6,6 +6,21 @@ import uuid
 import pandas as pd
 
 
+# Sample Usage
+#
+# import featureset
+#
+# client = featureset.client()
+#
+# fs = client.create_featureset("my featureset", metadata={"some": "immutable data"},
+#                               annotations={"useful": "mutable data"})
+#
+# df = data_science()
+#
+# client.create_version(df, fs.id, timestamp_columns=['timestamp'],
+#                       key_columns=['foo'], result_columns=['bar', 'baz'],
+#                       metadata={}, annotations={})
+
 class FeatureSetPermission(Enum):
     READ = 1
     WRITE = 2
@@ -183,19 +198,3 @@ class FeatureSetClient:
 def client() -> FeatureSetClient:
     """Get client configured from environment variables"""
     pass
-
-
-# Sample Usage
-#
-# import featureset
-#
-# client = featureset.client()
-#
-# fs = client.create_featureset("my featureset", metadata={"some": "immutable data"},
-#                               annotations={"useful": "mutable data"})
-#
-# df = data_science()
-#
-# client.create_version(df, fs.id, timestamp_columns=['timestamp'],
-#                       key_columns=['foo'], result_columns=['bar', 'baz'],
-#                       metadata={}, annotations={})
