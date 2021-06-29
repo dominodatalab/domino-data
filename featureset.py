@@ -61,7 +61,8 @@ class FeatureSetClient:
     def __init__(self, bucket):
         self.bucket = bucket
 
-    def create_featureset(self, metadata: Mapping[str, str]) -> FeatureSet:
+    def create_featureset(self, description: str, metadata: Mapping[str, str],
+                          annotations: Mapping[str, str]) -> FeatureSet:
         """Registers a new FeatureSet with domino"""
         pass
 
@@ -105,15 +106,16 @@ class FeatureSetClient:
         pass
 
     def create_version(self, df: pd.DataFrame,
+                       fs_id: uuid.UUID,
                        timestamp_columns: [str],
                        key_columns: [str],
                        result_columns: [str],
                        metadata: Mapping[str, str],
                        annotations: Mapping[str, str]) -> FeatureSetVersion:
         try:
-            fsv = self._reg_pending_upload(timestamp_columns, key_columns,
-                                           result_columns, metadata,
-                                           annotations)
+            fsv = self._reg_pending_upload(fs_id, timestamp_columns,
+                                           key_columns, result_columns,
+                                           metadata, annotations)
 
             df.to_parquet(fsv.url)
 
@@ -149,6 +151,7 @@ class FeatureSetClient:
 
     def _reg_pending_upload(
             self,
+            fs_id: uuid.UUID,
             timestamp_columns: [str],
             key_columns: [str],
             result_columns: [str],
@@ -180,3 +183,19 @@ class FeatureSetClient:
 def client() -> FeatureSetClient:
     """Get client configured from environment variables"""
     pass
+
+
+# Sample Usage
+#
+# import featureset
+#
+# client = featureset.client()
+#
+# fs = client.create_featureset("my featureset", metadata={"some": "immutable data"},
+#                               annotations={"useful": "mutable data"})
+#
+# df = data_science()
+#
+# client.create_version(df, fs.id, timestamp_columns=['timestamp'],
+#                       key_columns=['foo'], result_columns=['bar', 'baz'],
+#                       metadata={}, annotations={})
