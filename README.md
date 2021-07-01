@@ -11,7 +11,7 @@ from data_access_sdk import datasource
 redshift = datasource('Redshift-Warehouse')
 res = redshift.execute('SELECT name AS label, value FROM my_table LIMIT 1000')
 
-# Fetch one or many row
+# Fetch one or many rows
 row = res.fetchone()
 rows = res.fetchmany(100)
 
