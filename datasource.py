@@ -62,7 +62,7 @@ class Datasource:
         pass
 
     def execute(self, query: str) -> Result:
-        return self.core.execute(self, query)
+        return self.core.execute(self.name, query)
 
 
 class Core:
