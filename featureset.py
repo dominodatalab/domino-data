@@ -1,25 +1,18 @@
 from collections.abc import Mapping, Set
 from enum import Enum
+from typing import Optional
 import datetime
-import uuid
+import uuid  # don't take too literally, these may be ObjectIds
 
 import pandas as pd
 
 
-# Sample Usage
-#
-# import featureset
-#
-# client = featureset.client()
-#
-# fs = client.create_featureset("my featureset", metadata={"some": "immutable data"},
-#                               annotations={"useful": "mutable data"})
-#
-# df = data_science()
-#
-# client.create_version(df, fs.id, timestamp_columns=['timestamp'],
-#                       key_columns=['foo'], result_columns=['bar', 'baz'],
-#                       metadata={}, annotations={})
+class FeatureSetType(Enum):
+    GENERIC = 1
+    TRAINING = 2
+    PREDICTION = 3
+    GROUND_TRUTH = 4
+
 
 class FeatureSetPermission(Enum):
     READ = 1
@@ -28,56 +21,168 @@ class FeatureSetPermission(Enum):
 
 
 class FeatureSet:
-    def __init__(self, fs_id: uuid.UUID,
-                 creation_time: datetime.datetime,
-                 owner_id: str,
-                 acl: Mapping[str, Set[FeatureSetPermission]],
-                 description: str,
-                 metadata: Mapping[str, str],
-                 annotations: Mapping[str, str],
-                 archived: bool):
-        self.id = id
-        self.creation_time = creation_time
-        self.owner_id = owner_id
-        self.acl = acl
-        self.description = description
-        self.metadata = metadata        # immutable
-        self.annotations = annotations  # mutable, for usability
-        self.archived = archived
+    def __init__(
+            self,
+            id: uuid.UUID,
+            version_number: int,
+            name: str,
+            description: str,
+            type: FeatureSetType,
+            creation_time: datetime.datetime,
+            owner_id: str,
+            acl: Mapping[str, Set[FeatureSetPermission]],
+            metadata: Mapping[str, str],
+            annotations: Mapping[str, str],
+            archived: bool
+    ):
+        pass
+
+    def create_version(
+            self,
+            df: pd.DataFrame,
+            timestamp_column: str,
+            independent_vars: [str] = [],
+            target_vars: [str] = [],
+            continuous_vars: [str] = [],
+            categorical_vars: [str] = [],
+            ordinal_vars: [str] = [],
+            name: Optional[str] = None,
+            description: Optional[str] = None,
+            metadata: Mapping[str, str] = {},
+            annotations: Mapping[str, str] = {}
+    ) -> 'FeatureSetVersion':
+        """Creates a new FeatureSetVersion"""
+        pass
+
+    def open_version(
+            self,
+            timestamp_column: str,
+            independent_vars: [str] = [],
+            target_vars: [str] = [],
+            continuous_vars: [str] = [],
+            categorical_vars: [str] = [],
+            ordinal_vars: [str] = [],
+            name: Optional[str] = None,
+            description: Optional[str] = None,
+            metadata: Mapping[str, str] = {},
+            annotations: Mapping[str, str] = {}
+    ) -> 'FeatureSetVersion':
+        """Opens a FeatureSetVersion for writing"""
+        pass
+
+    def get_version(self, fsv_id: uuid.UUID) -> 'FeatureSetVersion':
+        """Get FeatureSetVersion by id."""
+        pass
+
+    # TODO: paginated API
+    def get_versions(self, offset: int, limit: int) -> ['FeatureSetVersion']:
+        """Get all FeatureSetVersion for a FeatureSet."""
+        pass
+
+    # TODO: paginated API
+    def get_versions_for_project(
+            self,
+            project_id: uuid.UUID,
+            offset: int,
+            limit: int
+    ) -> ['FeatureSetVersion']:
+        """Get all FeatureSetVersion for a FeatureSet."""
+        pass
+
+    def get_latest_version(self) -> 'FeatureSetVersion':
+        """Get latest FeatureSetVersion of a FeatureSet."""
+        pass
+
+    def archive(self) -> None:
+        """Archives FeatureSet"""
+        pass
+
+    def update_description(
+            self,
+            description: str
+    ) -> None:
+        """Updates a FeatureSet's annotations"""
+        pass
+
+    def update_featureset_annotations(
+            self,
+            annotations: Mapping[str, str]
+    ) -> None:
+        """Updates a FeatureSet's annotations"""
+        pass
+
+    def add_permission(self, user_id: str,
+                       permissions: Set[str]) -> None:
+        """Grant access to another user.
+
+        Only the owner or domino administrators may modify permissions.
+        """
+        pass
+
+    def drop_permission(self, user_id: str) -> None:
+        """Drop all user permissions.
+
+        Only the owner or domino administrators may modify permissions.
+        """
+        pass
 
 
 class FeatureSetVersion:
-    def __init__(self, fsv_id: uuid.UUID,
-                 fs_id: uuid.UUID,
-                 creation_time: datetime.datetime,
-                 url: str,
-                 datatype: str,
-                 encoding: str,
-                 timestamp_columns: [str],
-                 key_columns: [str],
-                 result_columns: [str],
-                 metadata: Mapping[str, str],
-                 annotations: Mapping[str, str],
-                 pending: bool):
-        self.id = id
-        self.fs_id = fs_id
-        self.url = url
-        self.datatype = datatype        # if this is all collunmar, maybe not needed yet
-        self.encoding = encoding        # for internal use (e.g. parquet, etc)
-        self.timestamp_columns = key_columns
-        self.key_columns = key_columns
-        self.result_columns = result_columns
-        self.metadata = metadata        # immutable
-        self.annotations = annotations  # mutable
-        self.pending = pending
+    def __init__(
+            self,
+            fsv_id: uuid.UUID,
+            fs_id: uuid.UUID,
+            creation_time: datetime.datetime,
+            url: str,
+            timestamp_column: str,
+            independent_vars: [str],
+            target_vars: [str],
+            continuous_vars: [str],
+            categorical_vars: [str],
+            ordinal_vars: [str],
+            name: Optional[str],
+            description: Optional[str],
+            metadata: Mapping[str, str],
+            annotations: Mapping[str, str],
+            is_open: bool
+    ):
+        pass
 
+    def delete(self) -> None:
+        """Delete FeatureSetVersion record and data."""
+        pass
+
+    def get_df(self) -> pd.DataFrame:
+        """Retrieve FeatureSetVersion data.
+
+        Raises an exception if is_open=true
+        """
+        pass
+
+    def append(self, df: pd.DataFrame) -> None:
+        """Append a dataframe.
+
+        Raises and exception if is_open=false
+        """
+
+    def close(self) -> None:
+        """Closes a version.
+
+        idempotent.
+        """
 
 class FeatureSetClient:
-    def __init__(self, bucket):
-        self.bucket = bucket
+    def __init__(self):
+        pass
 
-    def create_featureset(self, description: str, metadata: Mapping[str, str],
-                          annotations: Mapping[str, str]) -> FeatureSet:
+    def create_featureset(
+            self,
+            name: str,                          # globally unique?
+            type: FeatureSetType,
+            description: Optional[str] = None,
+            metadata: Mapping[str, str] = {},
+            annotations: Mapping[str, str] = {}
+    ) -> FeatureSet:
         """Registers a new FeatureSet with domino"""
         pass
 
@@ -85,113 +190,18 @@ class FeatureSetClient:
         """Get a FeatureSet"""
         pass
 
-    def archive_featureset(self, fs_id: uuid.UUID) -> FeatureSet:
-        """Archives FeatureSet"""
+    def get_featureset_by_name(self, name: str) -> FeatureSet:
+        """Get a FeatureSet"""
         pass
 
-    def update_featureset_description(
+    def get_featuresets_for_project(
             self,
-            fs_id: uuid.UUID,
-            description: str
-    ) -> FeatureSet:
-        """Updates a FeatureSet's annotations"""
-        pass
-
-    def update_featureset_annotations(
-            self,
-            fs_id: uuid.UUID,
-            annotations: Mapping[str, str]
-    ) -> FeatureSet:
-        """Updates a FeatureSet's annotations"""
-        pass
-
-    def add_permission(self, user_id: str,
-                       permissions: Set[str]) -> FeatureSet:
-        """Grant access to another user.
-
-        Only the owner or domino administrators may modify permissions.
-        """
-        pass
-
-    def drop_permission(self, user_id: str) -> FeatureSet:
-        """Drop all user permissions.
-
-        Only the owner or domino administrators may modify permissions.
-        """
-        pass
-
-    def create_version(self, df: pd.DataFrame,
-                       fs_id: uuid.UUID,
-                       timestamp_columns: [str],
-                       key_columns: [str],
-                       result_columns: [str],
-                       metadata: Mapping[str, str],
-                       annotations: Mapping[str, str]) -> FeatureSetVersion:
-        try:
-            fsv = self._reg_pending_upload(fs_id, timestamp_columns,
-                                           key_columns, result_columns,
-                                           metadata, annotations)
-
-            df.to_parquet(fsv.url)
-
-            return self._reg_completed_upload(fsv.id)
-        except Exception as exn:
-            self._reg_failed_upload()
-            raise exn
-
-    def get_version(self, fsv_id: uuid.UUID) -> FeatureSetVersion:
-        """Get FeatureSetVersion by id."""
-        pass
-
-    def get_versions(self, fs_id: uuid.UUID) -> [FeatureSetVersion]:
-        """Get all FeatureSetVersion for a FeatureSet."""
-        pass
-
-    def get_latest_version(self, fs_id: uuid.UUID) -> FeatureSetVersion:
-        """Get latest FeatureSetVersion of a FeatureSet."""
-        pass
-
-    def delete_version(self, fsv_id: uuid.UUID) -> FeatureSetVersion:
-        """Delete FeatureSetVersion record and data."""
-        pass
-
-    def get_df(self, fsv_id: uuid.UUID) -> pd.DataFrame:
-        """Retrieve FeatureSetVersion data."""
-
-        fsv = self.get_version(id)
-
-        df = pd.read_parquet(fsv.url)
-
-        return df
-
-    def _reg_pending_upload(
-            self,
-            fs_id: uuid.UUID,
-            timestamp_columns: [str],
-            key_columns: [str],
-            result_columns: [str],
-            metadata: Mapping[str, str],
-            annotations: Mapping[str, str]
-    ) -> FeatureSetVersion:
-        """Register beginning of FeatureSetVersion upload with metadata service.
-
-        Server will return a pending FeatureSetVersion.
-        """
-
-        pass
-
-    def _reg_completed_upload(self, fsv_id: str) -> FeatureSetVersion:
-        """Register completion of a FeatureSetVersion upload with metadata service.
-
-        Server will remove pending flag from FeatureSetVersion.
-        """
-        pass
-
-    def _reg_failed_upload(self, fsv_id: str) -> FeatureSetVersion:
-        """Register failure of a FeatureSetVersion upload.
-
-        Server deletes FeatureSetVersion or marks it as deleted.
-        """
+            project_id: uuid.UUID,
+            type: FeatureSetType,
+            offset: int = 0,
+            limit: int = 1000
+    ) -> [FeatureSet]:
+        """Get FeatureSets containing a version created by a project"""
         pass
 
 
