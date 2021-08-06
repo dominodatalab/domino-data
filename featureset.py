@@ -133,7 +133,6 @@ class FeatureSetVersion:
             fsv_id: uuid.UUID,
             fs_id: uuid.UUID,
             creation_time: datetime.datetime,
-            url: str,
             timestamp_column: str,
             independent_vars: [str],
             target_vars: [str],
@@ -157,6 +156,11 @@ class FeatureSetVersion:
 
         Raises an exception if is_open=true
         """
+        pass
+
+    def get_url(self) -> str:
+        """Gets a self-signed url for this FeatureSetVersion"""
+
         pass
 
     def append(self, df: pd.DataFrame) -> None:

@@ -72,7 +72,7 @@ fs = client.get_featureset_by_name("modelID_predictions")
 # want to select versions, or is it good enough to let the user filter on
 # their end?
 fsvs = fs.get_versions(offset=0, limit=100)
-fs = fsvs[20]  # user selects version of interesta
+fs = fsvs[20]  # user selects version of interest
 
 target_timeframe_df = fs.get_df()
 
