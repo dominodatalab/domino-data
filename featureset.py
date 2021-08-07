@@ -79,16 +79,6 @@ class FeatureSet:
         """Get all FeatureSetVersion for a FeatureSet."""
         pass
 
-    # TODO: paginated API
-    def get_versions_for_project(
-            self,
-            project_id: uuid.UUID,
-            offset: int,
-            limit: int
-    ) -> ['FeatureSetVersion']:
-        """Get all FeatureSetVersion for a FeatureSet."""
-        pass
-
     def get_latest_version(self) -> 'FeatureSetVersion':
         """Get latest FeatureSetVersion of a FeatureSet."""
         pass
