@@ -165,6 +165,7 @@ class FeatureSetVersion:
         idempotent.
         """
 
+
 class FeatureSetClient:
     def __init__(self):
         pass
