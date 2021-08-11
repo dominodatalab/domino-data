@@ -285,7 +285,8 @@ components:
             - Prediction
             - GroundTruth
         creationTime:
-          type: date-time
+          type: string
+          format: date-time
         ownerId:
           type: string
         # XXX TODO ACL
@@ -367,7 +368,8 @@ components:
         trainingSetId:
           type: string
         creationTime:
-          type: date-time
+          type: string
+          format: date-time
         url:
           description: url in object store (e.g. an s3 url)
           type: string

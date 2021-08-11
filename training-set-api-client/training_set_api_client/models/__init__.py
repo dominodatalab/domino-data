@@ -1,0 +1,18 @@
+""" Contains all the data models used in inputs/outputs """
+
+from .create_training_set_request import CreateTrainingSetRequest
+from .create_training_set_request_annotations import CreateTrainingSetRequestAnnotations
+from .create_training_set_request_kind import CreateTrainingSetRequestKind
+from .create_training_set_request_metadata import CreateTrainingSetRequestMetadata
+from .create_training_set_version_request import CreateTrainingSetVersionRequest
+from .create_training_set_version_request_annotations import CreateTrainingSetVersionRequestAnnotations
+from .create_training_set_version_request_metadata import CreateTrainingSetVersionRequestMetadata
+from .training_set import TrainingSet
+from .training_set_annotations import TrainingSetAnnotations
+from .training_set_kind import TrainingSetKind
+from .training_set_metadata import TrainingSetMetadata
+from .training_set_version import TrainingSetVersion
+from .training_set_version_annotations import TrainingSetVersionAnnotations
+from .training_set_version_metadata import TrainingSetVersionMetadata
+from .training_set_version_url import TrainingSetVersionUrl
+from .update_training_set_version_request import UpdateTrainingSetVersionRequest
