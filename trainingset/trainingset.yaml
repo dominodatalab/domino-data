@@ -1,0 +1,433 @@
+openapi: 3.0.0
+
+info:
+  title: TrainingSet API
+  description: XXX TODO
+  version: 0.1.9
+
+paths:
+  /:
+    post:
+      summary: Create new TrainingSet
+      requestBody:
+        description: CreateTrainingSetRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTrainingSetRequest'
+      responses:
+        '200':
+          description: The created TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
+
+  /id/{trainingSetId}:
+    get:
+      summary: Get TrainingSet by id
+      parameters:
+        - in: path
+          name: trainingSetId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet id
+      responses:
+        '200':
+          description: The TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
+    post:
+      summary: Create TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet id
+      requestBody:
+        description: CreateTrainingSetVersionRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTrainingSetVersionRequest'
+      responses:
+        '200':
+          description: The new TrainingSetVersion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersion'
+
+  /id/{trainingSetId}/versions:
+    get:
+      summary: Get TrainingSetVersions for a TrainingSet
+      parameters:
+        - in: path
+          name: trainingSetId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet id
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int64
+          description: offset
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+          description: limit
+      responses:
+        '200':
+          description: TrainingSetVersions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainingSetVersion'
+
+  /name/{name}:
+    get:
+      summary: Get TrainingSet by name
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      responses:
+        '200':
+          description: The TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
+
+  /project/{projectId}:
+    get:
+      summary: Get TrainingSets for project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The Project id
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int64
+          description: offset
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+          description: limit
+      responses:
+        '200':
+          description: List of TrainingSets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref:  '#/components/schemas/TrainingSet'
+
+  /version/{trainingSetVersionId}:
+    get:
+      summary: Get TrainingSetVersion by id
+      parameters:
+        - in: path
+          name: trainingSetVersionId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSetVersion id
+      responses:
+        '200':
+          description: The TrainingSetVersion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersion'
+    put:
+      summary: Update TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetVersionId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSetVersion id
+      requestBody:
+        description: UpdateTrainingSetRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainingSetVersionRequest'
+      responses:
+        '200':
+          description: The TrainingSetVersion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersion'
+
+  /version/{trainingSetVersionId}/uploadUrl:
+    get:
+      summary: Get pre-signed upload URL
+      parameters:
+        - in: path
+          name: trainingSetVersionId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSetVersion id
+      responses:
+        '200':
+          description: The TrainingSetVersion upload url
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersionUrl'
+
+  /version/{trainingSetVersionId}/downloadUrl:
+    get:
+      summary: Get pre-signed download URL
+      parameters:
+        - in: path
+          name: trainingSetVersionId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSetVersion id
+      responses:
+        '200':
+          description: The TrainingSetVersion download url
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersionUrl'
+
+components:
+  schemas:
+    CreateTrainingSetRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        projectId:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+          enum:
+            - Generic
+            - Training
+            - Prediction
+            - GroundTruth
+        # XXX TODO ACL
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - annotations
+        - kind
+        - metadata
+        - name
+        - projectId
+    TrainingSet:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+          enum:
+            - Generic
+            - Training
+            - Prediction
+            - GroundTruth
+        creationTime:
+          type: date-time
+        ownerId:
+          type: string
+        # XXX TODO ACL
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+        archived:
+          type: boolean
+      required:
+        - annotations
+        - archived
+        - creationTime
+        - id
+        - kind
+        - metadata
+        - name
+        - ownerId
+    CreateTrainingSetVersionRequest:
+      type: object
+      properties:
+        timestampColumn:
+          type: string
+        independentVars:
+          type: array
+          items:
+            type: string
+        targetVars:
+          type: array
+          items:
+            type: string
+        continuousVars:
+          type: array
+          items:
+            type: string
+        categoricalVars:
+          type: array
+          items:
+            type: string
+        ordinalVars:
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - annotations
+        - categoricalVars
+        - continuousVars
+        - independentVars
+        - metadata
+        - ordinalVars
+        - targetVars
+        - timestampColumn
+    UpdateTrainingSetVersionRequest:
+      type: object
+      properties:
+        pending:
+          type: boolean
+    TrainingSetVersion:
+      type: object
+      properties:
+        id:
+          type: string
+        trainingSetId:
+          type: string
+        creationTime:
+          type: date-time
+        url:
+          description: url in object store (e.g. an s3 url)
+          type: string
+        timestampColumn:
+          type: string
+        independentVars:
+          type: array
+          items:
+            type: string
+        targetVars:
+          type: array
+          items:
+            type: string
+        continuousVars:
+          type: array
+          items:
+            type: string
+        categoricalVars:
+          type: array
+          items:
+            type: string
+        ordinalVars:
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+        pending:
+          type: boolean
+      required:
+        - annotations
+        - categoricalVars
+        - continuousVars
+        - creationTime
+        - id
+        - independentVars
+        - metadata
+        - pending
+        - ordinalVars
+        - targetVars
+        - timestampColumn
+        - trainingSetId
+        - url
+    TrainingSetVersionUrl:
+      type: object
+      properties:
+        trainingSetVersionId:
+          type: string
+        url:
+          type: string
+      required:
+        - trainingSetVersionId
+        - url
