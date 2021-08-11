@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-import trainingset.client as client
+from trainingset import client, models
 
 client = client.client()
 
 client.create_featureset(
     name="foo",
-    kind=client.TrainingSetType.GENERIC,
+    project_id=
+    kind=models.TrainingSetType.GENERIC,
     description="hippies",
     metadata={"foo": "bar"},
     annotations={"abc": "123"}
