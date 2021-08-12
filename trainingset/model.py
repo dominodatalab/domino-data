@@ -8,9 +8,9 @@ class TrainingSet:
     def __init__(
             self,
             name: str,
-            project_id: Optional[str] = None,  # can this be the hex id number?
+            project_id: Optional[str] = None,  # is this owner/project or hex
             description: Optional[str] = None,
-            users: [str] = [],
+            users: [str] = [],  # usernames
     ):
         if not project_id:
             project_id = os.getenv("DOMINO_PROJECT_ID")  # XXX find real envvar

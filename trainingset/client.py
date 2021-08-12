@@ -82,7 +82,7 @@ def delete_training_set_version(
 
 def get_training_set_versions(
         training_set_name: Optional[str] = None,
-        project_id: Optional[str] = None,  # the hex project_id?
+        project_id: Optional[str] = None,  # is this owner/project or hex?
         metadata: Mapping[str, str] = {},
         asc: int = 1,
         offset: int = 0,
