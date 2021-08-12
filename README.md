@@ -27,16 +27,5 @@ res.to_file('/tmp/redshift-sample.csv', file_format='csv')
 Example usage:
 
 ```python
-import featureset
-
-client = featureset.client()
-
-fs = client.create_featureset("my featureset", metadata={"some": "immutable data"},
-                              annotations={"useful": "mutable data"})
-
-df = data_science()
-
-client.create_version(df, fs.id, timestamp_columns=['timestamp'],
-                      key_columns=['foo'], result_columns=['bar', 'baz'],
-                      metadata={}, annotations={})
+# coming soon!
 ```
