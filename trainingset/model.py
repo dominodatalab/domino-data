@@ -1,0 +1,53 @@
+from collections.abc import Mapping
+import datetime
+from typing import Optional
+import os
+
+
+class TrainingSet:
+    def __init__(
+            self,
+            name: str,
+            project_id: Optional[str] = None,  # can this be the hex id number?
+            description: Optional[str] = None,
+            users: [str] = [],
+    ):
+        if not project_id:
+            project_id = os.getenv("DOMINO_PROJECT_ID")  # XXX find real envvar
+            if not project_id:
+                raise("project id not found")
+
+        self.name = name
+        self.project_id,
+        self.description = description
+        self.users = users
+
+
+class TrainingSetVersion:
+    def __init__(
+            self,
+            training_set: str,
+            timestamp_column: str,
+            independent_vars: [str] = [],
+            target_vars: [str] = [],
+            continuous_vars: [str] = [],
+            categorical_vars: [str] = [],
+            ordinal_vars: [str] = [],
+            name: Optional[str] = None,
+            description: Optional[str] = None,
+            metadata: Mapping[str, str] = {},
+            **kwargs,
+    ):
+        self.training_set = training_set
+        self.timestamp_column = timestamp_column
+        self.independent_vars = independent_vars
+        self.target_vars = target_vars
+        self.continuous_vars = continuous_vars
+        self.categorical_vars = categorical_vars
+        self.ordinal_vars = ordinal_vars
+        self.name = name
+        self.description = description
+        self.metadata = metadata
+
+        self.id = kwargs.get("creation_time", None)
+        self.creation_time = kwargs.get("creation_time", datetime.now())
