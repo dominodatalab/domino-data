@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Type, TypeVar, Union, cast
 import attr
 from dateutil.parser import isoparse
 
-from ..models.training_set_version_annotations import TrainingSetVersionAnnotations
 from ..models.training_set_version_metadata import TrainingSetVersionMetadata
 from ..types import UNSET, Unset
 
@@ -26,7 +25,6 @@ class TrainingSetVersion:
     categorical_vars: List[str]
     ordinal_vars: List[str]
     metadata: TrainingSetVersionMetadata
-    annotations: TrainingSetVersionAnnotations
     pending: bool
     name: Union[Unset, str] = UNSET
     description: Union[Unset, str] = UNSET
@@ -51,8 +49,6 @@ class TrainingSetVersion:
 
         metadata = self.metadata.to_dict()
 
-        annotations = self.annotations.to_dict()
-
         pending = self.pending
         name = self.name
         description = self.description
@@ -72,7 +68,6 @@ class TrainingSetVersion:
                 "categoricalVars": categorical_vars,
                 "ordinalVars": ordinal_vars,
                 "metadata": metadata,
-                "annotations": annotations,
                 "pending": pending,
             }
         )
@@ -108,8 +103,6 @@ class TrainingSetVersion:
 
         metadata = TrainingSetVersionMetadata.from_dict(d.pop("metadata"))
 
-        annotations = TrainingSetVersionAnnotations.from_dict(d.pop("annotations"))
-
         pending = d.pop("pending")
 
         name = d.pop("name", UNSET)
@@ -128,7 +121,6 @@ class TrainingSetVersion:
             categorical_vars=categorical_vars,
             ordinal_vars=ordinal_vars,
             metadata=metadata,
-            annotations=annotations,
             pending=pending,
             name=name,
             description=description,

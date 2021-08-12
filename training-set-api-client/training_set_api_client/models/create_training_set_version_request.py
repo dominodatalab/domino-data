@@ -13,6 +13,8 @@ T = TypeVar("T", bound="CreateTrainingSetVersionRequest")
 class CreateTrainingSetVersionRequest:
     """ """
 
+    project_owner_username: str
+    project_name: str
     timestamp_column: str
     independent_vars: List[str]
     target_vars: List[str]
@@ -26,6 +28,8 @@ class CreateTrainingSetVersionRequest:
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        project_owner_username = self.project_owner_username
+        project_name = self.project_name
         timestamp_column = self.timestamp_column
         independent_vars = self.independent_vars
 
@@ -48,6 +52,8 @@ class CreateTrainingSetVersionRequest:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "projectOwnerUsername": project_owner_username,
+                "projectName": project_name,
                 "timestampColumn": timestamp_column,
                 "independentVars": independent_vars,
                 "targetVars": target_vars,
@@ -68,6 +74,10 @@ class CreateTrainingSetVersionRequest:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
+        project_owner_username = d.pop("projectOwnerUsername")
+
+        project_name = d.pop("projectName")
+
         timestamp_column = d.pop("timestampColumn")
 
         independent_vars = cast(List[str], d.pop("independentVars"))
@@ -89,6 +99,8 @@ class CreateTrainingSetVersionRequest:
         description = d.pop("description", UNSET)
 
         create_training_set_version_request = cls(
+            project_owner_username=project_owner_username,
+            project_name=project_name,
             timestamp_column=timestamp_column,
             independent_vars=independent_vars,
             target_vars=target_vars,

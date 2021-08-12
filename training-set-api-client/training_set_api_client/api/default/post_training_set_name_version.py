@@ -3,17 +3,18 @@ from typing import Any, Dict, Optional
 import httpx
 
 from ...client import Client
-from ...models.create_training_set_request import CreateTrainingSetRequest
-from ...models.training_set import TrainingSet
+from ...models.create_training_set_version_request import CreateTrainingSetVersionRequest
+from ...models.training_set_version import TrainingSetVersion
 from ...types import Response
 
 
 def _get_kwargs(
     *,
     client: Client,
-    json_body: CreateTrainingSetRequest,
+    training_set_name: str,
+    json_body: CreateTrainingSetVersionRequest,
 ) -> Dict[str, Any]:
-    url = "{}/".format(client.base_url)
+    url = "{}/{trainingSetName}/version".format(client.base_url, trainingSetName=training_set_name)
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -29,15 +30,15 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[TrainingSet]:
+def _parse_response(*, response: httpx.Response) -> Optional[TrainingSetVersion]:
     if response.status_code == 200:
-        response_200 = TrainingSet.from_dict(response.json())
+        response_200 = TrainingSetVersion.from_dict(response.json())
 
         return response_200
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[TrainingSet]:
+def _build_response(*, response: httpx.Response) -> Response[TrainingSetVersion]:
     return Response(
         status_code=response.status_code,
         content=response.content,
@@ -49,10 +50,12 @@ def _build_response(*, response: httpx.Response) -> Response[TrainingSet]:
 def sync_detailed(
     *,
     client: Client,
-    json_body: CreateTrainingSetRequest,
-) -> Response[TrainingSet]:
+    training_set_name: str,
+    json_body: CreateTrainingSetVersionRequest,
+) -> Response[TrainingSetVersion]:
     kwargs = _get_kwargs(
         client=client,
+        training_set_name=training_set_name,
         json_body=json_body,
     )
 
@@ -66,12 +69,14 @@ def sync_detailed(
 def sync(
     *,
     client: Client,
-    json_body: CreateTrainingSetRequest,
-) -> Optional[TrainingSet]:
+    training_set_name: str,
+    json_body: CreateTrainingSetVersionRequest,
+) -> Optional[TrainingSetVersion]:
     """ """
 
     return sync_detailed(
         client=client,
+        training_set_name=training_set_name,
         json_body=json_body,
     ).parsed
 
@@ -79,10 +84,12 @@ def sync(
 async def asyncio_detailed(
     *,
     client: Client,
-    json_body: CreateTrainingSetRequest,
-) -> Response[TrainingSet]:
+    training_set_name: str,
+    json_body: CreateTrainingSetVersionRequest,
+) -> Response[TrainingSetVersion]:
     kwargs = _get_kwargs(
         client=client,
+        training_set_name=training_set_name,
         json_body=json_body,
     )
 
@@ -95,13 +102,15 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: Client,
-    json_body: CreateTrainingSetRequest,
-) -> Optional[TrainingSet]:
+    training_set_name: str,
+    json_body: CreateTrainingSetVersionRequest,
+) -> Optional[TrainingSetVersion]:
     """ """
 
     return (
         await asyncio_detailed(
             client=client,
+            training_set_name=training_set_name,
             json_body=json_body,
         )
     ).parsed
