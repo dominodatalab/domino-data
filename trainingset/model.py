@@ -1,7 +1,6 @@
 from collections.abc import Mapping
 import datetime
 from typing import Optional
-import os
 
 
 class TrainingSet:
@@ -12,11 +11,6 @@ class TrainingSet:
             description: Optional[str] = None,
             users: [str] = [],  # usernames
     ):
-        if not project_id:
-            project_id = os.getenv("DOMINO_PROJECT_ID")  # XXX find real envvar
-            if not project_id:
-                raise("project id not found")
-
         self.name = name
         self.project_id,
         self.description = description
