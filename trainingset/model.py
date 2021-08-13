@@ -44,4 +44,4 @@ class TrainingSetVersion:
         self.metadata = metadata
 
         self.id = kwargs.get("creation_time", None)
-        self.creation_time = kwargs.get("creation_time", datetime.now())
+        self.creation_time = kwargs.get("creation_time", datetime.datetime.now())
