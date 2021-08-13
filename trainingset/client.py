@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from typing import Optional
+import os
 
 import pandas as pd
 
@@ -41,7 +42,18 @@ def delete_training_set(
 def create_training_set_version(
         version: model.TrainingSetVersion,
         df: pd.DataFrame,
+        project_owner: Optional[str],
+        project_name: Optional[str],
 ) -> model.TrainingSetVersion:
+    if not project_owner:
+        project_owner = os.getenv("DOMINO_PROJECT_OWNER")
+
+    if not project_name:
+        project_owner = os.getenv("DOMINO_PROJECT_NAME")
+
+    if not project_owner or not project_owner:
+        raise("project owner and name are required")
+
     # creates TrainingSet if it does not already exist
     # creates a TrainingSetVersion record
     # gets pre-signed upload url
