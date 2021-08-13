@@ -39,7 +39,7 @@ def delete_training_set(
 
 
 def create_training_set_version(
-        training_set: model.TrainingSet,
+        version: model.TrainingSetVersion,
         df: pd.DataFrame,
 ) -> model.TrainingSetVersion:
     # creates TrainingSet if it does not already exist
