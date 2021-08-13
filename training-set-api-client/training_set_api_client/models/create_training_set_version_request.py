@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
 
-from ..models.create_training_set_version_request_annotations import CreateTrainingSetVersionRequestAnnotations
 from ..models.create_training_set_version_request_metadata import CreateTrainingSetVersionRequestMetadata
 from ..types import UNSET, Unset
 
@@ -22,7 +21,6 @@ class CreateTrainingSetVersionRequest:
     categorical_vars: List[str]
     ordinal_vars: List[str]
     metadata: CreateTrainingSetVersionRequestMetadata
-    annotations: CreateTrainingSetVersionRequestAnnotations
     name: Union[Unset, str] = UNSET
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
@@ -43,8 +41,6 @@ class CreateTrainingSetVersionRequest:
 
         metadata = self.metadata.to_dict()
 
-        annotations = self.annotations.to_dict()
-
         name = self.name
         description = self.description
 
@@ -61,7 +57,6 @@ class CreateTrainingSetVersionRequest:
                 "categoricalVars": categorical_vars,
                 "ordinalVars": ordinal_vars,
                 "metadata": metadata,
-                "annotations": annotations,
             }
         )
         if name is not UNSET:
@@ -92,8 +87,6 @@ class CreateTrainingSetVersionRequest:
 
         metadata = CreateTrainingSetVersionRequestMetadata.from_dict(d.pop("metadata"))
 
-        annotations = CreateTrainingSetVersionRequestAnnotations.from_dict(d.pop("annotations"))
-
         name = d.pop("name", UNSET)
 
         description = d.pop("description", UNSET)
@@ -108,7 +101,6 @@ class CreateTrainingSetVersionRequest:
             categorical_vars=categorical_vars,
             ordinal_vars=ordinal_vars,
             metadata=metadata,
-            annotations=annotations,
             name=name,
             description=description,
         )

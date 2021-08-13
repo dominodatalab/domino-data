@@ -1,7 +1,6 @@
 """ Contains all the data models used in inputs/outputs """
 
 from .create_training_set_version_request import CreateTrainingSetVersionRequest
-from .create_training_set_version_request_annotations import CreateTrainingSetVersionRequestAnnotations
 from .create_training_set_version_request_metadata import CreateTrainingSetVersionRequestMetadata
 from .training_set import TrainingSet
 from .training_set_metadata import TrainingSetMetadata

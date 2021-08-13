@@ -99,12 +99,7 @@ components:
           type: object
           additionalProperties:
             type: string
-        annotations:
-          type: object
-          additionalProperties:
-            type: string
       required:
-        - annotations
         - categoricalVars
         - continuousVars
         - independentVars
@@ -165,7 +160,6 @@ components:
         pending:
           type: boolean
       required:
-        - annotations
         - categoricalVars
         - continuousVars
         - creationTime
