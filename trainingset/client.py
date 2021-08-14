@@ -1,10 +1,10 @@
 from collections.abc import Mapping
-from typing import Optional
+from typing import List, Optional
 import os
 
 import pandas as pd
 
-from trainingset import model
+from trainingset import model # XXX rename model
 
 from training_set_api_client import Client
 from training_set_api_client.models.create_training_set_version_request import CreateTrainingSetVersionRequest
@@ -12,31 +12,52 @@ from training_set_api_client.models.create_training_set_version_request_metadata
 from training_set_api_client.api.default import post_training_set_name_version
 
 
-def get_training_set(
-        name: str,
-) -> model.TrainingSet:
+def get_training_set(name: str) -> model.TrainingSet:
+    """Get a TrainingSet by name"""
+
     pass
 
 
-def get_training_sets(
-    project_id: Optional[str] = None,  # the hex project_id?
-    asc: int = 1,
-    offset: int = 0,
-    limit: int = 0,
-) -> [model.TrainingSet]:
-    # find all training sets user has access to with matching all fields
+def list_training_sets(
+        filter: model.TrainingSetFilter = {},
+        asc: int = 1,
+        offset: int = 0,
+        limit: int = 10000,
+) -> model.TrainingSet:
+    """List training sets
+
+    Keyword arguments:
+    filter -- a filter
+    asc -- sort order by creation time, 1 for ascending -1 for descending
+    offset -- offset
+    limit -- limit
+    """
 
     pass
 
 
 def update_training_set(
-    training_set: model.TrainingSet, ) -> model.TrainingSet:
-    # server updates modifiable fields, including users
+    training_set: model.TrainingSet,
+) -> model.TrainingSet:
+    """Updates a TrainingSet
+
+    Keyword arguments:
+    training_set -- updated TrainingSet
+    """
 
     pass
 
 
-def delete_training_set(name: str) -> bool:
+def delete_training_set(name: str, force: bool = False) -> bool:
+    """Delete a TrainingSet.
+
+    Will only delete if the TrainingSet has no versions unless force is used.
+
+    Keyword arguments:
+    name -- name of the TrainingSet
+    force -- will delete all versions if true
+    """
+
     # deletes a trainingset.
     # only if no it contains no versions? (user needs to delete them first)
 
@@ -44,24 +65,46 @@ def delete_training_set(name: str) -> bool:
 
 
 def create_training_set_version(
-    version: model.TrainingSetVersion,
+    training_set_name: str,
     df: pd.DataFrame,
-    project_owner: Optional[str],
-    project_name: Optional[str],
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    key_columns: List[str] = [],
+    target_columns: List[str] = [],
+    exclude_columns: List[str] = [],
+    monitoring_meta: Optional(MonitoringMeta) = {},
+    meta: Mapping(str, str) = {},
+    **kwargs,
 ) -> model.TrainingSetVersion:
+    """Create a TrainingSetVersion
 
-    if not project_owner:
+    Keyword arguments:
+    training_set_name -- name of the TrainingSet this version belongs to
+    df -- a DataFrame holding the data
+    training_set_name -- name of the TrainingSet this version belongs to
+    name -- name of this version
+    description -- description of this version
+    key_columns -- names of columns that represent IDs for retrieving features
+    target_columns -- target variables for prediction
+    exclude_columns -- columns to exclude when generating the training DataFrame
+    monitoring_meta -- monitoring specific metadata
+    meta -- user defined metadata
+    """
+
+    project_name = kwargs.get("project_name")
+    if project_name:
+        (project_owner, project_name) = project_name.split("/")
+    else:
         project_owner = os.getenv("DOMINO_PROJECT_OWNER")
-
-    if not project_name:
-        project_owner = os.getenv("DOMINO_PROJECT_NAME")
+        project_name = os.getenv("DOMINO_PROJECT_NAME")
 
     if not project_owner or not project_owner:
         raise ("project owner and name are required")
 
+    # XXX fixme!
     created = post_training_set_name_version.sync(
         client=_get_client(),
-        training_set_name=version.training_set,
+        training_set_name=training_set_name,
         json_body=CreateTrainingSetVersionRequest(
             project_owner_username=project_owner,
             project_name=project_name,
@@ -88,42 +131,53 @@ def create_training_set_version(
     return created
 
 
-def get_training_set_version(id: str) -> model.TrainingSetVersion:
-    # gets training_set by version id
+def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
+    """Gets a TrainingSetVersion by version number
 
-    pass
-
-
-def get_training_set_version_df(id: str) -> pd.DataFrame:
-    # gets dataframe for a TrainingSetVersion
+    Keyword arguments:
+    training_set_name -- name of the TrainingSet
+    number -- version number
+    """
 
     pass
 
 
 def update_training_set_version(
-    training_set_version: model.TrainingSetVersion
+    version: model.TrainingSetVersion
 ) -> model.TrainingSetVersion:
-    # submits an update request to server, server will reject if an immutable
-    # field is modified
+    """Updates this TrainingSetVersion.
+
+    Keyword arguments:
+    version -- TrainingSetVersion to update
+    """
 
     pass
 
 
-def delete_training_set_version(training_set_version_id: str) -> bool:
-    # server deletes object and marks record as deleted
+def delete_training_set_version(training_set_version: model.TrainingSetVersion) -> bool:
+    """Deletes a TrainingSetVersion.
+
+    Keyword arguments:
+    version -- TrainingSetVersion to delete
+    """
 
     pass
 
 
-def get_training_set_versions(
-    training_set_name: Optional[str] = None,
-    project_id: Optional[str] = None,  # is this owner/project or hex?
-    metadata: Mapping[str, str] = {},
+def list_training_set_versions(
+    filter: model.TrainingSetVersionFilter = {},
     asc: int = 1,
     offset: int = 0,
     limit: int = 0,
 ) -> [model.TrainingSetVersion]:
-    # finds records with all specified fields that user has access to
+    """List training sets
+
+    Keyword arguments:
+    filter -- a filter
+    asc -- sort order by creation time, 1 for ascending -1 for descending
+    offset -- offset
+    limit -- limit
+    """
 
     pass
 
