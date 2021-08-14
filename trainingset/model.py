@@ -3,6 +3,7 @@ from typing import Optional, List, TypedDict, Mapping, Set
 
 import pandas as pd
 
+
 class TrainingSet:
     def __init__(
             self,
@@ -25,9 +26,9 @@ class TrainingSet:
         self.name = name
         self.description = description
         self.meta = meta
-        self.collaborators = collaborators
 
         self._owner = kwargs.get("owner")
+        self._collaborators = collaborators
         self._project_name = kwargs.get("project_name")
 
         @property
@@ -43,13 +44,15 @@ class TrainingSet:
             return self._owner
 
         def add_collaborators(self, collaborators: List(str)) -> None:
-            """Add a collaborator"""
+            """Add collaborators"""
 
+            # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
             self._collaborators.update(collaborators)
 
-        def remove_collaborator(self, collaborators: List(str)) -> None:
-            """Add a collaborator"""
+        def remove_collaborators(self, collaborators: List(str)) -> None:
+            """Add a collaborators"""
 
+            # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
             self._collaborators.difference_update(collaborators)
 
 

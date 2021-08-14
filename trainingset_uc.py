@@ -1,51 +1,84 @@
 from trainingset import client, model
 
-# UC1: User creates training FeatureSet ---------------------------------------
+# Model training flows
+
+# (1) Create a TrainingSetVersion and use it for training ---------------------
 
 training_df = cleaning_feature_eng_etc()
 
-# Create FS version
-client.create_training_set_version(TrainingSetVersion(
-    training_set="my-training-set",  # XXX should we restrict the set of characters that can be used?
-    timestamp_column="ts",
-    independent_vars=["foo"],
-    target_vars=["bar"],
-    continuous_vars=["baz"],
-    categorical_vars=["asdf"],
-    ordinal_vars=["xyz"],
-    name="something",
-    description="blah blah",
-    metadata={},
-))
+tsv = client.create_training_set_version(
+    training_set_name="my_training_set",
+    df=training_df,
+    key_columns=["user_id", "transaction_id"],
+    target_columns="is_fraud",
+    exclude_columns=["extra_column1", "extra_colum2"],
+    meta={
+        "experiment_id": "123456"
+    },
+    monitoring_meta={
+        "categorical_columns": ["categorical_column1", "categorical_column2"]
+    }
+)
 
-# UC2: User selects training FeatureSet when enabling monitoring --------------
+ts = client.get_training_set_version("my_training_set")
 
+# optionally change permissions
+ts.add_collaborators(["user2, user3"])
 
-# this is somewhat problematic because the set returned could be very
-# large, how would the UI deal with that?
+# Train a model
+train_model(tsv.load_pandas())
 
-# make a filtering api that addresses the needs of dmm
+# (2) Model training from an existing version ---------------------------------
 
-client.get_training_set_versions(project_id="project_id")
+tsv = client.get_training_set_version("my_training_set"), number=tsv.number)
 
-# or:
-for ts in client.get_training_sets("project_id"):
-    tsvs = client.get_training_set_versions(training_set_name=ts.name)
+# all versions in a training set
+for t in client.list_training_set_versions(filter={
+        "training_set_name": "my_training_set"
+}):
+    if t.id == desired_version:
+        tsv = t
+        break
 
-# UC3: User is made aware of prediction FeatureSet name and ID ----------------
+# all versions is a project
+for t in client.list_training_set_versions(filter={
+        "project_name": "gmatev/quick-start"
+}):
+    if t.training_set.name == "my_training_set" and t.number == desired_version:
+        tsv = t
+        break
 
-ts = client.get_training_sets("project_id")
+tsv = client.list_training_set_versions(filter={
+    "meta":{"experiment_id" : "123456"}
+})[0]
 
+train_model(tsv.load_pandas())
 
-# UC4: User accesses prediction FeatureSet to get row identifier --------------
+# (3) Change Training set permissions -----------------------------------------
 
-ts = client.get_training_set_versions(
-    training_set_name="my-training-set",
-    asc=0,
-)[0]
+ts = client.get_training_set(name="my_training_set")
+ts.add_permission("new_user")
 
-df = client.get_training_set_version_df()
+# persist the change
+client.update_training_set(ts)
 
-# UC5: DMM continuously logs predictions to a FeatureSet ----------------------
+# Monitoring usage
 
-# not doing this.
+# All training sets in a project
+
+project_ts = client.list_training_set_versions(filter={
+    "project_name": "gmatev/quick-start"
+})
+
+# get monitoring specific meta-data
+tsv = client.get_training_set_version("my_training_set", tsv.number)
+print(tsv.monitoring_meta)
+
+# get target variables
+timestamp_columns = tsv.monitoring_meta.timestamp_columns
+cardinal_cols = tsv.monitoring_meta.categorical_columns
+ordinal_cols = tsv.monitoring_meta.ordinal_columns
+target_cols = tsv.target_columns
+
+# schema of raw data
+tsv.load_raw_pandas().dtypes.to_json()
