@@ -50,7 +50,6 @@ components:
           format: date-time
         ownerId:
           type: string
-        # XXX TODO ACL
         metadata:
           type: object
           additionalProperties:

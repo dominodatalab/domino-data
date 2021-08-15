@@ -87,8 +87,8 @@ class TrainingSetVersion:
 
     def __init__(
             self,
-            number: int,
             training_set_name: str,
+            number: int,
             name: Optional[str] = None,
             description: Optional[str] = None,
             key_columns: List[str] = [],
@@ -102,7 +102,6 @@ class TrainingSetVersion:
         self.training_set_name = training_set_name,
         self.name = name
         self.description = description,
-
         self.key_columns = key_columns
         self.target_columns = target_columns
         self.exclude_columns = exclude_columns
