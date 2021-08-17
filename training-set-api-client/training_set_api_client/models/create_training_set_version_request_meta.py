@@ -2,11 +2,11 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-T = TypeVar("T", bound="TrainingSetMetadata")
+T = TypeVar("T", bound="CreateTrainingSetVersionRequestMeta")
 
 
 @attr.s(auto_attribs=True)
-class TrainingSetMetadata:
+class CreateTrainingSetVersionRequestMeta:
     """ """
 
     additional_properties: Dict[str, str] = attr.ib(init=False, factory=dict)
@@ -22,10 +22,10 @@ class TrainingSetMetadata:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        training_set_metadata = cls()
+        create_training_set_version_request_meta = cls()
 
-        training_set_metadata.additional_properties = d
-        return training_set_metadata
+        create_training_set_version_request_meta.additional_properties = d
+        return create_training_set_version_request_meta
 
     @property
     def additional_keys(self) -> List[str]:

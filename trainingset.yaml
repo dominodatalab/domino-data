@@ -50,16 +50,29 @@ components:
           format: date-time
         ownerId:
           type: string
-        metadata:
+        owner:
+          type: string
+        collaboratorIds:
+          type: array
+          items:
+            type: string
+        collaborators:
+          type: array
+          items:
+            type: string
+        meta:
           type: object
           additionalProperties:
             type: string
       required:
         - creationTime
+        - collaboratorIds
+        - collaborators
         - id
-        - metadata
+        - meta
         - name
         - ownerId
+        - owner
         - projectId
     CreateTrainingSetVersionRequest:
       type: object
@@ -68,46 +81,36 @@ components:
           type: string
         projectName:
           type: string
-        timestampColumn:
-          type: string
-        independentVars:
+        keyColumns:
           type: array
           items:
             type: string
-        targetVars:
+        targetColumns:
           type: array
           items:
             type: string
-        continuousVars:
+        excludeColumns:
           type: array
           items:
             type: string
-        categoricalVars:
-          type: array
-          items:
-            type: string
-        ordinalVars:
-          type: array
-          items:
-            type: string
+        monitoringMeta:
+          $ref: '#/components/schemas/MonitoringMeta'
         name:
           type: string
         description:
           type: string
-        metadata:
+        meta:
           type: object
           additionalProperties:
             type: string
       required:
-        - categoricalVars
-        - continuousVars
-        - independentVars
-        - metadata
-        - ordinalVars
+        - excludeColumns
+        - keyColumns
+        - meta
+        - monitoringMeta
         - projectName
         - projectOwnerUsername
-        - targetVars
-        - timestampColumn
+        - targetColumns
     UpdateTrainingSetVersionRequest:
       type: object
       properties:
@@ -120,57 +123,72 @@ components:
           type: string
         trainingSetId:
           type: string
+        trainingSetName:
+          type: string
+        number:
+          type: integer
         creationTime:
           type: string
           format: date-time
         url:
           description: url in object store (e.g. an s3 url)
           type: string
-        timestampColumn:
-          type: string
-        independentVars:
+        keyColumns:
           type: array
           items:
             type: string
-        targetVars:
+        targetColumns:
           type: array
           items:
             type: string
-        continuousVars:
+        excludeColumns:
           type: array
           items:
             type: string
-        categoricalVars:
-          type: array
-          items:
-            type: string
-        ordinalVars:
-          type: array
-          items:
-            type: string
+        monitoringMeta:
+          $ref: '#/components/schemas/MonitoringMeta'
         name:
           type: string
         description:
           type: string
-        metadata:
+        meta:
           type: object
           additionalProperties:
             type: string
         pending:
           type: boolean
       required:
-        - categoricalVars
-        - continuousVars
         - creationTime
+        - excludeColumns
         - id
-        - independentVars
-        - metadata
+        - keyColumns
+        - meta
+        - monitoringMeta
+        - number
         - pending
-        - ordinalVars
-        - targetVars
-        - timestampColumn
+        - targetColumns
         - trainingSetId
+        - trainingSetName
         - url
+    MonitoringMeta:
+      type: object
+      properties:
+        timestampColumns:
+           type: array
+           items:
+             type: string
+        categoricalColumns:
+          type: array
+          items:
+            type: string
+        ordinalColumns:
+          type: array
+          items:
+            type: string
+      required:
+        - categoricalColumns
+        - ordinalColumns
+        - timestampColumns
     TrainingSetVersionUrl:
       type: object
       properties:

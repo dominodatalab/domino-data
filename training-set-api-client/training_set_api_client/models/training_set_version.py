@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Type, TypeVar, Union, cast
 import attr
 from dateutil.parser import isoparse
 
-from ..models.training_set_version_metadata import TrainingSetVersionMetadata
+from ..models.monitoring_meta import MonitoringMeta
+from ..models.training_set_version_meta import TrainingSetVersionMeta
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="TrainingSetVersion")
@@ -16,15 +17,15 @@ class TrainingSetVersion:
 
     id: str
     training_set_id: str
+    training_set_name: str
+    number: int
     creation_time: datetime.datetime
     url: str
-    timestamp_column: str
-    independent_vars: List[str]
-    target_vars: List[str]
-    continuous_vars: List[str]
-    categorical_vars: List[str]
-    ordinal_vars: List[str]
-    metadata: TrainingSetVersionMetadata
+    key_columns: List[str]
+    target_columns: List[str]
+    exclude_columns: List[str]
+    monitoring_meta: MonitoringMeta
+    meta: TrainingSetVersionMeta
     pending: bool
     name: Union[Unset, str] = UNSET
     description: Union[Unset, str] = UNSET
@@ -33,21 +34,20 @@ class TrainingSetVersion:
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
         training_set_id = self.training_set_id
+        training_set_name = self.training_set_name
+        number = self.number
         creation_time = self.creation_time.isoformat()
 
         url = self.url
-        timestamp_column = self.timestamp_column
-        independent_vars = self.independent_vars
+        key_columns = self.key_columns
 
-        target_vars = self.target_vars
+        target_columns = self.target_columns
 
-        continuous_vars = self.continuous_vars
+        exclude_columns = self.exclude_columns
 
-        categorical_vars = self.categorical_vars
+        monitoring_meta = self.monitoring_meta.to_dict()
 
-        ordinal_vars = self.ordinal_vars
-
-        metadata = self.metadata.to_dict()
+        meta = self.meta.to_dict()
 
         pending = self.pending
         name = self.name
@@ -59,15 +59,15 @@ class TrainingSetVersion:
             {
                 "id": id,
                 "trainingSetId": training_set_id,
+                "trainingSetName": training_set_name,
+                "number": number,
                 "creationTime": creation_time,
                 "url": url,
-                "timestampColumn": timestamp_column,
-                "independentVars": independent_vars,
-                "targetVars": target_vars,
-                "continuousVars": continuous_vars,
-                "categoricalVars": categorical_vars,
-                "ordinalVars": ordinal_vars,
-                "metadata": metadata,
+                "keyColumns": key_columns,
+                "targetColumns": target_columns,
+                "excludeColumns": exclude_columns,
+                "monitoringMeta": monitoring_meta,
+                "meta": meta,
                 "pending": pending,
             }
         )
@@ -85,23 +85,23 @@ class TrainingSetVersion:
 
         training_set_id = d.pop("trainingSetId")
 
+        training_set_name = d.pop("trainingSetName")
+
+        number = d.pop("number")
+
         creation_time = isoparse(d.pop("creationTime"))
 
         url = d.pop("url")
 
-        timestamp_column = d.pop("timestampColumn")
+        key_columns = cast(List[str], d.pop("keyColumns"))
 
-        independent_vars = cast(List[str], d.pop("independentVars"))
+        target_columns = cast(List[str], d.pop("targetColumns"))
 
-        target_vars = cast(List[str], d.pop("targetVars"))
+        exclude_columns = cast(List[str], d.pop("excludeColumns"))
 
-        continuous_vars = cast(List[str], d.pop("continuousVars"))
+        monitoring_meta = MonitoringMeta.from_dict(d.pop("monitoringMeta"))
 
-        categorical_vars = cast(List[str], d.pop("categoricalVars"))
-
-        ordinal_vars = cast(List[str], d.pop("ordinalVars"))
-
-        metadata = TrainingSetVersionMetadata.from_dict(d.pop("metadata"))
+        meta = TrainingSetVersionMeta.from_dict(d.pop("meta"))
 
         pending = d.pop("pending")
 
@@ -112,15 +112,15 @@ class TrainingSetVersion:
         training_set_version = cls(
             id=id,
             training_set_id=training_set_id,
+            training_set_name=training_set_name,
+            number=number,
             creation_time=creation_time,
             url=url,
-            timestamp_column=timestamp_column,
-            independent_vars=independent_vars,
-            target_vars=target_vars,
-            continuous_vars=continuous_vars,
-            categorical_vars=categorical_vars,
-            ordinal_vars=ordinal_vars,
-            metadata=metadata,
+            key_columns=key_columns,
+            target_columns=target_columns,
+            exclude_columns=exclude_columns,
+            monitoring_meta=monitoring_meta,
+            meta=meta,
             pending=pending,
             name=name,
             description=description,

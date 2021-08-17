@@ -2,7 +2,8 @@ from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
 
-from ..models.create_training_set_version_request_metadata import CreateTrainingSetVersionRequestMetadata
+from ..models.create_training_set_version_request_meta import CreateTrainingSetVersionRequestMeta
+from ..models.monitoring_meta import MonitoringMeta
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CreateTrainingSetVersionRequest")
@@ -14,13 +15,11 @@ class CreateTrainingSetVersionRequest:
 
     project_owner_username: str
     project_name: str
-    timestamp_column: str
-    independent_vars: List[str]
-    target_vars: List[str]
-    continuous_vars: List[str]
-    categorical_vars: List[str]
-    ordinal_vars: List[str]
-    metadata: CreateTrainingSetVersionRequestMetadata
+    key_columns: List[str]
+    target_columns: List[str]
+    exclude_columns: List[str]
+    monitoring_meta: MonitoringMeta
+    meta: CreateTrainingSetVersionRequestMeta
     name: Union[Unset, str] = UNSET
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
@@ -28,18 +27,15 @@ class CreateTrainingSetVersionRequest:
     def to_dict(self) -> Dict[str, Any]:
         project_owner_username = self.project_owner_username
         project_name = self.project_name
-        timestamp_column = self.timestamp_column
-        independent_vars = self.independent_vars
+        key_columns = self.key_columns
 
-        target_vars = self.target_vars
+        target_columns = self.target_columns
 
-        continuous_vars = self.continuous_vars
+        exclude_columns = self.exclude_columns
 
-        categorical_vars = self.categorical_vars
+        monitoring_meta = self.monitoring_meta.to_dict()
 
-        ordinal_vars = self.ordinal_vars
-
-        metadata = self.metadata.to_dict()
+        meta = self.meta.to_dict()
 
         name = self.name
         description = self.description
@@ -50,13 +46,11 @@ class CreateTrainingSetVersionRequest:
             {
                 "projectOwnerUsername": project_owner_username,
                 "projectName": project_name,
-                "timestampColumn": timestamp_column,
-                "independentVars": independent_vars,
-                "targetVars": target_vars,
-                "continuousVars": continuous_vars,
-                "categoricalVars": categorical_vars,
-                "ordinalVars": ordinal_vars,
-                "metadata": metadata,
+                "keyColumns": key_columns,
+                "targetColumns": target_columns,
+                "excludeColumns": exclude_columns,
+                "monitoringMeta": monitoring_meta,
+                "meta": meta,
             }
         )
         if name is not UNSET:
@@ -73,19 +67,15 @@ class CreateTrainingSetVersionRequest:
 
         project_name = d.pop("projectName")
 
-        timestamp_column = d.pop("timestampColumn")
+        key_columns = cast(List[str], d.pop("keyColumns"))
 
-        independent_vars = cast(List[str], d.pop("independentVars"))
+        target_columns = cast(List[str], d.pop("targetColumns"))
 
-        target_vars = cast(List[str], d.pop("targetVars"))
+        exclude_columns = cast(List[str], d.pop("excludeColumns"))
 
-        continuous_vars = cast(List[str], d.pop("continuousVars"))
+        monitoring_meta = MonitoringMeta.from_dict(d.pop("monitoringMeta"))
 
-        categorical_vars = cast(List[str], d.pop("categoricalVars"))
-
-        ordinal_vars = cast(List[str], d.pop("ordinalVars"))
-
-        metadata = CreateTrainingSetVersionRequestMetadata.from_dict(d.pop("metadata"))
+        meta = CreateTrainingSetVersionRequestMeta.from_dict(d.pop("meta"))
 
         name = d.pop("name", UNSET)
 
@@ -94,13 +84,11 @@ class CreateTrainingSetVersionRequest:
         create_training_set_version_request = cls(
             project_owner_username=project_owner_username,
             project_name=project_name,
-            timestamp_column=timestamp_column,
-            independent_vars=independent_vars,
-            target_vars=target_vars,
-            continuous_vars=continuous_vars,
-            categorical_vars=categorical_vars,
-            ordinal_vars=ordinal_vars,
-            metadata=metadata,
+            key_columns=key_columns,
+            target_columns=target_columns,
+            exclude_columns=exclude_columns,
+            monitoring_meta=monitoring_meta,
+            meta=meta,
             name=name,
             description=description,
         )

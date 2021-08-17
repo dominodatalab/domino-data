@@ -1,10 +1,10 @@
 import datetime
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
 from dateutil.parser import isoparse
 
-from ..models.training_set_metadata import TrainingSetMetadata
+from ..models.training_set_meta import TrainingSetMeta
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="TrainingSet")
@@ -19,7 +19,10 @@ class TrainingSet:
     name: str
     creation_time: datetime.datetime
     owner_id: str
-    metadata: TrainingSetMetadata
+    owner: str
+    collaborator_ids: List[str]
+    collaborators: List[str]
+    meta: TrainingSetMeta
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
@@ -30,7 +33,12 @@ class TrainingSet:
         creation_time = self.creation_time.isoformat()
 
         owner_id = self.owner_id
-        metadata = self.metadata.to_dict()
+        owner = self.owner
+        collaborator_ids = self.collaborator_ids
+
+        collaborators = self.collaborators
+
+        meta = self.meta.to_dict()
 
         description = self.description
 
@@ -43,7 +51,10 @@ class TrainingSet:
                 "name": name,
                 "creationTime": creation_time,
                 "ownerId": owner_id,
-                "metadata": metadata,
+                "owner": owner,
+                "collaboratorIds": collaborator_ids,
+                "collaborators": collaborators,
+                "meta": meta,
             }
         )
         if description is not UNSET:
@@ -64,7 +75,13 @@ class TrainingSet:
 
         owner_id = d.pop("ownerId")
 
-        metadata = TrainingSetMetadata.from_dict(d.pop("metadata"))
+        owner = d.pop("owner")
+
+        collaborator_ids = cast(List[str], d.pop("collaboratorIds"))
+
+        collaborators = cast(List[str], d.pop("collaborators"))
+
+        meta = TrainingSetMeta.from_dict(d.pop("meta"))
 
         description = d.pop("description", UNSET)
 
@@ -74,7 +91,10 @@ class TrainingSet:
             name=name,
             creation_time=creation_time,
             owner_id=owner_id,
-            metadata=metadata,
+            owner=owner,
+            collaborator_ids=collaborator_ids,
+            collaborators=collaborators,
+            meta=meta,
             description=description,
         )
 
