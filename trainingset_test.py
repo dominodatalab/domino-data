@@ -5,19 +5,16 @@ from trainingset import client, model
 import pandas as pd
 
 client.create_training_set_version(
-    version=model.TrainingSetVersion(
-        training_set="my-training-set",  # XXX should we restrict the set of characters that can be used?
-        timestamp_column="ts",
-        independent_vars=["foo"],
-        target_vars=["bar"],
-        continuous_vars=["baz"],
-        categorical_vars=["asdf"],
-        ordinal_vars=["xyz"],
-        name="something",
-        description="blah blah",
-        metadata={},
-    ),
+    training_set_name="my-training-set",
     df=pd.DataFrame(),
-    project_owner="integration-test",
-    project_name="quick-start",
+    key_columns=["user_id", "transaction_id"],
+    target_columns=["is_fraud"],
+    exclude_columns=["extra_column1", "extra_column2"],
+    monitoring_meta={
+        "categorical_columns": ["categorical_column1", "categorical_column2"],
+    },
+    meta={
+        "experiment_id": "123456"
+    },
+    project_name="integration-test/quick-start",
 )

@@ -9,8 +9,8 @@ class TrainingSet:
             self,
             name: str,
             description: Optional[str] = None,
-            meta: Mapping(str, str) = {},
-            collaborators: Set(str) = [],
+            meta: Mapping[str, str] = {},
+            collaborators: Set[str] = [],
             **kwargs
     ):
         """
@@ -56,7 +56,7 @@ class TrainingSet:
             self._collaborators.difference_update(collaborators)
 
 
-class MonitoringMeta(TypedDict, Total=False):
+class MonitoringMeta(TypedDict, total=False):
     """MonitoringMeta
 
     Keyword arguments:
@@ -65,9 +65,9 @@ class MonitoringMeta(TypedDict, Total=False):
     ordinal_columns -- all other columns are continuous
     """
 
-    timestamp_columns: List(str) = [],
-    categorical_columns: List(str) = [],
-    ordinal_columns: List(str) = [],
+    timestamp_columns: List[str]
+    categorical_columns: List[str]
+    ordinal_columns: List[str]
 
 
 class TrainingSetVersion:
@@ -94,8 +94,8 @@ class TrainingSetVersion:
             key_columns: List[str] = [],
             target_columns: List[str] = [],
             exclude_columns: List[str] = [],
-            monitoring_meta: Optional(MonitoringMeta) = {},
-            meta: Mapping(str, str) = {},
+            monitoring_meta: MonitoringMeta = {},
+            meta: Mapping[str, str] = {},
             **kwargs,
     ):
         self.number = number
@@ -134,10 +134,10 @@ class TrainingSetFilter(TypedDict, total=False):
     project_id: str
     project_name: str
     owner: str
-    meta: Mapping(str, str)
+    meta: Mapping[str, str]
 
 
-class TrainingSetVersionFilter(TypedDict, Total=False):
+class TrainingSetVersionFilter(TypedDict, total=False):
     """Filter TrainingSetVersions by all provided fields.
 
     Keyword arguments:
@@ -152,6 +152,6 @@ class TrainingSetVersionFilter(TypedDict, Total=False):
     name: str
     project_id: str
     project_name: str
-    meta: Mapping(str, str)
+    meta: Mapping[str, str]
     training_set_name: str
-    training_set_meta: Mapping(str, str)
+    training_set_meta: Mapping[str, str]

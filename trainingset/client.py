@@ -4,11 +4,12 @@ import os
 
 import pandas as pd
 
-from trainingset import model # XXX rename model
+from trainingset import model  # XXX rename model
 
 from training_set_api_client import Client
 from training_set_api_client.models.create_training_set_version_request import CreateTrainingSetVersionRequest
-from training_set_api_client.models.create_training_set_version_request_metadata import CreateTrainingSetVersionRequestMetadata
+from training_set_api_client.models.create_training_set_version_request_meta import CreateTrainingSetVersionRequestMeta
+from training_set_api_client.models.monitoring_meta import MonitoringMeta
 from training_set_api_client.api.default import post_training_set_name_version
 
 
@@ -72,8 +73,8 @@ def create_training_set_version(
     key_columns: List[str] = [],
     target_columns: List[str] = [],
     exclude_columns: List[str] = [],
-    monitoring_meta: Optional(MonitoringMeta) = {},
-    meta: Mapping(str, str) = {},
+    monitoring_meta: model.MonitoringMeta = model.MonitoringMeta(),
+    meta: Mapping[str, str] = {},
     **kwargs,
 ) -> model.TrainingSetVersion:
     """Create a TrainingSetVersion
@@ -108,16 +109,17 @@ def create_training_set_version(
         json_body=CreateTrainingSetVersionRequest(
             project_owner_username=project_owner,
             project_name=project_name,
-            timestamp_column=version.timestamp_column,
-            independent_vars=version.independent_vars,
-            target_vars=version.target_vars,
-            continuous_vars=version.continuous_vars,
-            categorical_vars=version.categorical_vars,
-            ordinal_vars=version.ordinal_vars,
-            metadata=CreateTrainingSetVersionRequestMetadata.from_dict(
-                version.metadata),
-            name=version.name,
-            description=version.description,
+            key_columns=key_columns,
+            target_columns=target_columns,
+            exclude_columns=exclude_columns,
+            monitoring_meta=MonitoringMeta(
+                timestamp_columns=meta.get("timestamp_columns", []),
+                categorical_columns=meta.get("categorical_columns", []),
+                ordinal_columns=meta.get("ordinal_columns", []),
+            ),
+            meta=CreateTrainingSetVersionRequestMeta.from_dict(meta),
+            name=name,
+            description=description,
         ))
 
     print(created)
