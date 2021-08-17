@@ -6,6 +6,25 @@ info:
   version: 0.1.9
 
 paths:
+  /{trainingSetName}:
+    get:
+      summary: Get TrainingSet
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      responses:
+        '200':
+          description: The TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
+
   /{trainingSetName}/version:
     post:
       summary: Create TrainingSetVersion

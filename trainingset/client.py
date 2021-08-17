@@ -187,5 +187,5 @@ def list_training_set_versions(
 # XXX use AutenticatedClient
 def _get_client() -> Client:
     return Client(base_url="http://minikube.local.domino.tech/trainingset").with_headers({
-        "X-Domino-Api-Key": "a0cfa2476d58c655df4c8e54acf1b483b80c83d624d770d4d4503edf22198e6a",  # XXX
+        "X-Domino-Api-Key": "ef448e42f702b95a53c94b8e04dfec4ef1ea6d196ac7ac9b4196bc9322adf2ec",  # XXX
     })
