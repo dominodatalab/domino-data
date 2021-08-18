@@ -8,9 +8,9 @@ from ...types import Response
 
 
 def _get_kwargs(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
 ) -> Dict[str, Any]:
     url = "{}/{trainingSetName}".format(client.base_url, trainingSetName=training_set_name)
 
@@ -43,13 +43,13 @@ def _build_response(*, response: httpx.Response) -> Response[TrainingSet]:
 
 
 def sync_detailed(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
 ) -> Response[TrainingSet]:
     kwargs = _get_kwargs(
-        client=client,
         training_set_name=training_set_name,
+        client=client,
     )
 
     response = httpx.get(
@@ -60,26 +60,26 @@ def sync_detailed(
 
 
 def sync(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
 ) -> Optional[TrainingSet]:
     """ """
 
     return sync_detailed(
-        client=client,
         training_set_name=training_set_name,
+        client=client,
     ).parsed
 
 
 async def asyncio_detailed(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
 ) -> Response[TrainingSet]:
     kwargs = _get_kwargs(
-        client=client,
         training_set_name=training_set_name,
+        client=client,
     )
 
     async with httpx.AsyncClient() as _client:
@@ -89,15 +89,15 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
 ) -> Optional[TrainingSet]:
     """ """
 
     return (
         await asyncio_detailed(
-            client=client,
             training_set_name=training_set_name,
+            client=client,
         )
     ).parsed

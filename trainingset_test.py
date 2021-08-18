@@ -4,7 +4,7 @@ from trainingset import client, model
 
 import pandas as pd
 
-client.create_training_set_version(
+tsv = client.create_training_set_version(
     training_set_name="my-training-set",
     df=pd.DataFrame(),
     key_columns=["user_id", "transaction_id"],
@@ -18,3 +18,10 @@ client.create_training_set_version(
     },
     project_name="integration-test/quick-start",
 )
+
+print(f"Created version: {tsv}")
+print(f"Created version with trainingSetName: '{tsv.training_set_name}'")
+
+ts = client.get_training_set(tsv.training_set_name)
+
+print(f"Got training set: {ts}")

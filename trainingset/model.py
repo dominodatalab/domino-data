@@ -31,30 +31,32 @@ class TrainingSet:
         self._collaborators = collaborators
         self._project_name = kwargs.get("project_name")
 
-        @property
-        def project_name(self) -> str:
-            """The project this TrainingSet is associated with"""
+    @property
+    def project_name(self) -> str:
+        """The project this TrainingSet is associated with"""
 
-            return self._project_name
+        return self._project_name
 
-        @property
-        def owner(self) -> str:
-            """The username of the owner of this TrainingSet"""
+    @property
+    def owner(self) -> str:
+        """The username of the owner of this TrainingSet"""
 
-            return self._owner
+        return self._owner
 
-        def add_collaborators(self, collaborators: List(str)) -> None:
-            """Add collaborators"""
+    def add_collaborators(self, collaborators: List[str]) -> None:
+        """Add collaborators"""
 
-            # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
-            self._collaborators.update(collaborators)
+        # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
+        self._collaborators.update(collaborators)
 
-        def remove_collaborators(self, collaborators: List(str)) -> None:
-            """Add a collaborators"""
+    def remove_collaborators(self, collaborators: List[str]) -> None:
+        """Add a collaborators"""
 
-            # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
-            self._collaborators.difference_update(collaborators)
+        # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
+        self._collaborators.difference_update(collaborators)
 
+    def __str__(self):
+        return f"TrainingSet({self.name})"
 
 class MonitoringMeta(TypedDict, total=False):
     """MonitoringMeta
@@ -99,7 +101,7 @@ class TrainingSetVersion:
             **kwargs,
     ):
         self.number = number
-        self.training_set_name = training_set_name,
+        self.training_set_name = training_set_name
         self.name = name
         self.description = description,
         self.key_columns = key_columns
@@ -119,6 +121,9 @@ class TrainingSetVersion:
     def load_raw_pandas(self) -> pd.DataFrame:
         """Get the raw dataframe."""
         return self._df
+
+    def __repr__(self):
+        return f"TrainingSetVersion({self.training_set_name}, {self.number})"
 
 
 class TrainingSetFilter(TypedDict, total=False):

@@ -9,9 +9,9 @@ from ...types import Response
 
 
 def _get_kwargs(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
     json_body: CreateTrainingSetVersionRequest,
 ) -> Dict[str, Any]:
     url = "{}/{trainingSetName}/version".format(client.base_url, trainingSetName=training_set_name)
@@ -48,14 +48,14 @@ def _build_response(*, response: httpx.Response) -> Response[TrainingSetVersion]
 
 
 def sync_detailed(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
     json_body: CreateTrainingSetVersionRequest,
 ) -> Response[TrainingSetVersion]:
     kwargs = _get_kwargs(
-        client=client,
         training_set_name=training_set_name,
+        client=client,
         json_body=json_body,
     )
 
@@ -67,29 +67,29 @@ def sync_detailed(
 
 
 def sync(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
     json_body: CreateTrainingSetVersionRequest,
 ) -> Optional[TrainingSetVersion]:
     """ """
 
     return sync_detailed(
-        client=client,
         training_set_name=training_set_name,
+        client=client,
         json_body=json_body,
     ).parsed
 
 
 async def asyncio_detailed(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
     json_body: CreateTrainingSetVersionRequest,
 ) -> Response[TrainingSetVersion]:
     kwargs = _get_kwargs(
-        client=client,
         training_set_name=training_set_name,
+        client=client,
         json_body=json_body,
     )
 
@@ -100,17 +100,17 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    training_set_name: str,
     *,
     client: Client,
-    training_set_name: str,
     json_body: CreateTrainingSetVersionRequest,
 ) -> Optional[TrainingSetVersion]:
     """ """
 
     return (
         await asyncio_detailed(
-            client=client,
             training_set_name=training_set_name,
+            client=client,
             json_body=json_body,
         )
     ).parsed

@@ -10,13 +10,24 @@ from training_set_api_client import Client
 from training_set_api_client.models.create_training_set_version_request import CreateTrainingSetVersionRequest
 from training_set_api_client.models.create_training_set_version_request_meta import CreateTrainingSetVersionRequestMeta
 from training_set_api_client.models.monitoring_meta import MonitoringMeta
+from training_set_api_client.api.default import get_training_set_name
 from training_set_api_client.api.default import post_training_set_name_version
 
 
 def get_training_set(name: str) -> model.TrainingSet:
     """Get a TrainingSet by name"""
 
-    pass
+    result = get_training_set_name.sync(
+        client=_get_client(),
+        training_set_name=name,
+    )
+
+    return model.TrainingSet(
+        name=result.name,
+        description=result.description,
+        meta=result.meta.to_dict(),
+        collaborators=result.collaborators,
+    )
 
 
 def list_training_sets(
@@ -102,7 +113,6 @@ def create_training_set_version(
     if not project_owner or not project_owner:
         raise ("project owner and name are required")
 
-    # XXX fixme!
     created = post_training_set_name_version.sync(
         client=_get_client(),
         training_set_name=training_set_name,
@@ -122,15 +132,22 @@ def create_training_set_version(
             description=description,
         ))
 
-    print(created)
-
-    # creates TrainingSet if it does not already exist
-    # creates a TrainingSetVersion record
+    # TODO:
     # gets pre-signed upload url
     # uploads data
     # updates TrainingSetVersion record to mark as complete
 
-    return created
+    return model.TrainingSetVersion(
+        training_set_name=created.training_set_name,
+        number=created.number,
+        name=created.name,
+        description=created.description,
+        key_columns=created.key_columns,
+        target_columns=created.target_columns,
+        exclude_columns=created.exclude_columns,
+        monitoring_meta=created.monitoring_meta.to_dict,
+        meta=created.meta,
+    )
 
 
 def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
