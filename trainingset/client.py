@@ -9,10 +9,11 @@ from trainingset import model  # XXX rename model
 from training_set_api_client import Client
 from training_set_api_client.models.create_training_set_version_request import CreateTrainingSetVersionRequest
 from training_set_api_client.models.create_training_set_version_request_meta import CreateTrainingSetVersionRequestMeta
+from training_set_api_client.models.training_set_version import TrainingSetVersion
 from training_set_api_client.models.monitoring_meta import MonitoringMeta
 from training_set_api_client.api.default import get_training_set_name
+from training_set_api_client.api.default import get_training_set_name_version_version_number
 from training_set_api_client.api.default import post_training_set_name_version
-
 
 def get_training_set(name: str) -> model.TrainingSet:
     """Get a TrainingSet by name"""
@@ -137,17 +138,7 @@ def create_training_set_version(
     # uploads data
     # updates TrainingSetVersion record to mark as complete
 
-    return model.TrainingSetVersion(
-        training_set_name=created.training_set_name,
-        number=created.number,
-        name=created.name,
-        description=created.description,
-        key_columns=created.key_columns,
-        target_columns=created.target_columns,
-        exclude_columns=created.exclude_columns,
-        monitoring_meta=created.monitoring_meta.to_dict,
-        meta=created.meta,
-    )
+    return _to_TrainingSetVersion(created)
 
 
 def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
@@ -158,7 +149,13 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
     number -- version number
     """
 
-    pass
+    tsv = get_training_set_name_version_version_number.sync(
+        client=_get_client(),
+        training_set_name=training_set_name,
+        version_number=number,
+    )
+
+    return _to_TrainingSetVersion(tsv)
 
 
 def update_training_set_version(
@@ -206,3 +203,17 @@ def _get_client() -> Client:
     return Client(base_url="http://minikube.local.domino.tech/trainingset").with_headers({
         "X-Domino-Api-Key": "ef448e42f702b95a53c94b8e04dfec4ef1ea6d196ac7ac9b4196bc9322adf2ec",  # XXX
     })
+
+
+def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
+    return model.TrainingSetVersion(
+        training_set_name=tsv.training_set_name,
+        number=tsv.number,
+        name=tsv.name,
+        description=tsv.description,
+        key_columns=tsv.key_columns,
+        target_columns=tsv.target_columns,
+        exclude_columns=tsv.exclude_columns,
+        monitoring_meta=tsv.monitoring_meta.to_dict,
+        meta=tsv.meta,
+    )

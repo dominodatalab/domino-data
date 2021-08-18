@@ -22,6 +22,12 @@ tsv = client.create_training_set_version(
 print(f"Created version: {tsv}")
 print(f"Created version with trainingSetName: '{tsv.training_set_name}'")
 
+tsv_by_num = client.get_training_set_version(tsv.training_set_name, tsv.number)
+
+print(f"Got tsv by number: {tsv_by_num}")
+
+assert dir(tsv_by_num) == dir(tsv)
+
 ts = client.get_training_set(tsv.training_set_name)
 
 print(f"Got training set: {ts}")
