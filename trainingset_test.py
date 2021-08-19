@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from trainingset import client, model
+from trainingset import client
 
 import pandas as pd
 

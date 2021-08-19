@@ -33,7 +33,7 @@ def get_training_set(name: str) -> model.TrainingSet:
 
 def list_training_sets(
         filter: model.TrainingSetFilter = {},
-        asc: int = 1,
+        asc: bool = True,
         offset: int = 0,
         limit: int = 10000,
 ) -> model.TrainingSet:
@@ -182,7 +182,7 @@ def delete_training_set_version(training_set_version: model.TrainingSetVersion) 
 
 def list_training_set_versions(
     filter: model.TrainingSetVersionFilter = {},
-    asc: int = 1,
+    asc: bool = True,
     offset: int = 0,
     limit: int = 0,
 ) -> [model.TrainingSetVersion]:

@@ -27,7 +27,7 @@ class TrainingSet:
         self.description = description
         self.meta = meta
 
-        self._owner = kwargs.get("owner")
+        self._owner_name = kwargs.get("owner_name")
         self._collaborators = collaborators
         self._project_name = kwargs.get("project_name")
 
@@ -38,10 +38,10 @@ class TrainingSet:
         return self._project_name
 
     @property
-    def owner(self) -> str:
+    def owner_name(self) -> str:
         """The username of the owner of this TrainingSet"""
 
-        return self._owner
+        return self._owner_name
 
     def add_collaborators(self, collaborators: List[str]) -> None:
         """Add collaborators"""
@@ -132,13 +132,12 @@ class TrainingSetFilter(TypedDict, total=False):
     Keyword arguments:
     project_id -- the project id (e.g. 611808cfdc6bc24ee5f23fe8)
     project_name -- the project name (e.g. gmatev/quick_start)
-    owner -- the TrainingSet's owner (e.g. gmatev)
+    owner_name -- the TrainingSet's owner (e.g. gmatev)
     meta -- match metadata key-value pairs
     """
 
-    project_id: str
     project_name: str
-    owner: str
+    owner_name: str
     meta: Mapping[str, str]
 
 

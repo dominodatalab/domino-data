@@ -6,6 +6,44 @@ info:
   version: 0.1.9
 
 paths:
+  /:
+    get:
+      summary: Get TrainingSet
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int64
+          description: Number of items to skip
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+          description: Number of items to return
+        - in: query
+          name: asc
+          schema:
+            type: boolean
+          description: Sort order
+      requestBody:
+        description: Search filter
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingSetFilter'
+      responses:
+        '200':
+          description: The TrainingSet
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainingSet'
+
   /{trainingSetName}:
     get:
       summary: Get TrainingSet
@@ -244,3 +282,14 @@ components:
       required:
         - trainingSetVersionId
         - url
+    TrainingSetFilter:
+      type: object
+      properties:
+        projectName:
+          type: string
+        ownerName:
+          type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
