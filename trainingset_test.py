@@ -32,8 +32,11 @@ ts = client.get_training_set(tsv.training_set_name)
 
 print(f"Got training set: {ts}")
 
+# XXX update featureset to add metadata
+
+# search for metadata instead
 found_ts = client.list_training_sets(
-    filter=model.TrainingSetFilter(meta={"experiment_id": "123456"})
+    filter=model.TrainingSetFilter(project_name="integration-test/quick-start")
 )
 
 print(f"Found training set: {found_ts}")

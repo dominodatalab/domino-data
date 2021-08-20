@@ -51,7 +51,7 @@ def list_training_sets(
         json_body=TrainingSetFilter(
             project_name=filter.get("project_name"),
             owner_name=filter.get("owner_name"),
-            meta=TrainingSetFilterMeta.from_dict(filter.get("meta")),
+            meta=TrainingSetFilterMeta.from_dict(filter.get("meta", {})),
         ),
         offset=offset,
         limit=limit,
