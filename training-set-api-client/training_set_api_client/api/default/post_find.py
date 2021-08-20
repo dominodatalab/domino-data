@@ -16,7 +16,7 @@ def _get_kwargs(
     limit: Union[Unset, None, int] = UNSET,
     asc: Union[Unset, None, bool] = UNSET,
 ) -> Dict[str, Any]:
-    url = "{}/".format(client.base_url)
+    url = "{}/find".format(client.base_url)
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -78,7 +78,7 @@ def sync_detailed(
         asc=asc,
     )
 
-    response = httpx.get(
+    response = httpx.post(
         **kwargs,
     )
 
@@ -121,7 +121,7 @@ async def asyncio_detailed(
     )
 
     async with httpx.AsyncClient() as _client:
-        response = await _client.get(**kwargs)
+        response = await _client.post(**kwargs)
 
     return _build_response(response=response)
 

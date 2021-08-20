@@ -7,13 +7,18 @@ import pandas as pd
 from trainingset import model  # XXX rename model
 
 from training_set_api_client import Client
+from training_set_api_client.models.training_set_filter import TrainingSetFilter
+from training_set_api_client.models.training_set_filter_meta import TrainingSetFilterMeta
 from training_set_api_client.models.create_training_set_version_request import CreateTrainingSetVersionRequest
 from training_set_api_client.models.create_training_set_version_request_meta import CreateTrainingSetVersionRequestMeta
+from training_set_api_client.models.training_set import TrainingSet
 from training_set_api_client.models.training_set_version import TrainingSetVersion
 from training_set_api_client.models.monitoring_meta import MonitoringMeta
 from training_set_api_client.api.default import get_training_set_name
 from training_set_api_client.api.default import get_training_set_name_version_version_number
+from training_set_api_client.api.default import post_find
 from training_set_api_client.api.default import post_training_set_name_version
+
 
 def get_training_set(name: str) -> model.TrainingSet:
     """Get a TrainingSet by name"""
@@ -23,12 +28,7 @@ def get_training_set(name: str) -> model.TrainingSet:
         training_set_name=name,
     )
 
-    return model.TrainingSet(
-        name=result.name,
-        description=result.description,
-        meta=result.meta.to_dict(),
-        collaborators=result.collaborators,
-    )
+    return _to_TrainingSet(result)
 
 
 def list_training_sets(
@@ -46,7 +46,19 @@ def list_training_sets(
     limit -- limit
     """
 
-    pass
+    results = post_find.sync(
+        client=_get_client(),
+        json_body=TrainingSetFilter(
+            project_name=filter.get("project_name"),
+            owner_name=filter.get("owner_name"),
+            meta=TrainingSetFilterMeta.from_dict(filter.get("meta")),
+        ),
+        offset=offset,
+        limit=limit,
+        asc=asc,
+    )
+
+    return [_to_TrainingSet(ts) for ts in results]
 
 
 def update_training_set(
@@ -203,6 +215,15 @@ def _get_client() -> Client:
     return Client(base_url="http://minikube.local.domino.tech/trainingset").with_headers({
         "X-Domino-Api-Key": "ef448e42f702b95a53c94b8e04dfec4ef1ea6d196ac7ac9b4196bc9322adf2ec",  # XXX
     })
+
+
+def _to_TrainingSet(ts: TrainingSet) -> model.TrainingSet:
+    return model.TrainingSet(
+        name=ts.name,
+        description=ts.description,
+        meta=ts.meta.to_dict(),
+        collaborators=ts.collaborators,
+    )
 
 
 def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from trainingset import client
+from trainingset import client, model
 
 import pandas as pd
 
@@ -31,3 +31,9 @@ assert dir(tsv_by_num) == dir(tsv)
 ts = client.get_training_set(tsv.training_set_name)
 
 print(f"Got training set: {ts}")
+
+found_ts = client.list_training_sets(
+    filter=model.TrainingSetFilter(meta={"experiment_id": "123456"})
+)
+
+print(f"Found training set: {found_ts}")

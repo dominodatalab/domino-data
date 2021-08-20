@@ -6,9 +6,9 @@ info:
   version: 0.1.9
 
 paths:
-  /:
-    get:
-      summary: Get TrainingSet
+  /find:
+    post:
+      summary: List TrainingSet
       parameters:
         - in: query
           name: offset
