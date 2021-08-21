@@ -9,13 +9,11 @@ from ...types import Response
 
 def _get_kwargs(
     training_set_name: str,
-    version_number: int,
+    number: int,
     *,
     client: Client,
 ) -> Dict[str, Any]:
-    url = "{}/{trainingSetName}/{versionNumber}".format(
-        client.base_url, trainingSetName=training_set_name, versionNumber=version_number
-    )
+    url = "{}/{trainingSetName}/{number}".format(client.base_url, trainingSetName=training_set_name, number=number)
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -47,13 +45,13 @@ def _build_response(*, response: httpx.Response) -> Response[TrainingSetVersion]
 
 def sync_detailed(
     training_set_name: str,
-    version_number: int,
+    number: int,
     *,
     client: Client,
 ) -> Response[TrainingSetVersion]:
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
-        version_number=version_number,
+        number=number,
         client=client,
     )
 
@@ -66,7 +64,7 @@ def sync_detailed(
 
 def sync(
     training_set_name: str,
-    version_number: int,
+    number: int,
     *,
     client: Client,
 ) -> Optional[TrainingSetVersion]:
@@ -74,20 +72,20 @@ def sync(
 
     return sync_detailed(
         training_set_name=training_set_name,
-        version_number=version_number,
+        number=number,
         client=client,
     ).parsed
 
 
 async def asyncio_detailed(
     training_set_name: str,
-    version_number: int,
+    number: int,
     *,
     client: Client,
 ) -> Response[TrainingSetVersion]:
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
-        version_number=version_number,
+        number=number,
         client=client,
     )
 
@@ -99,7 +97,7 @@ async def asyncio_detailed(
 
 async def asyncio(
     training_set_name: str,
-    version_number: int,
+    number: int,
     *,
     client: Client,
 ) -> Optional[TrainingSetVersion]:
@@ -108,7 +106,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             training_set_name=training_set_name,
-            version_number=version_number,
+            number=number,
             client=client,
         )
     ).parsed

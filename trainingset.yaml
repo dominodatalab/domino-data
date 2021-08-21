@@ -111,7 +111,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/TrainingSet'
 
-  /{trainingSetName}/{versionNumber}:
+  /{trainingSetName}/{number}:
     get:
       summary: Get TrainingSetVersion
       parameters:
@@ -123,7 +123,7 @@ paths:
             minimum: 1
           description: The TrainingSet name
         - in: path
-          name: versionNumber
+          name: number
           required: true
           schema:
             type: integer
@@ -132,6 +132,37 @@ paths:
       responses:
         '200':
           description: The new TrainingSetVersion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersion'
+    put:
+      summary: Update TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+        - in: path
+          name: number
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The TrainingSetVersion number
+      requestBody:
+        description: UpdateTrainingSetVersionRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainingSetVersionRequest'
+      responses:
+        '200':
+          description: Updated TrainingSetVersion
           content:
             application/json:
               schema:
@@ -235,11 +266,6 @@ components:
         - projectName
         - projectOwnerUsername
         - targetColumns
-    UpdateTrainingSetVersionRequest:
-      type: object
-      properties:
-        pending:
-          type: boolean
     TrainingSetVersion:
       type: object
       properties:
@@ -292,6 +318,38 @@ components:
         - trainingSetId
         - trainingSetName
         - url
+    UpdateTrainingSetVersionRequest:
+      type: object
+      properties:
+        keyColumns:
+          type: array
+          items:
+            type: string
+        targetColumns:
+          type: array
+          items:
+            type: string
+        excludeColumns:
+          type: array
+          items:
+            type: string
+        monitoringMeta:
+          $ref: '#/components/schemas/MonitoringMeta'
+        description:
+          type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+        pending:
+          type: boolean
+      required:
+        - excludeColumns
+        - keyColumns
+        - meta
+        - monitoringMeta
+        - pending
+        - targetColumns
     MonitoringMeta:
       type: object
       properties:
