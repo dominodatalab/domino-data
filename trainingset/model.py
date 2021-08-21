@@ -108,12 +108,19 @@ class TrainingSetVersion:
     ):
         self.number = number
         self.training_set_name = training_set_name
-        self.description = description,
+        self.description = description
         self.key_columns = key_columns
         self.target_columns = target_columns
         self.exclude_columns = exclude_columns
         self.monitoring_meta = monitoring_meta
         self.meta = meta
+        self._pending = kwargs.get("pending")
+
+    @property
+    def pending(self) -> str:
+        """Gets TrainingSetVersion's pending status"""
+
+        return self._pending
 
     def load_training_pandas(self) -> pd.DataFrame:
         """Get a pandas dataframe for training.

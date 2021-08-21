@@ -16,11 +16,14 @@ from training_set_api_client.models.training_set_version import TrainingSetVersi
 from training_set_api_client.models.monitoring_meta import MonitoringMeta
 from training_set_api_client.models.update_training_set_request import UpdateTrainingSetRequest
 from training_set_api_client.models.update_training_set_request_meta import UpdateTrainingSetRequestMeta
+from training_set_api_client.models.update_training_set_version_request import UpdateTrainingSetVersionRequest
+from training_set_api_client.models.update_training_set_version_request_meta import UpdateTrainingSetVersionRequestMeta
 from training_set_api_client.api.default import get_training_set_name
 from training_set_api_client.api.default import get_training_set_name_number
 from training_set_api_client.api.default import post_find
 from training_set_api_client.api.default import post_training_set_name
 from training_set_api_client.api.default import put_training_set_name
+from training_set_api_client.api.default import put_training_set_name_number
 
 
 def get_training_set(name: str) -> model.TrainingSet:
@@ -150,9 +153,9 @@ def create_training_set_version(
             target_columns=target_columns,
             exclude_columns=exclude_columns,
             monitoring_meta=MonitoringMeta(
-                timestamp_columns=meta.get("timestamp_columns", []),
-                categorical_columns=meta.get("categorical_columns", []),
-                ordinal_columns=meta.get("ordinal_columns", []),
+                timestamp_columns=monitoring_meta.get("timestamp_columns", []),
+                categorical_columns=monitoring_meta.get("categorical_columns", []),
+                ordinal_columns=monitoring_meta.get("ordinal_columns", []),
             ),
             meta=CreateTrainingSetVersionRequestMeta.from_dict(meta),
             name=name,
@@ -185,7 +188,7 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
 
 
 def update_training_set_version(
-    version: model.TrainingSetVersion
+    tsv: model.TrainingSetVersion
 ) -> model.TrainingSetVersion:
     """Updates this TrainingSetVersion.
 
@@ -193,7 +196,26 @@ def update_training_set_version(
     version -- TrainingSetVersion to update
     """
 
-    pass
+    tsv = put_training_set_name_number.sync(
+        training_set_name=tsv.training_set_name,
+        number=tsv.number,
+        client=_get_client(),
+        json_body=UpdateTrainingSetVersionRequest(
+            key_columns=tsv.key_columns,
+            target_columns=tsv.target_columns,
+            exclude_columns=tsv.exclude_columns,
+            monitoring_meta=MonitoringMeta(
+                timestamp_columns=tsv.monitoring_meta.get("timestamp_columns", []),
+                categorical_columns=tsv.monitoring_meta.get("categorical_columns", []),
+                ordinal_columns=tsv.monitoring_meta.get("ordinal_columns", []),
+            ),
+            meta=CreateTrainingSetVersionRequestMeta.from_dict(tsv.meta),
+            pending=tsv.pending,
+            description=tsv.description,
+        ),
+    )
+
+    return _to_TrainingSetVersion(tsv)
 
 
 def delete_training_set_version(training_set_version: model.TrainingSetVersion) -> bool:
@@ -250,6 +272,7 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
         key_columns=tsv.key_columns,
         target_columns=tsv.target_columns,
         exclude_columns=tsv.exclude_columns,
-        monitoring_meta=tsv.monitoring_meta.to_dict,
-        meta=tsv.meta,
+        monitoring_meta=tsv.monitoring_meta.to_dict(),
+        meta=tsv.meta.to_dict(),
+        pending=tsv.pending,
     )
