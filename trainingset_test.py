@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+import datetime
 from trainingset import client, model
 
 import pandas as pd
 
+training_set_name = f"training-set-{int(datetime.datetime.now().timestamp())}"
+
 tsv = client.create_training_set_version(
-    training_set_name="my-training-set",
+    training_set_name=training_set_name,
     df=pd.DataFrame(),
     key_columns=["user_id", "transaction_id"],
     target_columns=["is_fraud"],
@@ -32,11 +35,19 @@ ts = client.get_training_set(tsv.training_set_name)
 
 print(f"Got training set: {ts}")
 
-# XXX update featureset to add metadata
+ts.description = "updated description"
+tag_value = str(int(datetime.datetime.now().timestamp()))
+ts.meta.update({"tag": tag_value})
+
+updated = client.update_training_set(ts)
+print(f"updated: {updated}")
 
 # search for metadata instead
 found_ts = client.list_training_sets(
-    filter=model.TrainingSetFilter(project_name="integration-test/quick-start")
+    filter=model.TrainingSetFilter(
+        project_name="integration-test/quick-start",
+        meta={"tag", tag_value},
+    )
 )
 
 print(f"Found training set: {found_ts}")

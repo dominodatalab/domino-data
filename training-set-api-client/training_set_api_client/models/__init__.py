@@ -10,4 +10,6 @@ from .training_set_meta import TrainingSetMeta
 from .training_set_version import TrainingSetVersion
 from .training_set_version_meta import TrainingSetVersionMeta
 from .training_set_version_url import TrainingSetVersionUrl
+from .update_training_set_request import UpdateTrainingSetRequest
+from .update_training_set_request_meta import UpdateTrainingSetRequestMeta
 from .update_training_set_version_request import UpdateTrainingSetVersionRequest

@@ -62,6 +62,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrainingSet'
+    put:
+      summary: Update TrainingSet
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      requestBody:
+        description: UpdateTrainingSetRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainingSetRequest'
+      responses:
+        '200':
+          description: Updated TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
 
   /{trainingSetName}/version:
     post:
@@ -133,13 +157,13 @@ components:
           format: date-time
         ownerId:
           type: string
-        owner:
+        ownerName:
           type: string
         collaboratorIds:
           type: array
           items:
             type: string
-        collaborators:
+        collaboratorNames:
           type: array
           items:
             type: string
@@ -150,13 +174,32 @@ components:
       required:
         - creationTime
         - collaboratorIds
-        - collaborators
+        - collaboratorNames
         - id
         - meta
         - name
         - ownerId
-        - owner
+        - ownerName
         - projectId
+    UpdateTrainingSetRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        ownerName:
+          type: string
+        collaboratorNames:
+          type: array
+          items:
+            type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - collaboratorNames
+        - meta
+        - ownerName
     CreateTrainingSetVersionRequest:
       type: object
       properties:

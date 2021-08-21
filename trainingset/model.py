@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, List, TypedDict, Mapping, Set
+from typing import Optional, List, TypedDict, Mapping, List
 
 import pandas as pd
 
@@ -10,7 +10,7 @@ class TrainingSet:
             name: str,
             description: Optional[str] = None,
             meta: Mapping[str, str] = {},
-            collaborators: Set[str] = [],
+            collaborator_names: List[str] = [],
             **kwargs
     ):
         """
@@ -20,22 +20,21 @@ class TrainingSet:
         name -- unique name of the TrainingSet
         description -- description of the TrainingSet
         meta -- user defined metadata
-        collaborators -- usernames of collaborators
+        collaborator_names -- usernames of collaborator_names
         """
 
         self.name = name
         self.description = description
         self.meta = meta
-
+        self.collaborator_names = collaborator_names
         self._owner_name = kwargs.get("owner_name")
-        self._collaborators = collaborators
-        self._project_name = kwargs.get("project_name")
+        self._project_id = kwargs.get("project_id")
 
     @property
-    def project_name(self) -> str:
+    def project_id(self) -> str:
         """The project this TrainingSet is associated with"""
 
-        return self._project_name
+        return self._project_id
 
     @property
     def owner_name(self) -> str:
@@ -43,20 +42,29 @@ class TrainingSet:
 
         return self._owner_name
 
-    def add_collaborators(self, collaborators: List[str]) -> None:
-        """Add collaborators"""
+    def add_collaborator_names(self, collaborator_names: List[str]) -> None:
+        """Add collaborator_names"""
 
         # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
-        self._collaborators.update(collaborators)
+        self.collaborator_names.update(collaborator_names)
 
-    def remove_collaborators(self, collaborators: List[str]) -> None:
-        """Add a collaborators"""
+    def remove_collaborator_names(self, collaborator_names: List[str]) -> None:
+        """Add a collaborator_names"""
 
         # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
-        self._collaborators.difference_update(collaborators)
+        self.collaborator_names.difference_update(collaborator_names)
 
     def __str__(self):
-        return f"TrainingSet({self.name})"
+        return "".join([
+            "TrainingSet(",
+            "name={self.name} ",
+            "description={self.description or ''} ",
+            "meta={self.meta} ",
+            "owner_name={self._owner_name} ",
+            "collaborator_names={self.collaborator_names}",
+            ")"
+        ])
+
 
 class MonitoringMeta(TypedDict, total=False):
     """MonitoringMeta
@@ -122,8 +130,20 @@ class TrainingSetVersion:
         """Get the raw dataframe."""
         return self._df
 
-    def __repr__(self):
-        return f"TrainingSetVersion({self.training_set_name}, {self.number})"
+    def __str__(self):
+        return "".join([
+            "TrainingSetVersion(",
+            f"number={self.number} ",
+            f"training_set_name={self.training_set_name} ",
+            f"name={self.name or ''} ",
+            f"description={self.description or ''} ",
+            f"key_columns={self.key_columns} ",
+            f"target_columns={self.target_columns} ",
+            f"exclude_columns={self.exclude_columns} ",
+            f"monitoring_meta={self.monitoring_meta} ",
+            f"meta={self.meta}",
+            ")"
+        ])
 
 
 class TrainingSetFilter(TypedDict, total=False):

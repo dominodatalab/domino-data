@@ -14,10 +14,13 @@ from training_set_api_client.models.create_training_set_version_request_meta imp
 from training_set_api_client.models.training_set import TrainingSet
 from training_set_api_client.models.training_set_version import TrainingSetVersion
 from training_set_api_client.models.monitoring_meta import MonitoringMeta
+from training_set_api_client.models.update_training_set_request import UpdateTrainingSetRequest
+from training_set_api_client.models.update_training_set_request_meta import UpdateTrainingSetRequestMeta
 from training_set_api_client.api.default import get_training_set_name
 from training_set_api_client.api.default import get_training_set_name_version_version_number
 from training_set_api_client.api.default import post_find
 from training_set_api_client.api.default import post_training_set_name_version
+from training_set_api_client.api.default import put_training_set_name
 
 
 def get_training_set(name: str) -> model.TrainingSet:
@@ -62,7 +65,7 @@ def list_training_sets(
 
 
 def update_training_set(
-    training_set: model.TrainingSet,
+    updated: model.TrainingSet,
 ) -> model.TrainingSet:
     """Updates a TrainingSet
 
@@ -70,7 +73,18 @@ def update_training_set(
     training_set -- updated TrainingSet
     """
 
-    pass
+    result = put_training_set_name.sync(
+        training_set_name=updated.name,
+        client=_get_client(),
+        json_body=UpdateTrainingSetRequest(
+            owner_name=updated.owner_name,
+            collaborator_names=updated.collaborator_names,
+            meta=UpdateTrainingSetRequestMeta.from_dict(updated.meta),
+            description=updated.description,
+        ),
+    )
+
+    return _to_TrainingSet(result)
 
 
 def delete_training_set(name: str, force: bool = False) -> bool:
@@ -222,7 +236,9 @@ def _to_TrainingSet(ts: TrainingSet) -> model.TrainingSet:
         name=ts.name,
         description=ts.description,
         meta=ts.meta.to_dict(),
-        collaborators=ts.collaborators,
+        collaborator_names=ts.collaborator_names,
+        owner_name=ts.owner_name,
+        project_id=ts.project_id,
     )
 
 
