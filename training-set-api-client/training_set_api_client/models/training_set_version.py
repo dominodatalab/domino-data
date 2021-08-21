@@ -27,7 +27,6 @@ class TrainingSetVersion:
     monitoring_meta: MonitoringMeta
     meta: TrainingSetVersionMeta
     pending: bool
-    name: Union[Unset, str] = UNSET
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
@@ -50,7 +49,6 @@ class TrainingSetVersion:
         meta = self.meta.to_dict()
 
         pending = self.pending
-        name = self.name
         description = self.description
 
         field_dict: Dict[str, Any] = {}
@@ -71,8 +69,6 @@ class TrainingSetVersion:
                 "pending": pending,
             }
         )
-        if name is not UNSET:
-            field_dict["name"] = name
         if description is not UNSET:
             field_dict["description"] = description
 
@@ -105,8 +101,6 @@ class TrainingSetVersion:
 
         pending = d.pop("pending")
 
-        name = d.pop("name", UNSET)
-
         description = d.pop("description", UNSET)
 
         training_set_version = cls(
@@ -122,7 +116,6 @@ class TrainingSetVersion:
             monitoring_meta=monitoring_meta,
             meta=meta,
             pending=pending,
-            name=name,
             description=description,
         )
 

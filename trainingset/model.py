@@ -86,7 +86,6 @@ class TrainingSetVersion:
 
     number -- the TrainingSetVersion number
     training_set_name -- name of the TrainingSet this version belongs to
-    name -- name of this version
     description -- description of this version
     key_columns -- names of columns that represent IDs for retrieving features
     target_columns -- target variables for prediction
@@ -99,7 +98,6 @@ class TrainingSetVersion:
             self,
             training_set_name: str,
             number: int,
-            name: Optional[str] = None,
             description: Optional[str] = None,
             key_columns: List[str] = [],
             target_columns: List[str] = [],
@@ -110,7 +108,6 @@ class TrainingSetVersion:
     ):
         self.number = number
         self.training_set_name = training_set_name
-        self.name = name
         self.description = description,
         self.key_columns = key_columns
         self.target_columns = target_columns
@@ -135,7 +132,6 @@ class TrainingSetVersion:
             "TrainingSetVersion(",
             f"number={self.number} ",
             f"training_set_name={self.training_set_name} ",
-            f"name={self.name or ''} ",
             f"description={self.description or ''} ",
             f"key_columns={self.key_columns} ",
             f"target_columns={self.target_columns} ",
@@ -165,7 +161,6 @@ class TrainingSetVersionFilter(TypedDict, total=False):
     """Filter TrainingSetVersions by all provided fields.
 
     Keyword arguments:
-    name -- version name
     project_id -- the project id (e.g. 611808cfdc6bc24ee5f23fe8)
     project_name -- the project name (e.g. gmatev/quick_start)
     meta -- version metadata
@@ -173,7 +168,6 @@ class TrainingSetVersionFilter(TypedDict, total=False):
     training_set_meta -- training set meta data
     """
 
-    name: str
     project_id: str
     project_name: str
     meta: Mapping[str, str]

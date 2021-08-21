@@ -246,7 +246,6 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
     return model.TrainingSetVersion(
         training_set_name=tsv.training_set_name,
         number=tsv.number,
-        name=tsv.name,
         description=tsv.description,
         key_columns=tsv.key_columns,
         target_columns=tsv.target_columns,

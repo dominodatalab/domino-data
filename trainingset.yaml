@@ -271,8 +271,6 @@ components:
             type: string
         monitoringMeta:
           $ref: '#/components/schemas/MonitoringMeta'
-        name:
-          type: string
         description:
           type: string
         meta:
