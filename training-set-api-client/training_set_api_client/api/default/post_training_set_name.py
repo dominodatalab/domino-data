@@ -14,7 +14,7 @@ def _get_kwargs(
     client: Client,
     json_body: CreateTrainingSetVersionRequest,
 ) -> Dict[str, Any]:
-    url = "{}/{trainingSetName}/version".format(client.base_url, trainingSetName=training_set_name)
+    url = "{}/{trainingSetName}".format(client.base_url, trainingSetName=training_set_name)
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

@@ -19,7 +19,7 @@ from training_set_api_client.models.update_training_set_request_meta import Upda
 from training_set_api_client.api.default import get_training_set_name
 from training_set_api_client.api.default import get_training_set_name_version_version_number
 from training_set_api_client.api.default import post_find
-from training_set_api_client.api.default import post_training_set_name_version
+from training_set_api_client.api.default import post_training_set_name
 from training_set_api_client.api.default import put_training_set_name
 
 
@@ -140,7 +140,7 @@ def create_training_set_version(
     if not project_owner or not project_owner:
         raise ("project owner and name are required")
 
-    created = post_training_set_name_version.sync(
+    created = post_training_set_name.sync(
         client=_get_client(),
         training_set_name=training_set_name,
         json_body=CreateTrainingSetVersionRequest(

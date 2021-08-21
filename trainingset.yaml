@@ -62,32 +62,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrainingSet'
-    put:
-      summary: Update TrainingSet
-      parameters:
-        - in: path
-          name: trainingSetName
-          required: true
-          schema:
-            type: string
-            minimum: 1
-          description: The TrainingSet name
-      requestBody:
-        description: UpdateTrainingSetRequest
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateTrainingSetRequest'
-      responses:
-        '200':
-          description: Updated TrainingSet
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TrainingSet'
-
-  /{trainingSetName}/version:
     post:
       summary: Create TrainingSetVersion
       parameters:
@@ -112,6 +86,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrainingSetVersion'
+    put:
+      summary: Update TrainingSet
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      requestBody:
+        description: UpdateTrainingSetRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainingSetRequest'
+      responses:
+        '200':
+          description: Updated TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
 
   /{trainingSetName}/version/{versionNumber}:
     get:
