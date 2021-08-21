@@ -17,7 +17,7 @@ from training_set_api_client.models.monitoring_meta import MonitoringMeta
 from training_set_api_client.models.update_training_set_request import UpdateTrainingSetRequest
 from training_set_api_client.models.update_training_set_request_meta import UpdateTrainingSetRequestMeta
 from training_set_api_client.api.default import get_training_set_name
-from training_set_api_client.api.default import get_training_set_name_version_version_number
+from training_set_api_client.api.default import get_training_set_name_version_number
 from training_set_api_client.api.default import post_find
 from training_set_api_client.api.default import post_training_set_name
 from training_set_api_client.api.default import put_training_set_name
@@ -175,7 +175,7 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
     number -- version number
     """
 
-    tsv = get_training_set_name_version_version_number.sync(
+    tsv = get_training_set_name_version_number.sync(
         client=_get_client(),
         training_set_name=training_set_name,
         version_number=number,

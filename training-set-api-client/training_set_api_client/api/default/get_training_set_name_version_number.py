@@ -13,7 +13,7 @@ def _get_kwargs(
     *,
     client: Client,
 ) -> Dict[str, Any]:
-    url = "{}/{trainingSetName}/version/{versionNumber}".format(
+    url = "{}/{trainingSetName}/{versionNumber}".format(
         client.base_url, trainingSetName=training_set_name, versionNumber=version_number
     )
 
