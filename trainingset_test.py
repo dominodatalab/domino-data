@@ -36,7 +36,7 @@ ts = client.get_training_set(tsv.training_set_name)
 print(f"Got training set: {ts}")
 
 ts.description = "updated description"
-tag_value = str(int(datetime.datetime.now().timestamp()))
+tag_value = str(datetime.datetime.now().timestamp())
 ts.meta.update({"tag": tag_value})
 
 updated = client.update_training_set(ts)
@@ -46,7 +46,7 @@ print(f"updated: {updated}")
 found_ts = client.list_training_sets(
     filter=model.TrainingSetFilter(
         project_name="integration-test/quick-start",
-        meta={"tag", tag_value},
+        meta={"tag": tag_value},
     )
 )
 
