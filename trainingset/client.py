@@ -244,7 +244,7 @@ def update_training_set_version(
     return _to_TrainingSetVersion(response.parsed)
 
 
-def delete_training_set_version(tsv: model.TrainingSetVersion) -> bool:
+def delete_training_set_version(training_set_name: str, number: int) -> bool:
     """Deletes a TrainingSetVersion.
 
     Keyword arguments:
@@ -252,8 +252,8 @@ def delete_training_set_version(tsv: model.TrainingSetVersion) -> bool:
     """
 
     response = delete_training_set_name_number.sync_detailed(
-        training_set_name=tsv.training_set_name,
-        number=tsv.number,
+        training_set_name=training_set_name,
+        number=number,
         client=_get_client(),
     )
 
