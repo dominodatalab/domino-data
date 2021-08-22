@@ -7,6 +7,12 @@ import pandas as pd
 from trainingset import model  # XXX rename model
 
 from training_set_api_client import Client
+from training_set_api_client.api.default import get_training_set_name
+from training_set_api_client.api.default import get_training_set_name_number
+from training_set_api_client.api.default import post_find
+from training_set_api_client.api.default import post_training_set_name
+from training_set_api_client.api.default import put_training_set_name
+from training_set_api_client.api.default import put_training_set_name_number
 from training_set_api_client.models.training_set_filter import TrainingSetFilter
 from training_set_api_client.models.training_set_filter_meta import TrainingSetFilterMeta
 from training_set_api_client.models.create_training_set_version_request import CreateTrainingSetVersionRequest
@@ -18,23 +24,21 @@ from training_set_api_client.models.update_training_set_request import UpdateTra
 from training_set_api_client.models.update_training_set_request_meta import UpdateTrainingSetRequestMeta
 from training_set_api_client.models.update_training_set_version_request import UpdateTrainingSetVersionRequest
 from training_set_api_client.models.update_training_set_version_request_meta import UpdateTrainingSetVersionRequestMeta
-from training_set_api_client.api.default import get_training_set_name
-from training_set_api_client.api.default import get_training_set_name_number
-from training_set_api_client.api.default import post_find
-from training_set_api_client.api.default import post_training_set_name
-from training_set_api_client.api.default import put_training_set_name
-from training_set_api_client.api.default import put_training_set_name_number
+from training_set_api_client.types import Response
 
 
 def get_training_set(name: str) -> model.TrainingSet:
     """Get a TrainingSet by name"""
 
-    result = get_training_set_name.sync(
+    response = get_training_set_name.sync_detailed(
         client=_get_client(),
         training_set_name=name,
     )
 
-    return _to_TrainingSet(result)
+    if response.status_code != 200:
+        _raise_response_exn(response, f"could not get TrainingSet {name}")
+
+    return _to_TrainingSet(response.parsed)
 
 
 def list_training_sets(
@@ -52,7 +56,7 @@ def list_training_sets(
     limit -- limit
     """
 
-    results = post_find.sync(
+    response = post_find.sync_detailed(
         client=_get_client(),
         json_body=TrainingSetFilter(
             project_name=filter.get("project_name"),
@@ -64,7 +68,10 @@ def list_training_sets(
         asc=asc,
     )
 
-    return [_to_TrainingSet(ts) for ts in results]
+    if response.status_code != 200:
+        _raise_response_exn(response, "could not list TrainingSets")
+
+    return [_to_TrainingSet(ts) for ts in response.parsed]
 
 
 def update_training_set(
@@ -76,7 +83,7 @@ def update_training_set(
     training_set -- updated TrainingSet
     """
 
-    result = put_training_set_name.sync(
+    response = put_training_set_name.sync_detailed(
         training_set_name=updated.name,
         client=_get_client(),
         json_body=UpdateTrainingSetRequest(
@@ -87,7 +94,10 @@ def update_training_set(
         ),
     )
 
-    return _to_TrainingSet(result)
+    if response.status_code != 200:
+        _raise_response_exn(response, "could not update TrainingSets")
+
+    return _to_TrainingSet(response.parsed)
 
 
 def delete_training_set(name: str, force: bool = False) -> bool:
@@ -143,7 +153,7 @@ def create_training_set_version(
     if not project_owner or not project_owner:
         raise ("project owner and name are required")
 
-    created = post_training_set_name.sync(
+    response = post_training_set_name.sync_detailed(
         client=_get_client(),
         training_set_name=training_set_name,
         json_body=CreateTrainingSetVersionRequest(
@@ -162,15 +172,19 @@ def create_training_set_version(
             description=description,
         ))
 
+    if response.status_code != 200:
+        _raise_response_exn(response, "could not create TrainingSetVersion")
+
     # TODO:
     # gets pre-signed upload url
     # uploads data
     # updates TrainingSetVersion record to mark as complete
 
-    return _to_TrainingSetVersion(created)
+    return _to_TrainingSetVersion(response.parsed)
 
 
-def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
+def get_training_set_version(training_set_name: str,
+                             number: int) -> model.TrainingSetVersion:
     """Gets a TrainingSetVersion by version number
 
     Keyword arguments:
@@ -178,13 +192,16 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
     number -- version number
     """
 
-    tsv = get_training_set_name_number.sync(
+    response = get_training_set_name_number.sync_detailed(
         client=_get_client(),
         training_set_name=training_set_name,
         number=number,
     )
 
-    return _to_TrainingSetVersion(tsv)
+    if response.status_code != 200:
+        _raise_response_exn(response, "could not get TrainingSetVersion")
+
+    return _to_TrainingSetVersion(response.parsed)
 
 
 def update_training_set_version(
@@ -196,7 +213,7 @@ def update_training_set_version(
     version -- TrainingSetVersion to update
     """
 
-    tsv = put_training_set_name_number.sync(
+    response = put_training_set_name_number.sync_detailed(
         training_set_name=tsv.training_set_name,
         number=tsv.number,
         client=_get_client(),
@@ -215,7 +232,10 @@ def update_training_set_version(
         ),
     )
 
-    return _to_TrainingSetVersion(tsv)
+    if response.status_code != 200:
+        _raise_response_exn(response, "could not update TrainingSetVersion")
+
+    return _to_TrainingSetVersion(response.parsed)
 
 
 def delete_training_set_version(training_set_version: model.TrainingSetVersion) -> bool:
@@ -276,3 +296,7 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
         meta=tsv.meta.to_dict(),
         pending=tsv.pending,
     )
+
+
+def _raise_response_exn(response: Response, msg: str):
+    raise Exception(msg)
