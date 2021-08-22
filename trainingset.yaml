@@ -136,6 +136,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrainingSetVersion'
+
     put:
       summary: Update TrainingSetVersion
       parameters:
@@ -167,6 +168,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrainingSetVersion'
+
+    delete:
+      summary: Delete TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+        - in: path
+          name: number
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The TrainingSetVersion number
+      responses:
+        '200':
+          description: Success
 
 components:
   schemas:
