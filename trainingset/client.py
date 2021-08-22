@@ -7,6 +7,7 @@ import pandas as pd
 from trainingset import model  # XXX rename model
 
 from training_set_api_client import Client
+from training_set_api_client.api.default import delete_training_set_name
 from training_set_api_client.api.default import delete_training_set_name_number
 from training_set_api_client.api.default import get_training_set_name
 from training_set_api_client.api.default import get_training_set_name_number
@@ -101,20 +102,24 @@ def update_training_set(
     return _to_TrainingSet(response.parsed)
 
 
-def delete_training_set(name: str, force: bool = False) -> bool:
+def delete_training_set(name: str) -> bool:
     """Delete a TrainingSet.
 
-    Will only delete if the TrainingSet has no versions unless force is used.
+    Will only delete if the TrainingSet has no versions.
 
     Keyword arguments:
     name -- name of the TrainingSet
-    force -- will delete all versions if true
     """
 
-    # deletes a trainingset.
-    # only if no it contains no versions? (user needs to delete them first)
+    response = delete_training_set_name.sync_detailed(
+        training_set_name=name,
+        client=_get_client()
+    )
 
-    pass
+    if response.status_code != 200:
+        _raise_response_exn(response, "could not delete TrainingSet")
+
+    return True
 
 
 def create_training_set_version(

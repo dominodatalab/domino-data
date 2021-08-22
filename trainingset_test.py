@@ -59,3 +59,10 @@ try:
     raise Exception("TrainingSetVersion not deleted as expected")
 except Exception:
     print("deleted TrainingSetVersion")
+
+client.delete_training_set(ts.name)
+try:
+    client.get_training_set(ts.name)
+    raise Exception("TrainingSet not deleted as expected")
+except Exception:
+    print("deleted TrainingSet")
