@@ -7,6 +7,7 @@ import pandas as pd
 from trainingset import model  # XXX rename model
 
 from training_set_api_client import Client
+from training_set_api_client.api.default import delete_training_set_name_number
 from training_set_api_client.api.default import get_training_set_name
 from training_set_api_client.api.default import get_training_set_name_number
 from training_set_api_client.api.default import post_find
@@ -36,7 +37,7 @@ def get_training_set(name: str) -> model.TrainingSet:
     )
 
     if response.status_code != 200:
-        _raise_response_exn(response, f"could not get TrainingSet {name}")
+        _raise_response_exn(response, "could not get TrainingSet")
 
     return _to_TrainingSet(response.parsed)
 
@@ -238,14 +239,23 @@ def update_training_set_version(
     return _to_TrainingSetVersion(response.parsed)
 
 
-def delete_training_set_version(training_set_version: model.TrainingSetVersion) -> bool:
+def delete_training_set_version(tsv: model.TrainingSetVersion) -> bool:
     """Deletes a TrainingSetVersion.
 
     Keyword arguments:
     version -- TrainingSetVersion to delete
     """
 
-    pass
+    response = delete_training_set_name_number.sync_detailed(
+        training_set_name=tsv.training_set_name,
+        number=tsv.number,
+        client=_get_client(),
+    )
+
+    if response.status_code != 200:
+        _raise_response_exn(response, "could not delete TrainingSetVersion")
+
+    return True
 
 
 def list_training_set_versions(

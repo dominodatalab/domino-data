@@ -52,3 +52,10 @@ found_ts = client.list_training_sets(
 )
 
 print(f"Found training set: {found_ts}")
+
+client.delete_training_set_version(tsv)
+try:
+    client.get_training_set_version(tsv.training_set_name, tsv.number)
+    raise Exception("TrainingSetVersion not deleted as expected")
+except Exception:
+    print("deleted TrainingSetVersion")
