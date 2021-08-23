@@ -168,14 +168,12 @@ class TrainingSetVersionFilter(TypedDict, total=False):
     """Filter TrainingSetVersions by all provided fields.
 
     Keyword arguments:
-    project_id -- the project id (e.g. 611808cfdc6bc24ee5f23fe8)
     project_name -- the project name (e.g. gmatev/quick_start)
     meta -- version metadata
     training_set_name -- training set name
     training_set_meta -- training set meta data
     """
 
-    project_id: str
     project_name: str
     meta: Mapping[str, str]
     training_set_name: str
