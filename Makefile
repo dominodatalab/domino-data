@@ -48,7 +48,7 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	poetry run pytest
+	poetry run pytest tests/
 
 .PHONY: check-codestyle
 check-codestyle:
