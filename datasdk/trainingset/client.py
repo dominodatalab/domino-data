@@ -1,7 +1,6 @@
-from typing import List, Optional
+from typing import List, Mapping, Optional
 
 import os
-from collections.abc import Mapping
 
 import pandas as pd
 
