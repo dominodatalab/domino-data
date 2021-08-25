@@ -2,15 +2,15 @@
 
 <div align="center">
 
-[![Build status](https://github.com/dominodatalab/datasdk/workflows/build/badge.svg?branch=master&event=push)](https://github.com/dominodatalab/datasdk/actions?query=workflow%3Abuild)
+[![Build status](https://github.com/cerebrotech/datasdk/workflows/build/badge.svg?branch=master&event=push)](https://github.com/cerebrotech/datasdk/actions?query=workflow%3Abuild)
 [![Python Version](https://img.shields.io/pypi/pyversions/datasdk.svg)](https://pypi.org/project/datasdk/)
-[![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/dominodatalab/datasdk/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
+[![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/cerebrotech/datasdk/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-green.svg)](https://github.com/PyCQA/bandit)
-[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/dominodatalab/datasdk/blob/master/.pre-commit-config.yaml)
-[![Semantic Versions](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--versions-e10079.svg)](https://github.com/dominodatalab/datasdk/releases)
-[![License](https://img.shields.io/github/license/dominodatalab/datasdk)](https://github.com/dominodatalab/datasdk/blob/master/LICENSE)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/cerebrotech/datasdk/blob/master/.pre-commit-config.yaml)
+[![Semantic Versions](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--versions-e10079.svg)](https://github.com/cerebrotech/datasdk/releases)
+[![License](https://img.shields.io/github/license/cerebrotech/datasdk)](https://github.com/cerebrotech/datasdk/blob/master/LICENSE)
 
 Domino Data SDK for interacting with Access Data features
 
@@ -30,7 +30,7 @@ poetry add datasdk
 
 ### Makefile usage
 
-[`Makefile`](https://github.com/dominodatalab/datasdk/blob/master/Makefile) contains a lot of functions for faster development.
+[`Makefile`](https://github.com/cerebrotech/datasdk/blob/master/Makefile) contains a lot of functions for faster development.
 
 <details>
 <summary>1. Download and remove Poetry</summary>
@@ -182,7 +182,7 @@ make clean-all
 
 ## 📈 Releases
 
-You can see the list of available releases on the [GitHub Releases](https://github.com/dominodatalab/datasdk/releases) page.
+You can see the list of available releases on the [GitHub Releases](https://github.com/cerebrotech/datasdk/releases) page.
 
 We follow [Semantic Versions](https://semver.org/) specification.
 
@@ -199,26 +199,26 @@ We use [`Release Drafter`](https://github.com/marketplace/actions/release-drafte
 |            `documentation`            |    📝 Documentation     |
 |            `dependencies`             | ⬆️ Dependencies updates |
 
-You can update it in [`release-drafter.yml`](https://github.com/dominodatalab/datasdk/blob/master/.github/release-drafter.yml).
+You can update it in [`release-drafter.yml`](https://github.com/cerebrotech/datasdk/blob/master/.github/release-drafter.yml).
 
 GitHub creates the `bug`, `enhancement`, and `documentation` labels for you. Dependabot creates the `dependencies` label. Create the remaining labels on the Issues tab of your GitHub repository, when you need them.
 
 ## 🛡 License
 
-[![License](https://img.shields.io/github/license/dominodatalab/datasdk)](https://github.com/dominodatalab/datasdk/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/cerebrotech/datasdk)](https://github.com/cerebrotech/datasdk/blob/master/LICENSE)
 
-This project is licensed under the terms of the `Apache Software License 2.0` license. See [LICENSE](https://github.com/dominodatalab/datasdk/blob/master/LICENSE) for more details.
+This project is licensed under the terms of the `Apache Software License 2.0` license. See [LICENSE](https://github.com/cerebrotech/datasdk/blob/master/LICENSE) for more details.
 
 ## 📃 Citation
 
 ```bibtex
 @misc{datasdk,
-  author = {dominodatalab},
+  author = {cerebrotech},
   title = {Domino Data SDK for interacting with Access Data features},
   year = {2021},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/dominodatalab/datasdk}}
+  howpublished = {\url{https://github.com/cerebrotech/datasdk}}
 }
 ```
 
