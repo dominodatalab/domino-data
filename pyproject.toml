@@ -9,12 +9,12 @@ version = "0.1.0"
 description = "Domino Data SDK for interacting with Access Data features"
 readme = "README.md"
 authors = [
-    "Aaron Read <aaron.read@dominodatalab.com>",
-    "Gabriel Haim <gabriel.haim@dominodatalab.com>",
+    "Aaron Read <aaron.read@cerebrotech.com>",
+    "Gabriel Haim <gabriel.haim@cerebrotech.com>",
 ]
 license = "Apache Software License 2.0"
-repository = "https://github.com/dominodatalab/datasdk"
-homepage = "https://github.com/dominodatalab/datasdk"
+repository = "https://github.com/cerebrotech/datasdk"
+homepage = "https://github.com/cerebrotech/datasdk"
 
 # Keywords description https://python-poetry.org/docs/pyproject/#keywords
 keywords = []  #! Update me
