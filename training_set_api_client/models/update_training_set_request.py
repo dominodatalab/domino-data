@@ -1,42 +1,25 @@
 from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
-import datetime
-
 import attr
-from dateutil.parser import isoparse
 
-from ..models.training_set_meta import TrainingSetMeta
+from ..models.update_training_set_request_meta import UpdateTrainingSetRequestMeta
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="TrainingSet")
+T = TypeVar("T", bound="UpdateTrainingSetRequest")
 
 
 @attr.s(auto_attribs=True)
-class TrainingSet:
+class UpdateTrainingSetRequest:
     """ """
 
-    id: str
-    project_id: str
-    name: str
-    creation_time: datetime.datetime
-    owner_id: str
     owner_name: str
-    collaborator_ids: List[str]
     collaborator_names: List[str]
-    meta: TrainingSetMeta
+    meta: UpdateTrainingSetRequestMeta
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        id = self.id
-        project_id = self.project_id
-        name = self.name
-        creation_time = self.creation_time.isoformat()
-
-        owner_id = self.owner_id
         owner_name = self.owner_name
-        collaborator_ids = self.collaborator_ids
-
         collaborator_names = self.collaborator_names
 
         meta = self.meta.to_dict()
@@ -47,13 +30,7 @@ class TrainingSet:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "id": id,
-                "projectId": project_id,
-                "name": name,
-                "creationTime": creation_time,
-                "ownerId": owner_id,
                 "ownerName": owner_name,
-                "collaboratorIds": collaborator_ids,
                 "collaboratorNames": collaborator_names,
                 "meta": meta,
             }
@@ -66,41 +43,23 @@ class TrainingSet:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        id = d.pop("id")
-
-        project_id = d.pop("projectId")
-
-        name = d.pop("name")
-
-        creation_time = isoparse(d.pop("creationTime"))
-
-        owner_id = d.pop("ownerId")
-
         owner_name = d.pop("ownerName")
-
-        collaborator_ids = cast(List[str], d.pop("collaboratorIds"))
 
         collaborator_names = cast(List[str], d.pop("collaboratorNames"))
 
-        meta = TrainingSetMeta.from_dict(d.pop("meta"))
+        meta = UpdateTrainingSetRequestMeta.from_dict(d.pop("meta"))
 
         description = d.pop("description", UNSET)
 
-        training_set = cls(
-            id=id,
-            project_id=project_id,
-            name=name,
-            creation_time=creation_time,
-            owner_id=owner_id,
+        update_training_set_request = cls(
             owner_name=owner_name,
-            collaborator_ids=collaborator_ids,
             collaborator_names=collaborator_names,
             meta=meta,
             description=description,
         )
 
-        training_set.additional_properties = d
-        return training_set
+        update_training_set_request.additional_properties = d
+        return update_training_set_request
 
     @property
     def additional_keys(self) -> List[str]:
