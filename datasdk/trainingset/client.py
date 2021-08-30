@@ -133,7 +133,6 @@ def delete_training_set(name: str) -> bool:
 def create_training_set_version(
     training_set_name: str,
     df: pd.DataFrame,
-    name: Optional[str] = None,
     description: Optional[str] = None,
     key_columns: List[str] = [],
     target_columns: List[str] = [],
@@ -148,7 +147,6 @@ def create_training_set_version(
     training_set_name -- name of the TrainingSet this version belongs to
     df -- a DataFrame holding the data
     training_set_name -- name of the TrainingSet this version belongs to
-    name -- name of this version
     description -- description of this version
     key_columns -- names of columns that represent IDs for retrieving features
     target_columns -- target variables for prediction
@@ -182,7 +180,6 @@ def create_training_set_version(
                 ordinal_columns=monitoring_meta.get("ordinal_columns", []),
             ),
             meta=CreateTrainingSetVersionRequestMeta.from_dict(meta),
-            name=name,
             description=description,
         ),
     )
