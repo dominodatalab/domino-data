@@ -1,0 +1,224 @@
+{
+  "paths": {
+    "/datasource/name/{name}": {
+      "get": {
+        "operationId": "getDatasourceByName",
+        "tags": [
+          "Datasource"
+        ],
+        "summary": "Get data source by name",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "name",
+            "description": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/domino.datasource.api.DatasourceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "info": {
+    "description": "This API is going to provide access to Datasource APIs.\nTo authenticate your requests, include your API Key (which you can find on your account page) with the header X-Domino-Api-Key.\n",
+    "title": "Datasource",
+    "version": "4.0.0"
+  },
+  "components": {
+    "schemas": {
+      "domino.api.ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      },
+      "domino.datasource.api.DatasourceConfigDto": {
+        "properties": {}
+      },
+      "domino.datasource.api.DatasourceDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "addedBy": {
+            "type": "string"
+          },
+          "datasourceType": {
+            "type": "string",
+            "enum": [
+              "SnowflakeConfig",
+              "RedshiftConfig"
+            ]
+          },
+          "config": {
+            "$ref": "#/components/schemas/domino.datasource.api.DatasourceConfig"
+          },
+          "credentialType": {
+            "type": "string",
+            "enum": [
+              "Individual",
+              "Shared"
+            ]
+          },
+          "lastUpdated": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastUpdatedBy": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$"
+          },
+          "isEveryone": {
+            "type": "boolean"
+          },
+          "userIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            }
+          },
+          "projectIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Active",
+              "Deleted"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ownerId",
+          "ownerName",
+          "addedBy",
+          "datasourceType",
+          "config",
+          "credentialType",
+          "lastUpdated",
+          "lastUpdatedBy",
+          "isEveryone",
+          "userIds",
+          "projectIds",
+          "status"
+        ]
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "The server could not understand the request due to malformed syntax",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/domino.api.ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "The server could not find the requested resource",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/domino.api.ErrorResponse"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "The current user cannot perform this operation because they are not logged in",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/domino.api.ErrorResponse"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "The current user is not authorized to perform this operation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/domino.api.ErrorResponse"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "An internal error prevented the server from performing this action",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/domino.api.ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "DominoApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Domino-Api-Key"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/v4"
+    }
+  ]
+}
