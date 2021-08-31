@@ -1,0 +1,146 @@
+paths:
+  /datasource/name/{name}:
+    get:
+      operationId: getDatasourceByName
+      tags:
+        - Datasource
+      summary: Get datasource by name
+      parameters:
+        - schema:
+            type: string
+          in: path
+          name: name
+          description: string
+          required: true
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasourceDto'
+        '400':
+          description: The server could not understand the request due to malformed syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: The current user cannot perform this operation because they are not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The current user is not authorized to perform this operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: The server could not find the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: An internal error prevented the server from performing this action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+openapi: 3.0.0
+info:
+  description: |
+    Barebone Datasource API for Domino Data SDK usage.
+    To authenticate your requests, include your API Key (which you can find on your account page) with the header X-Domino-Api-Key.
+  title: Datasource
+  version: 4.0.0
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+    DatasourceConfig:
+      type: object
+      properties: {}
+    DatasourceDto:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: ^[0-9a-f]{24}$
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        ownerId:
+          type: string
+          pattern: ^[0-9a-f]{24}$
+        ownerName:
+          type: string
+        addedBy:
+          type: string
+        dataSourceType:
+          type: string
+          enum:
+            - SnowflakeConfig
+            - RedshiftConfig
+        config:
+          $ref: '#/components/schemas/DatasourceConfig'
+        credentialType:
+          type: string
+          enum:
+            - Individual
+            - Shared
+        lastUpdated:
+          type: integer
+          format: int64
+        lastUpdatedBy:
+          type: string
+          pattern: ^[0-9a-f]{24}$
+        isEveryone:
+          type: boolean
+        userIds:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-9a-f]{24}$
+        projectIds:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-9a-f]{24}$
+        status:
+          type: string
+          enum:
+            - Active
+            - Deleted
+      required:
+        - id
+        - name
+        - ownerId
+        - ownerName
+        - addedBy
+        - dataSourceType
+        - config
+        - credentialType
+        - lastUpdated
+        - lastUpdatedBy
+        - isEveryone
+        - userIds
+        - projectIds
+        - status
+  securitySchemes:
+    DominoApiKey:
+      type: apiKey
+      in: header
+      name: X-Domino-Api-Key
+security:
+  - DominoApiKey: []
+servers:
+  - url: /v4

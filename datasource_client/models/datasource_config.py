@@ -1,41 +1,31 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-from ..types import UNSET, Unset
-
-T = TypeVar("T", bound="DominoapiErrorResponse")
+T = TypeVar("T", bound="DatasourceConfig")
 
 
 @attr.s(auto_attribs=True)
-class DominoapiErrorResponse:
+class DatasourceConfig:
     """ """
 
-    message: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        message = self.message
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if message is not UNSET:
-            field_dict["message"] = message
 
         return field_dict
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        message = d.pop("message", UNSET)
+        datasource_config = cls()
 
-        dominoapi_error_response = cls(
-            message=message,
-        )
-
-        dominoapi_error_response.additional_properties = d
-        return dominoapi_error_response
+        datasource_config.additional_properties = d
+        return datasource_config
 
     @property
     def additional_keys(self) -> List[str]:

@@ -1,8 +1,10 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
 
 import httpx
 
 from ...client import Client
+from ...models.datasource_dto import DatasourceDto
+from ...models.error_response import ErrorResponse
 from ...types import Response
 
 
@@ -24,12 +26,40 @@ def _get_kwargs(
     }
 
 
-def _build_response(*, response: httpx.Response) -> Response[Any]:
+def _parse_response(*, response: httpx.Response) -> Optional[Union[DatasourceDto, ErrorResponse]]:
+    if response.status_code == 200:
+        response_200 = DatasourceDto.from_dict(response.json())
+
+        return response_200
+    if response.status_code == 400:
+        response_400 = ErrorResponse.from_dict(response.json())
+
+        return response_400
+    if response.status_code == 401:
+        response_401 = ErrorResponse.from_dict(response.json())
+
+        return response_401
+    if response.status_code == 403:
+        response_403 = ErrorResponse.from_dict(response.json())
+
+        return response_403
+    if response.status_code == 404:
+        response_404 = ErrorResponse.from_dict(response.json())
+
+        return response_404
+    if response.status_code == 500:
+        response_500 = ErrorResponse.from_dict(response.json())
+
+        return response_500
+    return None
+
+
+def _build_response(*, response: httpx.Response) -> Response[Union[DatasourceDto, ErrorResponse]]:
     return Response(
         status_code=response.status_code,
         content=response.content,
         headers=response.headers,
-        parsed=None,
+        parsed=_parse_response(response=response),
     )
 
 
@@ -37,7 +67,7 @@ def sync_detailed(
     name: str,
     *,
     client: Client,
-) -> Response[Any]:
+) -> Response[Union[DatasourceDto, ErrorResponse]]:
     kwargs = _get_kwargs(
         name=name,
         client=client,
@@ -50,11 +80,24 @@ def sync_detailed(
     return _build_response(response=response)
 
 
+def sync(
+    name: str,
+    *,
+    client: Client,
+) -> Optional[Union[DatasourceDto, ErrorResponse]]:
+    """ """
+
+    return sync_detailed(
+        name=name,
+        client=client,
+    ).parsed
+
+
 async def asyncio_detailed(
     name: str,
     *,
     client: Client,
-) -> Response[Any]:
+) -> Response[Union[DatasourceDto, ErrorResponse]]:
     kwargs = _get_kwargs(
         name=name,
         client=client,
@@ -64,3 +107,18 @@ async def asyncio_detailed(
         response = await _client.get(**kwargs)
 
     return _build_response(response=response)
+
+
+async def asyncio(
+    name: str,
+    *,
+    client: Client,
+) -> Optional[Union[DatasourceDto, ErrorResponse]]:
+    """ """
+
+    return (
+        await asyncio_detailed(
+            name=name,
+            client=client,
+        )
+    ).parsed

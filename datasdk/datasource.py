@@ -1,12 +1,22 @@
-"""Datasource features."""
+"""Datasource module."""
 
-from typing import Any, Dict, Literal
+from typing import Optional, cast
 
+import json
 import os
 from dataclasses import dataclass
 
 import pandas
 from pyarrow import flight
+
+from datasource_client.api.datasource import get_datasource_by_name
+from datasource_client.client import Client
+from datasource_client.models import (
+    DatasourceDto,
+    DatasourceDtoCredentialType,
+    DatasourceDtoDataSourceType,
+    ErrorResponse,
+)
 
 
 @dataclass
@@ -30,38 +40,92 @@ class Datasource:
     # datasource is a complex entity with many attributes
 
     core: "Core"
-    credential_type: Literal["Individual", "Shared"]
-    datasource_type: Literal["Redshift", "Snowflake"]
+    credential_type: DatasourceDtoCredentialType
+    datasource_type: DatasourceDtoDataSourceType
     identifier: str
     name: str
     owner: str
     owner_id: str
 
-    def __init__(self, core: "Core", data: Dict[str, Any]):
+    def __init__(self, core: "Core", dto: DatasourceDto):
         self.core = core
-        self.credential_type = data["credentialType"]
-        self.datasource_type = data["datasourceType"]
-        self.identifier = data["id"]
-        self.name = data["name"]
-        self.owner = data["owner"]
-        self.owner_id = data["ownerId"]
+        self.credential_type = dto.credential_type
+        self.datasource_type = dto.data_source_type
+        self.identifier = dto.id
+        self.name = dto.name
+        self.owner = dto.owner_name
+        self.owner_id = dto.owner_id
+
+
+@dataclass
+class BoardingPass:
+    """Class that represent a query request to the Datasource Proxy service."""
+
+    datasource_id: str
+    query: str
+    user_id: str
+    api_key: Optional[str] = None
+    jwt_token: Optional[str] = None
+
+    def to_json(self) -> str:
+        """Serialize self to JSON."""
+        return json.dumps(
+            {
+                "datasourceId": self.datasource_id,
+                "sqlQuery": self.query,
+                "userId": self.user_id,
+                "apiKey": self.api_key,
+                "jwtToken": self.jwt_token,
+            }
+        )
 
 
 class Core:
     """API client and bindings."""
 
     def __init__(self, api_key: str = ""):
-        self.api_token = api_key or os.getenv("DOMINO_USER_API_KEY")
+        # TODO verify one auth method is available
+        self.api_key = api_key or os.getenv("DOMINO_USER_API_KEY", "")
 
-        datasource_proxy_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
-        nucleus_host = os.getenv("DOMINO_API_HOST")
-        self.flight = flight.connect(datasource_proxy_host)
-        self.nucleus = Client(base_url=f"{nucleus_host}/v4/datasource").with_headers(
-            {"X-Domino-Api-Key": api_key}
+        flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
+        domino_host = os.getenv("DOMINO_API_HOST")
+        self.flight = flight.connect(flight_host)
+        self.domino = Client(base_url=f"{domino_host}/v4").with_headers(
+            {"X-Domino-Api-Key": self.api_key}
         )
 
     def get_datasource(self, name: str) -> Datasource:
-        pass
+        """Fetch a datasource by name.
 
-    def execute(self, datasource_id: str, statement: str) -> Result:
-        pass
+        Args:
+          name: unique identifier of a datasource
+
+        Returns:
+          Datasource entity with given name
+        """
+        response = get_datasource_by_name.sync_detailed(name, client=self.domino)
+        if response.status_code == 200:
+            return Datasource(self, cast(DatasourceDto, response.parsed))
+        raise Exception(cast(ErrorResponse, response.parsed).message)
+
+    def execute(self, datasource_id: str, query: str) -> Result:
+        """Execute a given query against a datasource.
+
+        Args:
+          datasource_id: unique identifier of a datasource
+          query: SQL query to execute
+
+        Returns:
+          Result entity encapsulating execution response
+        """
+        reader = self.flight.do_get(
+            flight.Ticket(
+                BoardingPass(
+                    user_id="60faf443e43b3c7a6f5f5eea",
+                    api_key=self.api_key,
+                    datasource_id=datasource_id,
+                    query=query,
+                ).to_json()
+            )
+        )
+        return Result(self, reader, query)
