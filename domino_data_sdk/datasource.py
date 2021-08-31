@@ -9,9 +9,9 @@ from dataclasses import dataclass
 import pandas
 from pyarrow import flight
 
-from datasource_client.api.datasource import get_datasource_by_name
-from datasource_client.client import Client as DatasourceClient
-from datasource_client.models import (
+from datasource_api_client.api.datasource import get_datasource_by_name
+from datasource_api_client.client import Client as DatasourceClient
+from datasource_api_client.models import (
     DatasourceDto,
     DatasourceDtoCredentialType,
     DatasourceDtoDataSourceType,

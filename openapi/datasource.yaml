@@ -54,7 +54,7 @@ info:
   description: |
     Barebone Datasource API for Domino Data SDK usage.
     To authenticate your requests, include your API Key (which you can find on your account page) with the header X-Domino-Api-Key.
-  title: Datasource
+  title: Datasource API
   version: 4.0.0
 components:
   schemas:
