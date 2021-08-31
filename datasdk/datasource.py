@@ -10,7 +10,7 @@ import pandas
 from pyarrow import flight
 
 from datasource_client.api.datasource import get_datasource_by_name
-from datasource_client.client import Client
+from datasource_client.client import Client as DatasourceClient
 from datasource_client.models import (
     DatasourceDto,
     DatasourceDtoCredentialType,
@@ -23,7 +23,7 @@ from datasource_client.models import (
 class Result:
     """Class for keeping query result metadata."""
 
-    core: "Core"
+    client: "Client"
     reader: flight.FlightStreamReader
     statement: str
 
@@ -39,7 +39,7 @@ class Datasource:
     # pylint: disable=too-many-instance-attributes
     # datasource is a complex entity with many attributes
 
-    core: "Core"
+    client: "Client"
     credential_type: DatasourceDtoCredentialType
     datasource_type: DatasourceDtoDataSourceType
     identifier: str
@@ -47,14 +47,25 @@ class Datasource:
     owner: str
     owner_id: str
 
-    def __init__(self, core: "Core", dto: DatasourceDto):
-        self.core = core
+    def __init__(self, client: "Client", dto: DatasourceDto):
+        self.client = client
         self.credential_type = dto.credential_type
         self.datasource_type = dto.data_source_type
         self.identifier = dto.id
         self.name = dto.name
         self.owner = dto.owner_name
         self.owner_id = dto.owner_id
+
+    def query(self, query: str) -> Result:
+        """Execute a query against the datasource.
+
+        Args:
+          query: SQL statement to execute
+
+        Returns:
+          Result entity wrapping dataframe
+        """
+        return self.client.execute(self.identifier, self.owner_id, query)
 
 
 @dataclass
@@ -80,7 +91,7 @@ class BoardingPass:
         )
 
 
-class Core:
+class Client:
     """API client and bindings."""
 
     def __init__(self, api_key: str = ""):
@@ -90,7 +101,7 @@ class Core:
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
         domino_host = os.getenv("DOMINO_API_HOST")
         self.flight = flight.connect(flight_host)
-        self.domino = Client(base_url=f"{domino_host}/v4").with_headers(
+        self.domino = DatasourceClient(base_url=f"{domino_host}/v4").with_headers(
             {"X-Domino-Api-Key": self.api_key}
         )
 
@@ -108,7 +119,7 @@ class Core:
             return Datasource(self, cast(DatasourceDto, response.parsed))
         raise Exception(cast(ErrorResponse, response.parsed).message)
 
-    def execute(self, datasource_id: str, query: str) -> Result:
+    def execute(self, datasource_id: str, owner_id: str, query: str) -> Result:
         """Execute a given query against a datasource.
 
         Args:
@@ -121,7 +132,7 @@ class Core:
         reader = self.flight.do_get(
             flight.Ticket(
                 BoardingPass(
-                    user_id="60faf443e43b3c7a6f5f5eea",
+                    user_id=owner_id,
                     api_key=self.api_key,
                     datasource_id=datasource_id,
                     query=query,
