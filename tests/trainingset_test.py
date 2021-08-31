@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from datasdk.trainingset import client
+from domino_data_sdk.trainingset import client
 
 
 @pytest.mark.skip(reason="needs vcrpy integration")

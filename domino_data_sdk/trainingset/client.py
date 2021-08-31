@@ -4,7 +4,6 @@ import os
 
 import pandas as pd
 
-from datasdk.trainingset import model  # XXX rename model
 from training_set_api_client import Client
 from training_set_api_client.api.default import (
     delete_training_set_name,
@@ -34,6 +33,8 @@ from training_set_api_client.models import (
     UpdateTrainingSetVersionRequestMeta,
 )
 from training_set_api_client.types import Response
+
+from ..trainingset import model  # XXX rename model
 
 
 def get_training_set(name: str) -> model.TrainingSet:

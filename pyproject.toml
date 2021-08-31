@@ -4,8 +4,8 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "datasdk"
-version = "0.1.0"
+name = "domino-data-sdk"
+version = "0.1.0b1"
 description = "Domino Data SDK for interacting with Access Data features"
 readme = "README.md"
 authors = [
@@ -13,8 +13,8 @@ authors = [
     "Gabriel Haim <gabriel.haim@cerebrotech.com>",
 ]
 license = "Apache Software License 2.0"
-repository = "https://github.com/cerebrotech/datasdk"
-homepage = "https://github.com/cerebrotech/datasdk"
+repository = "https://github.com/cerebrotech/data-access-sdk"
+homepage = "https://github.com/cerebrotech/data-access-sdk"
 
 # Keywords description https://python-poetry.org/docs/pyproject/#keywords
 keywords = []  #! Update me
@@ -93,7 +93,7 @@ color_output = true
 
 [tool.mypy]
 # mypy configurations: https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
-exclude = 'examples/|datasdk/trainingset/'
+exclude = 'examples/|domino_data_sdk/trainingset/'
 python_version = 3.8
 pretty = true
 show_traceback = true
