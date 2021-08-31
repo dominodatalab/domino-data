@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "domino-data-sdk"
-version = "0.1.0b1"
+version = "0.1.0b2"
 description = "Domino Data SDK for interacting with Access Data features"
 readme = "README.md"
 authors = [
@@ -15,6 +15,13 @@ authors = [
 license = "Apache Software License 2.0"
 repository = "https://github.com/cerebrotech/data-access-sdk"
 homepage = "https://github.com/cerebrotech/data-access-sdk"
+
+# Generated client need to be bundled
+packages = [
+    { include = "domino_data_sdk" },
+    { include = "datasource_api_client" },
+    { include = "training_set_api_client" },
+]
 
 # Keywords description https://python-poetry.org/docs/pyproject/#keywords
 keywords = []  #! Update me
