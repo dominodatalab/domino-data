@@ -3,7 +3,7 @@ SHELL := /usr/bin/env bash
 PYTHON := python
 
 #* OpenAPI variables
-TRAININGSET_YAML := trainingset.yaml
+TRAININGSET_YAML := openapi/trainingset.yaml
 
 #* Poetry
 .PHONY: poetry-download

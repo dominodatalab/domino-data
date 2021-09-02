@@ -1,6 +1,8 @@
 from typing import List, Mapping, Optional
 
 import os
+import shutil
+from stat import S_IRGRP, S_IROTH, S_IRUSR, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR
 
 import pandas as pd
 
@@ -156,6 +158,16 @@ def create_training_set_version(
     meta -- user defined metadata
     """
 
+    _check_columns(
+        df,
+        key_columns
+        + target_columns
+        + exclude_columns
+        + monitoring_meta.timestamp_columns
+        + monitoring_meta.categorical_columns
+        + monitoring_meta.ordinal_columns,
+    )
+
     project_name = kwargs.get("project_name")
     if project_name:
         (project_owner, project_name) = project_name.split("/")
@@ -176,9 +188,9 @@ def create_training_set_version(
             target_columns=target_columns,
             exclude_columns=exclude_columns,
             monitoring_meta=MonitoringMeta(
-                timestamp_columns=monitoring_meta.get("timestamp_columns", []),
-                categorical_columns=monitoring_meta.get("categorical_columns", []),
-                ordinal_columns=monitoring_meta.get("ordinal_columns", []),
+                timestamp_columns=monitoring_meta.timestamp_columns,
+                categorical_columns=monitoring_meta.categorical_columns,
+                ordinal_columns=monitoring_meta.ordinal_columns,
             ),
             meta=CreateTrainingSetVersionRequestMeta.from_dict(meta),
             description=description,
@@ -188,12 +200,14 @@ def create_training_set_version(
     if response.status_code != 200:
         _raise_response_exn(response, "could not create TrainingSetVersion")
 
-    # TODO:
-    # gets pre-signed upload url
-    # uploads data
-    # updates TrainingSetVersion record to mark as complete
+    tsv = _to_TrainingSetVersion(response.parsed)
 
-    return _to_TrainingSetVersion(response.parsed)
+    os.makedirs(tsv.absolute_container_path)
+    df.to_parquet(os.path.join(tsv.absolute_container_path, "data.parquet"))
+    os.chmod(tsv.absolute_container_path, S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR | S_IXGRP | S_IXOTH)
+
+    tsv.pending = False
+    return update_training_set_version(tsv)
 
 
 def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
@@ -232,9 +246,9 @@ def update_training_set_version(tsv: model.TrainingSetVersion) -> model.Training
             target_columns=tsv.target_columns,
             exclude_columns=tsv.exclude_columns,
             monitoring_meta=MonitoringMeta(
-                timestamp_columns=tsv.monitoring_meta.get("timestamp_columns", []),
-                categorical_columns=tsv.monitoring_meta.get("categorical_columns", []),
-                ordinal_columns=tsv.monitoring_meta.get("ordinal_columns", []),
+                timestamp_columns=tsv.monitoring_meta.timestamp_columns,
+                categorical_columns=tsv.monitoring_meta.categorical_columns,
+                ordinal_columns=tsv.monitoring_meta.ordinal_columns,
             ),
             meta=UpdateTrainingSetVersionRequestMeta.from_dict(tsv.meta),
             pending=tsv.pending,
@@ -255,6 +269,8 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
     version -- TrainingSetVersion to delete
     """
 
+    tsv = get_training_set_version(training_set_name, number)
+
     response = delete_training_set_name_number.sync_detailed(
         training_set_name=training_set_name,
         number=number,
@@ -263,6 +279,10 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
 
     if response.status_code != 200:
         _raise_response_exn(response, "could not delete TrainingSetVersion")
+
+    stat = os.stat(tsv.absolute_container_path)
+    os.chmod(tsv.absolute_container_path, stat.st_mode | S_IWUSR)
+    shutil.rmtree(tsv.absolute_container_path)
 
     return True
 
@@ -339,11 +359,23 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
         key_columns=tsv.key_columns,
         target_columns=tsv.target_columns,
         exclude_columns=tsv.exclude_columns,
-        monitoring_meta=tsv.monitoring_meta.to_dict(),
+        monitoring_meta=model.MonitoringMeta(
+            timestamp_columns=tsv.monitoring_meta.timestamp_columns,
+            categorical_columns=tsv.monitoring_meta.categorical_columns,
+            ordinal_columns=tsv.monitoring_meta.ordinal_columns,
+        ),
         meta=tsv.meta.to_dict(),
+        path=tsv.path,
+        container_path=tsv.container_path,
         pending=tsv.pending,
     )
 
 
 def _raise_response_exn(response: Response, msg: str):
     raise Exception(msg)
+
+
+def _check_columns(df: pd.DataFrame, columns: [str]):
+    for c in columns:
+        if c not in df.columns:
+            raise Exception(f"DataFrame missing column: {c}")

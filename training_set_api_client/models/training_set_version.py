@@ -21,7 +21,8 @@ class TrainingSetVersion:
     training_set_name: str
     number: int
     creation_time: datetime.datetime
-    url: str
+    path: str
+    container_path: str
     key_columns: List[str]
     target_columns: List[str]
     exclude_columns: List[str]
@@ -38,7 +39,8 @@ class TrainingSetVersion:
         number = self.number
         creation_time = self.creation_time.isoformat()
 
-        url = self.url
+        path = self.path
+        container_path = self.container_path
         key_columns = self.key_columns
 
         target_columns = self.target_columns
@@ -61,7 +63,8 @@ class TrainingSetVersion:
                 "trainingSetName": training_set_name,
                 "number": number,
                 "creationTime": creation_time,
-                "url": url,
+                "path": path,
+                "containerPath": container_path,
                 "keyColumns": key_columns,
                 "targetColumns": target_columns,
                 "excludeColumns": exclude_columns,
@@ -88,7 +91,9 @@ class TrainingSetVersion:
 
         creation_time = isoparse(d.pop("creationTime"))
 
-        url = d.pop("url")
+        path = d.pop("path")
+
+        container_path = d.pop("containerPath")
 
         key_columns = cast(List[str], d.pop("keyColumns"))
 
@@ -110,7 +115,8 @@ class TrainingSetVersion:
             training_set_name=training_set_name,
             number=number,
             creation_time=creation_time,
-            url=url,
+            path=path,
+            container_path=container_path,
             key_columns=key_columns,
             target_columns=target_columns,
             exclude_columns=exclude_columns,

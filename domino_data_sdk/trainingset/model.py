@@ -1,5 +1,6 @@
-from typing import List, Mapping, Optional, TypedDict
+from typing import List, Mapping, Optional
 
+import os
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -37,7 +38,8 @@ class TrainingSet:
         self.collaborator_names = list(set(self.collaborator_names) - set(collaborator_names))
 
 
-class MonitoringMeta(TypedDict, total=False):
+@dataclass
+class MonitoringMeta:
     """MonitoringMeta
 
     Keyword arguments:
@@ -46,9 +48,9 @@ class MonitoringMeta(TypedDict, total=False):
     ordinal_columns -- all other columns are continuous
     """
 
-    timestamp_columns: List[str]
-    categorical_columns: List[str]
-    ordinal_columns: List[str]
+    timestamp_columns: List[str] = field(default_factory=list)
+    categorical_columns: List[str] = field(default_factory=list)
+    ordinal_columns: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -74,7 +76,15 @@ class TrainingSetVersion:
     exclude_columns: List[str] = field(default_factory=list)
     monitoring_meta: MonitoringMeta = field(default_factory=map)
     meta: Mapping[str, str] = field(default_factory=map)
+    path: Optional[str] = None
+    container_path: Optional[str] = None
     pending: bool = True
+
+    @property
+    def absolute_container_path(self):
+        root = os.getenv("DOMINO_TRAINING_SET_PATH", "/var/opt/domino/trainingset/project")
+
+        return f"{root}/{self.container_path}"
 
     def load_training_pandas(self) -> pd.DataFrame:
         """Get a pandas dataframe for training.
@@ -82,8 +92,21 @@ class TrainingSetVersion:
         Dataframe will not include key_columns and exclude_columns.
         """
 
-        pass
+        df = self.load_raw_pandas()
+
+        for c in self.key_columns + self.exclude_columns:
+            if c in df.columns:
+                del df[c]
+
+        return df
 
     def load_raw_pandas(self) -> pd.DataFrame:
         """Get the raw dataframe."""
-        return self._df
+
+        files = [
+            os.path.join(self.absolute_container_path)
+            for f in os.listdir(self.absolute_container_path)
+            if f.endswith(".parquet")
+        ]
+
+        return pd.concat([pd.read_parquet(f) for f in files])
