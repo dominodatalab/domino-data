@@ -1,5 +1,6 @@
 from typing import List, Mapping, Optional, Tuple
 
+import json
 import os
 import shutil
 from stat import S_IRGRP, S_IROTH, S_IRUSR, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR
@@ -370,7 +371,16 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
 
 
 def _raise_response_exn(response: Response, msg: str):
-    raise Exception(msg)
+    try:
+        response_json = json.loads(response.content.decode("utf8"))
+        server_msg = response_json.get("message")
+    except Exception:
+        server_msg = None
+
+    if server_msg:
+        raise Exception(f"{msg}: {server_msg}")
+    else:
+        raise Exception(msg)
 
 
 def _check_columns(df: pd.DataFrame, columns: [str]):
