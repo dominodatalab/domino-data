@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
@@ -12,16 +12,11 @@ T = TypeVar("T", bound="UpdateTrainingSetRequest")
 class UpdateTrainingSetRequest:
     """ """
 
-    owner_name: str
-    collaborator_names: List[str]
     meta: UpdateTrainingSetRequestMeta
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        owner_name = self.owner_name
-        collaborator_names = self.collaborator_names
-
         meta = self.meta.to_dict()
 
         description = self.description
@@ -30,8 +25,6 @@ class UpdateTrainingSetRequest:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "ownerName": owner_name,
-                "collaboratorNames": collaborator_names,
                 "meta": meta,
             }
         )
@@ -43,17 +36,11 @@ class UpdateTrainingSetRequest:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        owner_name = d.pop("ownerName")
-
-        collaborator_names = cast(List[str], d.pop("collaboratorNames"))
-
         meta = UpdateTrainingSetRequestMeta.from_dict(d.pop("meta"))
 
         description = d.pop("description", UNSET)
 
         update_training_set_request = cls(
-            owner_name=owner_name,
-            collaborator_names=collaborator_names,
             meta=meta,
             description=description,
         )

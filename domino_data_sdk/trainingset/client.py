@@ -1,4 +1,4 @@
-from typing import List, Mapping, Optional
+from typing import List, Mapping, Optional, Tuple
 
 import os
 import shutil
@@ -55,7 +55,6 @@ def get_training_set(name: str) -> model.TrainingSet:
 
 def list_training_sets(
     project_name: Optional[str] = None,
-    owner_name: Optional[str] = None,
     meta: Mapping[str, str] = {},
     asc: bool = True,
     offset: int = 0,
@@ -65,18 +64,19 @@ def list_training_sets(
 
     Keyword arguments:
     project_name -- the project name (e.g. gmatev/quick_start)
-    owner_name -- the TrainingSet's owner (e.g. gmatev)
     meta -- match metadata key-value pairs
     asc -- sort order by creation time, 1 for ascending -1 for descending
     offset -- offset
     limit -- limit
     """
 
+    if not project_name:
+        project_name = "/".join(_get_project_name())
+
     response = post_find.sync_detailed(
         client=_get_client(),
         json_body=TrainingSetFilter(
             project_name=project_name,
-            owner_name=owner_name,
             meta=TrainingSetFilterMeta.from_dict(meta),
         ),
         offset=offset,
@@ -103,8 +103,6 @@ def update_training_set(
         training_set_name=updated.name,
         client=_get_client(),
         json_body=UpdateTrainingSetRequest(
-            owner_name=updated.owner_name,
-            collaborator_names=updated.collaborator_names,
             meta=UpdateTrainingSetRequestMeta.from_dict(updated.meta),
             description=updated.description,
         ),
@@ -172,8 +170,7 @@ def create_training_set_version(
     if project_name:
         (project_owner, project_name) = project_name.split("/")
     else:
-        project_owner = os.getenv("DOMINO_PROJECT_OWNER")
-        project_name = os.getenv("DOMINO_PROJECT_NAME")
+        (project_owner, project_name) = _get_project_name()
 
     if not project_owner or not project_owner:
         raise ("project owner and name are required")
@@ -308,6 +305,9 @@ def list_training_set_versions(
     limit -- limit
     """
 
+    if not project_name:
+        project_name = "/".join(_get_project_name())
+
     response = post_version_find.sync_detailed(
         client=_get_client(),
         json_body=TrainingSetVersionFilter(
@@ -345,8 +345,6 @@ def _to_TrainingSet(ts: TrainingSet) -> model.TrainingSet:
         name=ts.name,
         description=ts.description,
         meta=ts.meta.to_dict(),
-        collaborator_names=ts.collaborator_names,
-        owner_name=ts.owner_name,
         project_id=ts.project_id,
     )
 
@@ -379,3 +377,10 @@ def _check_columns(df: pd.DataFrame, columns: [str]):
     for c in columns:
         if c not in df.columns:
             raise Exception(f"DataFrame missing column: {c}")
+
+
+def _get_project_name() -> Tuple[str, str]:
+    project_owner = os.getenv("DOMINO_PROJECT_OWNER")
+    project_name = os.getenv("DOMINO_PROJECT_NAME")
+
+    return (project_owner, project_name)

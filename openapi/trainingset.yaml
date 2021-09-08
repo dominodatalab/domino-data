@@ -258,51 +258,27 @@ components:
         creationTime:
           type: string
           format: date-time
-        ownerId:
-          type: string
-        ownerName:
-          type: string
-        collaboratorIds:
-          type: array
-          items:
-            type: string
-        collaboratorNames:
-          type: array
-          items:
-            type: string
         meta:
           type: object
           additionalProperties:
             type: string
       required:
         - creationTime
-        - collaboratorIds
-        - collaboratorNames
         - id
         - meta
         - name
-        - ownerId
-        - ownerName
         - projectId
     UpdateTrainingSetRequest:
       type: object
       properties:
         description:
           type: string
-        ownerName:
-          type: string
-        collaboratorNames:
-          type: array
-          items:
-            type: string
         meta:
           type: object
           additionalProperties:
             type: string
       required:
-        - collaboratorNames
         - meta
-        - ownerName
     CreateTrainingSetVersionRequest:
       type: object
       properties:
@@ -450,12 +426,12 @@ components:
       properties:
         projectName:
           type: string
-        ownerName:
-          type: string
         meta:
           type: object
           additionalProperties:
             type: string
+      required:
+        - projectName
     TrainingSetVersionFilter:
       type: object
       properties:
@@ -473,4 +449,5 @@ components:
             type: string
       required:
         - meta
+        - projectName
         - trainingSetMeta

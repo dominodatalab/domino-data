@@ -15,27 +15,12 @@ class TrainingSet:
     name -- unique name of the TrainingSet
     description -- description of the TrainingSet
     meta -- user defined metadata
-    collaborator_names -- usernames of collaborator_names
     """
 
     name: str
-    owner_name: str
     project_id: str
     description: Optional[str] = None
     meta: Mapping[str, str] = field(default_factory=map)
-    collaborator_names: List[str] = field(default_factory=list)
-
-    def add_collaborator_names(self, collaborator_names: List[str]) -> None:
-        """Add collaborator_names"""
-
-        # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
-        self.collaborator_names = list(set(self.collaborator_names) + set(collaborator_names))
-
-    def remove_collaborator_names(self, collaborator_names: List[str]) -> None:
-        """Add a collaborator_names"""
-
-        # TODO: GO TO THE SERVER, use server's response. is this a good pattern?
-        self.collaborator_names = list(set(self.collaborator_names) - set(collaborator_names))
 
 
 @dataclass
