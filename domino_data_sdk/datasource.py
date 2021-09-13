@@ -89,12 +89,12 @@ class BoardingPass:
         )
 
 
-@attr.s(auto_attribs=True)
+@attr.s
 class Client:
     """API client and bindings."""
 
     domino: AuthenticatedClient = attr.ib(init=False)
-    flight: flight.FlightClient = attr.ib(init=False)
+    proxy: flight.FlightClient = attr.ib(init=False)
 
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
@@ -103,7 +103,7 @@ class Client:
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
         domino_host = os.getenv("DOMINO_API_HOST")
 
-        self.flight = flight.FlightClient(
+        self.proxy = flight.FlightClient(
             flight_host,
             middleware=[
                 AuthMiddlewareFactory(
@@ -142,7 +142,7 @@ class Client:
         Returns:
           Result entity encapsulating execution response
         """
-        reader = self.flight.do_get(
+        reader = self.proxy.do_get(
             flight.Ticket(
                 BoardingPass(
                     user_id=owner_id,
