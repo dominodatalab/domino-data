@@ -1,3 +1,17 @@
+openapi: 3.0.0
+
+info:
+  contact:
+    name: Gabriel Haim
+    email: gabriel.haim@dominodatalab.com
+  description: Lightweight Datasource API for Domino Data SDK usage.
+  title: Datasource API
+  version: 0.0.1
+
+tags:
+  - name: Datasource
+    description: Datasource operations
+
 paths:
   /datasource/name/{name}:
     get:
@@ -49,13 +63,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-openapi: 3.0.0
-info:
-  description: |
-    Barebone Datasource API for Domino Data SDK usage.
-    To authenticate your requests, include your API Key (which you can find on your account page) with the header X-Domino-Api-Key.
-  title: Datasource API
-  version: 4.0.0
+
 components:
   schemas:
     ErrorResponse:
@@ -64,32 +72,25 @@ components:
         message:
           type: string
           description: Error message
+    DatasourceOwnerInfo:
+      type: object
+      properties:
+        ownerName:
+          type: string
+        ownerEmail:
+          type: string
+        isOwnerAdmin:
+          type: boolean
     DatasourceConfig:
       type: object
       properties: {}
     DatasourceDto:
       type: object
       properties:
-        id:
-          type: string
-          pattern: ^[0-9a-f]{24}$
-        name:
-          type: string
-        description:
-          type: string
-          nullable: true
-        ownerId:
-          type: string
-          pattern: ^[0-9a-f]{24}$
-        ownerName:
-          type: string
         addedBy:
-          type: string
-        dataSourceType:
-          type: string
-          enum:
-            - SnowflakeConfig
-            - RedshiftConfig
+          type: object
+          additionalProperties:
+            type: string
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         credentialType:
@@ -97,50 +98,53 @@ components:
           enum:
             - Individual
             - Shared
-        lastUpdated:
-          type: integer
-          format: int64
-        lastUpdatedBy:
+        dataSourceType:
           type: string
-          pattern: ^[0-9a-f]{24}$
+          enum:
+            - SnowflakeConfig
+            - RedshiftConfig
+        description:
+          type: string
+          nullable: true
+        id:
+          type: string
         isEveryone:
           type: boolean
-        userIds:
-          type: array
-          items:
-            type: string
-            pattern: ^[0-9a-f]{24}$
+        lastUpdated:
+          type: integer
+        lastUpdatedBy:
+          type: string
+        name:
+          type: string
+        ownerId:
+          type: string
+        ownerInfo:
+          $ref: '#/components/schemas/DatasourceOwnerInfo'
         projectIds:
           type: array
           items:
             type: string
-            pattern: ^[0-9a-f]{24}$
         status:
           type: string
           enum:
             - Active
             - Deleted
+        userIds:
+          type: array
+          items:
+            type: string
       required:
-        - id
-        - name
-        - ownerId
-        - ownerName
         - addedBy
-        - dataSourceType
         - config
         - credentialType
+        - dataSourceType
+        - id
+        - isEveryone
         - lastUpdated
         - lastUpdatedBy
-        - isEveryone
-        - userIds
+        - name
+        - ownerId
+        - ownerInfo
         - projectIds
         - status
-  securitySchemes:
-    DominoApiKey:
-      type: apiKey
-      in: header
-      name: X-Domino-Api-Key
-security:
-  - DominoApiKey: []
-servers:
-  - url: /v4
+        - userIds
