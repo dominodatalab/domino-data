@@ -13,7 +13,7 @@ tags:
     description: Datasource operations
 
 paths:
-  /datasource/name/{name}:
+  /datasource/name/{name}/project/{projectId}:
     get:
       operationId: getDatasourceByName
       tags:
@@ -24,7 +24,11 @@ paths:
             type: string
           in: path
           name: name
-          description: string
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: projectId
           required: true
       responses:
         '200':
