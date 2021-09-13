@@ -85,6 +85,10 @@ components:
           type: string
         isOwnerAdmin:
           type: boolean
+      required:
+        - ownerName
+        - ownerEmail
+        - isOwnerAdmin
     DatasourceConfig:
       type: object
       properties: {}

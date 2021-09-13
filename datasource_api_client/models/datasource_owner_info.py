@@ -1,8 +1,6 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar
 
 import attr
-
-from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="DatasourceOwnerInfo")
 
@@ -11,9 +9,9 @@ T = TypeVar("T", bound="DatasourceOwnerInfo")
 class DatasourceOwnerInfo:
     """ """
 
-    owner_name: Union[Unset, str] = UNSET
-    owner_email: Union[Unset, str] = UNSET
-    is_owner_admin: Union[Unset, bool] = UNSET
+    owner_name: str
+    owner_email: str
+    is_owner_admin: bool
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -23,24 +21,24 @@ class DatasourceOwnerInfo:
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({})
-        if owner_name is not UNSET:
-            field_dict["ownerName"] = owner_name
-        if owner_email is not UNSET:
-            field_dict["ownerEmail"] = owner_email
-        if is_owner_admin is not UNSET:
-            field_dict["isOwnerAdmin"] = is_owner_admin
+        field_dict.update(
+            {
+                "ownerName": owner_name,
+                "ownerEmail": owner_email,
+                "isOwnerAdmin": is_owner_admin,
+            }
+        )
 
         return field_dict
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        owner_name = d.pop("ownerName", UNSET)
+        owner_name = d.pop("ownerName")
 
-        owner_email = d.pop("ownerEmail", UNSET)
+        owner_email = d.pop("ownerEmail")
 
-        is_owner_admin = d.pop("isOwnerAdmin", UNSET)
+        is_owner_admin = d.pop("isOwnerAdmin")
 
         datasource_owner_info = cls(
             owner_name=owner_name,

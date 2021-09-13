@@ -55,7 +55,7 @@ class Datasource:
         self.datasource_type = dto.data_source_type
         self.identifier = dto.id
         self.name = dto.name
-        self.owner = dto.owner_name
+        self.owner = dto.owner_info.owner_name
         self.owner_id = dto.owner_id
 
     def query(self, query: str) -> Result:
