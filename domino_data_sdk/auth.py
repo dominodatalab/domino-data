@@ -71,13 +71,19 @@ class AuthMiddleware(flight.ClientMiddleware):
     api_key: Optional[str] = attr.ib()
     jwt: Optional[str] = attr.ib()
 
+    def call_completed(self, exception):
+        """No implementation. TODO logging."""
+
+    def received_headers(self, headers):
+        """No implementation."""
+
     def sending_headers(self):
         """Return authentication headers."""
         headers = {}
 
         if self.api_key is not None:
-            headers["X-Domino-Api-Key"] = self.api_key
+            headers["x-domino-api-key"] = self.api_key
         if self.jwt is not None:
-            headers["X-Domino-Jwt"] = self.jwt
+            headers["x-domino-jwt"] = self.jwt
 
         return headers
