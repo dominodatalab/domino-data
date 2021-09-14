@@ -6,17 +6,19 @@ import json
 import os
 from dataclasses import dataclass
 
+import attr
 import pandas
 from pyarrow import flight
 
 from datasource_api_client.api.datasource import get_datasource_by_name
-from datasource_api_client.client import Client as DatasourceClient
 from datasource_api_client.models import (
     DatasourceDto,
     DatasourceDtoCredentialType,
     DatasourceDtoDataSourceType,
     ErrorResponse,
 )
+
+from .auth import AuthenticatedClient, AuthMiddlewareFactory
 
 
 @dataclass
@@ -75,8 +77,6 @@ class BoardingPass:
     datasource_id: str
     query: str
     user_id: str
-    api_key: Optional[str] = None
-    jwt_token: Optional[str] = None
 
     def to_json(self) -> str:
         """Serialize self to JSON."""
@@ -85,24 +85,37 @@ class BoardingPass:
                 "datasourceId": self.datasource_id,
                 "sqlQuery": self.query,
                 "userId": self.user_id,
-                "apiKey": self.api_key,
-                "jwtToken": self.jwt_token,
             }
         )
 
 
+@attr.s
 class Client:
     """API client and bindings."""
 
-    def __init__(self, api_key: str = ""):
-        # TODO verify one auth method is available
-        self.api_key = api_key or os.getenv("DOMINO_USER_API_KEY", "")
+    domino: AuthenticatedClient = attr.ib(init=False)
+    proxy: flight.FlightClient = attr.ib(init=False)
 
+    api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
+    token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
+
+    def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
         domino_host = os.getenv("DOMINO_API_HOST")
-        self.flight = flight.connect(flight_host)
-        self.domino = DatasourceClient(base_url=f"{domino_host}/v4").with_headers(
-            {"X-Domino-Api-Key": self.api_key}
+
+        self.proxy = flight.FlightClient(
+            flight_host,
+            middleware=[
+                AuthMiddlewareFactory(
+                    self.api_key,
+                    self.token_file,
+                )
+            ],
+        )
+        self.domino = AuthenticatedClient(
+            base_url=f"{domino_host}/v4",
+            api_key=self.api_key,
+            token_file=self.token_file,
         )
 
     def get_datasource(self, name: str) -> Datasource:
@@ -129,11 +142,10 @@ class Client:
         Returns:
           Result entity encapsulating execution response
         """
-        reader = self.flight.do_get(
+        reader = self.proxy.do_get(
             flight.Ticket(
                 BoardingPass(
                     user_id=owner_id,
-                    api_key=self.api_key,
                     datasource_id=datasource_id,
                     query=query,
                 ).to_json()
