@@ -1,0 +1,158 @@
+openapi: 3.0.0
+
+info:
+  contact:
+    name: Gabriel Haim
+    email: gabriel.haim@dominodatalab.com
+  description: Lightweight Datasource API for Domino Data SDK usage.
+  title: Datasource API
+  version: 0.0.1
+
+tags:
+  - name: Datasource
+    description: Datasource operations
+
+paths:
+  /datasource/name/{name}/project/{projectId}:
+    get:
+      operationId: getDatasourceByName
+      tags:
+        - Datasource
+      summary: Get datasource by name
+      parameters:
+        - schema:
+            type: string
+          in: path
+          name: name
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: projectId
+          required: true
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasourceDto'
+        '400':
+          description: The server could not understand the request due to malformed syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: The current user cannot perform this operation because they are not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The current user is not authorized to perform this operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: The server could not find the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: An internal error prevented the server from performing this action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+    DatasourceOwnerInfo:
+      type: object
+      properties:
+        ownerName:
+          type: string
+        ownerEmail:
+          type: string
+        isOwnerAdmin:
+          type: boolean
+      required:
+        - ownerName
+        - ownerEmail
+        - isOwnerAdmin
+    DatasourceConfig:
+      type: object
+      properties: {}
+    DatasourceDto:
+      type: object
+      properties:
+        addedBy:
+          type: object
+          additionalProperties:
+            type: string
+        config:
+          $ref: '#/components/schemas/DatasourceConfig'
+        credentialType:
+          type: string
+          enum:
+            - Individual
+            - Shared
+        dataSourceType:
+          type: string
+          enum:
+            - SnowflakeConfig
+            - RedshiftConfig
+        description:
+          type: string
+          nullable: true
+        id:
+          type: string
+        isEveryone:
+          type: boolean
+        lastUpdated:
+          type: integer
+        lastUpdatedBy:
+          type: string
+        name:
+          type: string
+        ownerId:
+          type: string
+        ownerInfo:
+          $ref: '#/components/schemas/DatasourceOwnerInfo'
+        projectIds:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+            - Active
+            - Deleted
+        userIds:
+          type: array
+          items:
+            type: string
+      required:
+        - addedBy
+        - config
+        - credentialType
+        - dataSourceType
+        - id
+        - isEveryone
+        - lastUpdated
+        - lastUpdatedBy
+        - name
+        - ownerId
+        - ownerInfo
+        - projectIds
+        - status
+        - userIds

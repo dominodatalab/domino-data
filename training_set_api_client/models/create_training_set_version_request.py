@@ -20,7 +20,6 @@ class CreateTrainingSetVersionRequest:
     exclude_columns: List[str]
     monitoring_meta: MonitoringMeta
     meta: CreateTrainingSetVersionRequestMeta
-    name: Union[Unset, str] = UNSET
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
@@ -37,7 +36,6 @@ class CreateTrainingSetVersionRequest:
 
         meta = self.meta.to_dict()
 
-        name = self.name
         description = self.description
 
         field_dict: Dict[str, Any] = {}
@@ -53,8 +51,6 @@ class CreateTrainingSetVersionRequest:
                 "meta": meta,
             }
         )
-        if name is not UNSET:
-            field_dict["name"] = name
         if description is not UNSET:
             field_dict["description"] = description
 
@@ -77,8 +73,6 @@ class CreateTrainingSetVersionRequest:
 
         meta = CreateTrainingSetVersionRequestMeta.from_dict(d.pop("meta"))
 
-        name = d.pop("name", UNSET)
-
         description = d.pop("description", UNSET)
 
         create_training_set_version_request = cls(
@@ -89,7 +83,6 @@ class CreateTrainingSetVersionRequest:
             exclude_columns=exclude_columns,
             monitoring_meta=monitoring_meta,
             meta=meta,
-            name=name,
             description=description,
         )
 

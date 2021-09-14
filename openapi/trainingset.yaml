@@ -1,0 +1,453 @@
+openapi: 3.0.0
+
+info:
+  title: TrainingSet API
+  description: TrainingSet metadata service
+  version: 0.1.9
+
+paths:
+  /find:
+    post:
+      summary: List TrainingSets
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int64
+          description: Number of items to skip
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+          description: Number of items to return
+        - in: query
+          name: asc
+          schema:
+            type: boolean
+          description: Sort order
+      requestBody:
+        description: Search filter
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingSetFilter'
+      responses:
+        '200':
+          description: Matching TrainingSets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainingSet'
+
+  /version/find:
+    post:
+      summary: List TrainingSetVersions
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            format: int64
+          description: Number of items to skip
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            format: int64
+          description: Number of items to return
+        - in: query
+          name: asc
+          schema:
+            type: boolean
+          description: Sort order
+      requestBody:
+        description: Search filter
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrainingSetVersionFilter'
+      responses:
+        '200':
+          description: Matching TrainingSetVersions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrainingSetVersion'
+
+  /{trainingSetName}:
+    get:
+      summary: Get TrainingSet
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      responses:
+        '200':
+          description: The TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
+    post:
+      summary: Create TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      requestBody:
+        description: CreateTrainingSetVersionRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTrainingSetVersionRequest'
+      responses:
+        '200':
+          description: The new TrainingSetVersion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersion'
+    put:
+      summary: Update TrainingSet
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      requestBody:
+        description: UpdateTrainingSetRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainingSetRequest'
+      responses:
+        '200':
+          description: Updated TrainingSet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSet'
+
+    delete:
+      summary: Delete TrainingSet
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+      responses:
+        '200':
+          description: Success
+
+  /{trainingSetName}/{number}:
+    get:
+      summary: Get TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+        - in: path
+          name: number
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The TrainingSetVersion number
+      responses:
+        '200':
+          description: The new TrainingSetVersion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersion'
+
+    put:
+      summary: Update TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+        - in: path
+          name: number
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The TrainingSetVersion number
+      requestBody:
+        description: UpdateTrainingSetVersionRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTrainingSetVersionRequest'
+      responses:
+        '200':
+          description: Updated TrainingSetVersion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSetVersion'
+
+    delete:
+      summary: Delete TrainingSetVersion
+      parameters:
+        - in: path
+          name: trainingSetName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: The TrainingSet name
+        - in: path
+          name: number
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: The TrainingSetVersion number
+      responses:
+        '200':
+          description: Success
+
+components:
+  schemas:
+    TrainingSet:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        creationTime:
+          type: string
+          format: date-time
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - creationTime
+        - id
+        - meta
+        - name
+        - projectId
+    UpdateTrainingSetRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - meta
+    CreateTrainingSetVersionRequest:
+      type: object
+      properties:
+        projectOwnerUsername:
+          type: string
+        projectName:
+          type: string
+        keyColumns:
+          type: array
+          items:
+            type: string
+        targetColumns:
+          type: array
+          items:
+            type: string
+        excludeColumns:
+          type: array
+          items:
+            type: string
+        monitoringMeta:
+          $ref: '#/components/schemas/MonitoringMeta'
+        description:
+          type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - excludeColumns
+        - keyColumns
+        - meta
+        - monitoringMeta
+        - projectName
+        - projectOwnerUsername
+        - targetColumns
+    TrainingSetVersion:
+      type: object
+      properties:
+        id:
+          type: string
+        trainingSetId:
+          type: string
+        trainingSetName:
+          type: string
+        number:
+          type: integer
+        creationTime:
+          type: string
+          format: date-time
+        path:
+          description: relative file path
+          type: string
+        containerPath:
+          description: path in an execution relative to TrainingSet mount point
+          type: string
+        keyColumns:
+          type: array
+          items:
+            type: string
+        targetColumns:
+          type: array
+          items:
+            type: string
+        excludeColumns:
+          type: array
+          items:
+            type: string
+        monitoringMeta:
+          $ref: '#/components/schemas/MonitoringMeta'
+        description:
+          type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+        pending:
+          type: boolean
+      required:
+        - containerPath
+        - creationTime
+        - excludeColumns
+        - id
+        - keyColumns
+        - meta
+        - monitoringMeta
+        - number
+        - path
+        - pending
+        - targetColumns
+        - trainingSetId
+        - trainingSetName
+    UpdateTrainingSetVersionRequest:
+      type: object
+      properties:
+        keyColumns:
+          type: array
+          items:
+            type: string
+        targetColumns:
+          type: array
+          items:
+            type: string
+        excludeColumns:
+          type: array
+          items:
+            type: string
+        monitoringMeta:
+          $ref: '#/components/schemas/MonitoringMeta'
+        description:
+          type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+        pending:
+          type: boolean
+      required:
+        - excludeColumns
+        - keyColumns
+        - meta
+        - monitoringMeta
+        - pending
+        - targetColumns
+    MonitoringMeta:
+      type: object
+      properties:
+        timestampColumns:
+           type: array
+           items:
+             type: string
+        categoricalColumns:
+          type: array
+          items:
+            type: string
+        ordinalColumns:
+          type: array
+          items:
+            type: string
+      required:
+        - categoricalColumns
+        - ordinalColumns
+        - timestampColumns
+    TrainingSetFilter:
+      type: object
+      properties:
+        projectName:
+          type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - projectName
+    TrainingSetVersionFilter:
+      type: object
+      properties:
+        projectName:
+          type: string
+        trainingSetName:
+          type: string
+        trainingSetMeta:
+          type: object
+          additionalProperties:
+            type: string
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - meta
+        - projectName
+        - trainingSetMeta

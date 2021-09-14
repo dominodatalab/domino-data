@@ -3,7 +3,8 @@ SHELL := /usr/bin/env bash
 PYTHON := python
 
 #* OpenAPI variables
-TRAININGSET_YAML := trainingset.yaml
+TRAININGSET_YAML := openapi/trainingset.yaml
+DATASOURCE_YAML := openapi/datasource.yaml
 
 #* Poetry
 .PHONY: poetry-download
@@ -35,6 +36,14 @@ install-trainingset:
 update-trainingset:
 	poetry run openapi-python-client update --meta none --path $(TRAININGSET_YAML)
 
+.PHONY: install-datasource
+install-datasource:
+	poetry run openapi-python-client generate --meta none --path $(DATASOURCE_YAML)
+
+.PHONY: update-datasource
+update-datasource:
+	poetry run openapi-python-client update --meta none --path $(DATASOURCE_YAML)
+
 #* Formatters
 .PHONY: codestyle
 codestyle:
@@ -54,7 +63,7 @@ test:
 check-codestyle:
 	poetry run isort --diff --check-only --settings-path pyproject.toml ./
 	poetry run black --diff --check --config pyproject.toml ./
-	poetry run darglint --verbosity 2 datasdk tests
+	poetry run darglint --verbosity 2 domino_data_sdk tests
 
 .PHONY: mypy
 mypy:
@@ -64,7 +73,7 @@ mypy:
 check-safety:
 	poetry check
 	poetry run safety check --full-report
-	poetry run bandit -ll --recursive datasdk tests
+	poetry run bandit -ll --recursive domino_data_sdk tests
 
 .PHONY: lint
 lint: test check-codestyle mypy check-safety

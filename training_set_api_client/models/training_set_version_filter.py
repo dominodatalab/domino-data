@@ -15,30 +15,29 @@ T = TypeVar("T", bound="TrainingSetVersionFilter")
 class TrainingSetVersionFilter:
     """ """
 
+    project_name: str
     training_set_meta: TrainingSetVersionFilterTrainingSetMeta
     meta: TrainingSetVersionFilterMeta
-    project_name: Union[Unset, str] = UNSET
     training_set_name: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        project_name = self.project_name
         training_set_meta = self.training_set_meta.to_dict()
 
         meta = self.meta.to_dict()
 
-        project_name = self.project_name
         training_set_name = self.training_set_name
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "projectName": project_name,
                 "trainingSetMeta": training_set_meta,
                 "meta": meta,
             }
         )
-        if project_name is not UNSET:
-            field_dict["projectName"] = project_name
         if training_set_name is not UNSET:
             field_dict["trainingSetName"] = training_set_name
 
@@ -47,20 +46,20 @@ class TrainingSetVersionFilter:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
+        project_name = d.pop("projectName")
+
         training_set_meta = TrainingSetVersionFilterTrainingSetMeta.from_dict(
             d.pop("trainingSetMeta")
         )
 
         meta = TrainingSetVersionFilterMeta.from_dict(d.pop("meta"))
 
-        project_name = d.pop("projectName", UNSET)
-
         training_set_name = d.pop("trainingSetName", UNSET)
 
         training_set_version_filter = cls(
+            project_name=project_name,
             training_set_meta=training_set_meta,
             meta=meta,
-            project_name=project_name,
             training_set_name=training_set_name,
         )
 

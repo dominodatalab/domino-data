@@ -1,10 +1,12 @@
-from typing import List, Mapping, Optional
+from typing import List, Mapping, Optional, Tuple
 
+import json
 import os
+import shutil
+from stat import S_IRGRP, S_IROTH, S_IRUSR, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR
 
 import pandas as pd
 
-from datasdk.trainingset import model  # XXX rename model
 from training_set_api_client import Client
 from training_set_api_client.api.default import (
     delete_training_set_name,
@@ -35,6 +37,8 @@ from training_set_api_client.models import (
 )
 from training_set_api_client.types import Response
 
+from ..trainingset import model  # XXX rename model
+
 
 def get_training_set(name: str) -> model.TrainingSet:
     """Get a TrainingSet by name"""
@@ -52,7 +56,6 @@ def get_training_set(name: str) -> model.TrainingSet:
 
 def list_training_sets(
     project_name: Optional[str] = None,
-    owner_name: Optional[str] = None,
     meta: Mapping[str, str] = {},
     asc: bool = True,
     offset: int = 0,
@@ -62,18 +65,19 @@ def list_training_sets(
 
     Keyword arguments:
     project_name -- the project name (e.g. gmatev/quick_start)
-    owner_name -- the TrainingSet's owner (e.g. gmatev)
     meta -- match metadata key-value pairs
     asc -- sort order by creation time, 1 for ascending -1 for descending
     offset -- offset
     limit -- limit
     """
 
+    if not project_name:
+        project_name = "/".join(_get_project_name())
+
     response = post_find.sync_detailed(
         client=_get_client(),
         json_body=TrainingSetFilter(
             project_name=project_name,
-            owner_name=owner_name,
             meta=TrainingSetFilterMeta.from_dict(meta),
         ),
         offset=offset,
@@ -100,8 +104,6 @@ def update_training_set(
         training_set_name=updated.name,
         client=_get_client(),
         json_body=UpdateTrainingSetRequest(
-            owner_name=updated.owner_name,
-            collaborator_names=updated.collaborator_names,
             meta=UpdateTrainingSetRequestMeta.from_dict(updated.meta),
             description=updated.description,
         ),
@@ -133,7 +135,6 @@ def delete_training_set(name: str) -> bool:
 def create_training_set_version(
     training_set_name: str,
     df: pd.DataFrame,
-    name: Optional[str] = None,
     description: Optional[str] = None,
     key_columns: List[str] = [],
     target_columns: List[str] = [],
@@ -148,7 +149,6 @@ def create_training_set_version(
     training_set_name -- name of the TrainingSet this version belongs to
     df -- a DataFrame holding the data
     training_set_name -- name of the TrainingSet this version belongs to
-    name -- name of this version
     description -- description of this version
     key_columns -- names of columns that represent IDs for retrieving features
     target_columns -- target variables for prediction
@@ -157,12 +157,21 @@ def create_training_set_version(
     meta -- user defined metadata
     """
 
+    _check_columns(
+        df,
+        key_columns
+        + target_columns
+        + exclude_columns
+        + monitoring_meta.timestamp_columns
+        + monitoring_meta.categorical_columns
+        + monitoring_meta.ordinal_columns,
+    )
+
     project_name = kwargs.get("project_name")
     if project_name:
         (project_owner, project_name) = project_name.split("/")
     else:
-        project_owner = os.getenv("DOMINO_PROJECT_OWNER")
-        project_name = os.getenv("DOMINO_PROJECT_NAME")
+        (project_owner, project_name) = _get_project_name()
 
     if not project_owner or not project_owner:
         raise ("project owner and name are required")
@@ -177,12 +186,11 @@ def create_training_set_version(
             target_columns=target_columns,
             exclude_columns=exclude_columns,
             monitoring_meta=MonitoringMeta(
-                timestamp_columns=monitoring_meta.get("timestamp_columns", []),
-                categorical_columns=monitoring_meta.get("categorical_columns", []),
-                ordinal_columns=monitoring_meta.get("ordinal_columns", []),
+                timestamp_columns=monitoring_meta.timestamp_columns,
+                categorical_columns=monitoring_meta.categorical_columns,
+                ordinal_columns=monitoring_meta.ordinal_columns,
             ),
             meta=CreateTrainingSetVersionRequestMeta.from_dict(meta),
-            name=name,
             description=description,
         ),
     )
@@ -190,12 +198,14 @@ def create_training_set_version(
     if response.status_code != 200:
         _raise_response_exn(response, "could not create TrainingSetVersion")
 
-    # TODO:
-    # gets pre-signed upload url
-    # uploads data
-    # updates TrainingSetVersion record to mark as complete
+    tsv = _to_TrainingSetVersion(response.parsed)
 
-    return _to_TrainingSetVersion(response.parsed)
+    os.makedirs(tsv.absolute_container_path)
+    df.to_parquet(os.path.join(tsv.absolute_container_path, "data.parquet"))
+    os.chmod(tsv.absolute_container_path, S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR | S_IXGRP | S_IXOTH)
+
+    tsv.pending = False
+    return update_training_set_version(tsv)
 
 
 def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
@@ -234,9 +244,9 @@ def update_training_set_version(tsv: model.TrainingSetVersion) -> model.Training
             target_columns=tsv.target_columns,
             exclude_columns=tsv.exclude_columns,
             monitoring_meta=MonitoringMeta(
-                timestamp_columns=tsv.monitoring_meta.get("timestamp_columns", []),
-                categorical_columns=tsv.monitoring_meta.get("categorical_columns", []),
-                ordinal_columns=tsv.monitoring_meta.get("ordinal_columns", []),
+                timestamp_columns=tsv.monitoring_meta.timestamp_columns,
+                categorical_columns=tsv.monitoring_meta.categorical_columns,
+                ordinal_columns=tsv.monitoring_meta.ordinal_columns,
             ),
             meta=UpdateTrainingSetVersionRequestMeta.from_dict(tsv.meta),
             pending=tsv.pending,
@@ -257,6 +267,8 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
     version -- TrainingSetVersion to delete
     """
 
+    tsv = get_training_set_version(training_set_name, number)
+
     response = delete_training_set_name_number.sync_detailed(
         training_set_name=training_set_name,
         number=number,
@@ -265,6 +277,10 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
 
     if response.status_code != 200:
         _raise_response_exn(response, "could not delete TrainingSetVersion")
+
+    stat = os.stat(tsv.absolute_container_path)
+    os.chmod(tsv.absolute_container_path, stat.st_mode | S_IWUSR)
+    shutil.rmtree(tsv.absolute_container_path)
 
     return True
 
@@ -289,6 +305,9 @@ def list_training_set_versions(
     offset -- offset
     limit -- limit
     """
+
+    if not project_name:
+        project_name = "/".join(_get_project_name())
 
     response = post_version_find.sync_detailed(
         client=_get_client(),
@@ -327,8 +346,6 @@ def _to_TrainingSet(ts: TrainingSet) -> model.TrainingSet:
         name=ts.name,
         description=ts.description,
         meta=ts.meta.to_dict(),
-        collaborator_names=ts.collaborator_names,
-        owner_name=ts.owner_name,
         project_id=ts.project_id,
     )
 
@@ -341,11 +358,39 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
         key_columns=tsv.key_columns,
         target_columns=tsv.target_columns,
         exclude_columns=tsv.exclude_columns,
-        monitoring_meta=tsv.monitoring_meta.to_dict(),
+        monitoring_meta=model.MonitoringMeta(
+            timestamp_columns=tsv.monitoring_meta.timestamp_columns,
+            categorical_columns=tsv.monitoring_meta.categorical_columns,
+            ordinal_columns=tsv.monitoring_meta.ordinal_columns,
+        ),
         meta=tsv.meta.to_dict(),
+        path=tsv.path,
+        container_path=tsv.container_path,
         pending=tsv.pending,
     )
 
 
 def _raise_response_exn(response: Response, msg: str):
-    raise Exception(msg)
+    try:
+        response_json = json.loads(response.content.decode("utf8"))
+        server_msg = response_json.get("message")
+    except Exception:
+        server_msg = None
+
+    if server_msg:
+        raise Exception(f"{msg}: {server_msg}")
+    else:
+        raise Exception(msg)
+
+
+def _check_columns(df: pd.DataFrame, columns: [str]):
+    for c in columns:
+        if c not in df.columns:
+            raise Exception(f"DataFrame missing column: {c}")
+
+
+def _get_project_name() -> Tuple[str, str]:
+    project_owner = os.getenv("DOMINO_PROJECT_OWNER")
+    project_name = os.getenv("DOMINO_PROJECT_NAME")
+
+    return (project_owner, project_name)

@@ -1,9 +1,9 @@
-# datasdk
+# Domino Data SDK
 
 <div align="center">
 
 [![Build status](https://github.com/cerebrotech/data-access-sdk/workflows/build/badge.svg?branch=master&event=push)](https://github.com/cerebrotech/data-access-sdk/actions?query=workflow%3Abuild)
-[![Python Version](https://img.shields.io/pypi/pyversions/datasdk.svg)](https://pypi.org/project/datasdk/)
+[![Python Version](https://img.shields.io/pypi/pyversions/domino-data-sdk.svg)](https://pypi.org/project/domino-data-sdk/)
 [![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/cerebrotech/data-access-sdk/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -19,13 +19,13 @@ Domino Data SDK for interacting with Access Data features
 ## Installation
 
 ```bash
-pip install -U datasdk
+pip install -U domino-data-sdk
 ```
 
 or install with `Poetry`
 
 ```bash
-poetry add datasdk
+poetry add domino-data-sdk
 ```
 
 ### Makefile usage
@@ -212,7 +212,7 @@ This project is licensed under the terms of the `Apache Software License 2.0` li
 ## 📃 Citation
 
 ```bibtex
-@misc{datasdk,
+@misc{domino-data-sdk,
   author = {cerebrotech},
   title = {Domino Data SDK for interacting with Access Data features},
   year = {2021},

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Type, TypeVar, Union
 
 import datetime
 
@@ -19,10 +19,6 @@ class TrainingSet:
     project_id: str
     name: str
     creation_time: datetime.datetime
-    owner_id: str
-    owner_name: str
-    collaborator_ids: List[str]
-    collaborator_names: List[str]
     meta: TrainingSetMeta
     description: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
@@ -32,12 +28,6 @@ class TrainingSet:
         project_id = self.project_id
         name = self.name
         creation_time = self.creation_time.isoformat()
-
-        owner_id = self.owner_id
-        owner_name = self.owner_name
-        collaborator_ids = self.collaborator_ids
-
-        collaborator_names = self.collaborator_names
 
         meta = self.meta.to_dict()
 
@@ -51,10 +41,6 @@ class TrainingSet:
                 "projectId": project_id,
                 "name": name,
                 "creationTime": creation_time,
-                "ownerId": owner_id,
-                "ownerName": owner_name,
-                "collaboratorIds": collaborator_ids,
-                "collaboratorNames": collaborator_names,
                 "meta": meta,
             }
         )
@@ -74,14 +60,6 @@ class TrainingSet:
 
         creation_time = isoparse(d.pop("creationTime"))
 
-        owner_id = d.pop("ownerId")
-
-        owner_name = d.pop("ownerName")
-
-        collaborator_ids = cast(List[str], d.pop("collaboratorIds"))
-
-        collaborator_names = cast(List[str], d.pop("collaboratorNames"))
-
         meta = TrainingSetMeta.from_dict(d.pop("meta"))
 
         description = d.pop("description", UNSET)
@@ -91,10 +69,6 @@ class TrainingSet:
             project_id=project_id,
             name=name,
             creation_time=creation_time,
-            owner_id=owner_id,
-            owner_name=owner_name,
-            collaborator_ids=collaborator_ids,
-            collaborator_names=collaborator_names,
             meta=meta,
             description=description,
         )

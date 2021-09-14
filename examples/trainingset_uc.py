@@ -18,9 +18,6 @@ tsv = client.create_training_set_version(
 
 ts = client.get_training_set_version("my_training_set")
 
-# optionally change permissions
-ts.add_collaborator_names(["user2, user3"])
-
 # Train a model
 train_model(tsv.load_pandas())
 

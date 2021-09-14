@@ -2,51 +2,40 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
-from ..models.update_training_set_request_meta import UpdateTrainingSetRequestMeta
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="UpdateTrainingSetRequest")
+T = TypeVar("T", bound="ErrorResponse")
 
 
 @attr.s(auto_attribs=True)
-class UpdateTrainingSetRequest:
+class ErrorResponse:
     """ """
 
-    meta: UpdateTrainingSetRequestMeta
-    description: Union[Unset, str] = UNSET
+    message: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        meta = self.meta.to_dict()
-
-        description = self.description
+        message = self.message
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "meta": meta,
-            }
-        )
-        if description is not UNSET:
-            field_dict["description"] = description
+        field_dict.update({})
+        if message is not UNSET:
+            field_dict["message"] = message
 
         return field_dict
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        meta = UpdateTrainingSetRequestMeta.from_dict(d.pop("meta"))
+        message = d.pop("message", UNSET)
 
-        description = d.pop("description", UNSET)
-
-        update_training_set_request = cls(
-            meta=meta,
-            description=description,
+        error_response = cls(
+            message=message,
         )
 
-        update_training_set_request.additional_properties = d
-        return update_training_set_request
+        error_response.additional_properties = d
+        return error_response
 
     @property
     def additional_keys(self) -> List[str]:

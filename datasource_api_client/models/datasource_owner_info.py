@@ -1,52 +1,53 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-from ..models.update_training_set_request_meta import UpdateTrainingSetRequestMeta
-from ..types import UNSET, Unset
-
-T = TypeVar("T", bound="UpdateTrainingSetRequest")
+T = TypeVar("T", bound="DatasourceOwnerInfo")
 
 
 @attr.s(auto_attribs=True)
-class UpdateTrainingSetRequest:
+class DatasourceOwnerInfo:
     """ """
 
-    meta: UpdateTrainingSetRequestMeta
-    description: Union[Unset, str] = UNSET
+    owner_name: str
+    owner_email: str
+    is_owner_admin: bool
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        meta = self.meta.to_dict()
-
-        description = self.description
+        owner_name = self.owner_name
+        owner_email = self.owner_email
+        is_owner_admin = self.is_owner_admin
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "meta": meta,
+                "ownerName": owner_name,
+                "ownerEmail": owner_email,
+                "isOwnerAdmin": is_owner_admin,
             }
         )
-        if description is not UNSET:
-            field_dict["description"] = description
 
         return field_dict
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        meta = UpdateTrainingSetRequestMeta.from_dict(d.pop("meta"))
+        owner_name = d.pop("ownerName")
 
-        description = d.pop("description", UNSET)
+        owner_email = d.pop("ownerEmail")
 
-        update_training_set_request = cls(
-            meta=meta,
-            description=description,
+        is_owner_admin = d.pop("isOwnerAdmin")
+
+        datasource_owner_info = cls(
+            owner_name=owner_name,
+            owner_email=owner_email,
+            is_owner_admin=is_owner_admin,
         )
 
-        update_training_set_request.additional_properties = d
-        return update_training_set_request
+        datasource_owner_info.additional_properties = d
+        return datasource_owner_info
 
     @property
     def additional_keys(self) -> List[str]:
