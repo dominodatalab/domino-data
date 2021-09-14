@@ -1,30 +1,33 @@
-Install Domino Data
-===================
+.. _install:
 
-You can install domino-data-sdk by using the right Domino environment, pip or from source.
+Install the Data SDK
+====================
+
+You can use the SDK by using the right Domino environment or by installing it with **pip**.
 
 Domino Standard Environment
 ---------------------------
 
-The Data SDK comes pre-packaged in the `Domino Standard Environment (DSE) <https://docs.dominodatalab.com/en/5.0/reference/environments/Domino_4_standard_environments.html>`_ starting version XX.
+The Data SDK comes pre-packaged in the `Domino Standard Environment (DSE) <https://docs.dominodatalab.com/en/5.0/reference/environments/Domino_4_standard_environments.html>`_ starting version 5.0.
 
-Pip
----
+If you want to use your own environment, you can easily install the SDK by adding the following to the *Dockefile Instructions* section:
 
-You can install the python SDK directly with pip:
+.. code-block:: docker
+
+   ## Install Domino Data SDK
+   RUN pip install --user domino-data-sdk
+
+Python Package Index (PyPI)
+---------------------------
+
+The SDK is published in `PyPI <https://pypi.org/project/domino-data-sdk>`_ and you can install it directly with pip:
 
 .. code-block:: console
 
    $ python -m pip install domino-data-sdk
 
 
-From source
------------
+Releases
+--------
 
-To install the SDK from source, clone the repository from `github <https://github.com/cerebrotech/data-access-sdk>`_:
-
-.. code-block:: console
-
-   $ git clone https://github.com/cerebrotech/data-access-sdk
-   $ cd data-access-sdk
-   $ python -m pip install .
+Release history is available `here <https://pypi.org/project/domino-data-sdk/#history>`_.

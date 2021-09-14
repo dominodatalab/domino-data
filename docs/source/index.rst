@@ -1,9 +1,9 @@
-.. Domino Data Python SDK documentation master file, created by
+.. Domino Data SDK documentation master file, created by
    sphinx-quickstart on Thu Aug 26 10:10:16 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Getting Started
+Domino Data SDK
 ===============
 
 .. toctree::
@@ -11,20 +11,24 @@ Getting Started
    :maxdepth: 2
 
    install
-..   datasource
-   trainingset
-   usecases
+   auth
+
+.. toctree::
+   :caption: Datasource use cases
+   :maxdepth: 1
+   :glob:
+
+   usecases/simple_query
+   usecases/custom_auth
 
 Reference
 =========
 
 .. toctree::
-   :caption: Reference
+   :caption: Modules
    :maxdepth: 2
 
-   datasdk
-   trainingset_client
-..   trainingset/*
+   domino_data_sdk
 
 Indices and tables
 ==================

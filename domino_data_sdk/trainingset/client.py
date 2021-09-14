@@ -293,7 +293,7 @@ def list_training_set_versions(
     asc: bool = True,
     offset: int = 0,
     limit: int = 10000,
-) -> [model.TrainingSetVersion]:
+) -> List[model.TrainingSetVersion]:
     """List training sets
 
     Keyword arguments:
