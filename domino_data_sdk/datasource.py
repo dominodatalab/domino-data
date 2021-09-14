@@ -127,7 +127,11 @@ class Client:
         Returns:
           Datasource entity with given name
         """
-        response = get_datasource_by_name.sync_detailed(name, client=self.domino)
+        response = get_datasource_by_name.sync_detailed(
+            name=name,
+            project_id="6101d36365d4fe21238bad55",  # HACK until we fix this
+            client=self.domino,
+        )
         if response.status_code == 200:
             return Datasource(self, cast(DatasourceDto, response.parsed))
         raise Exception(cast(ErrorResponse, response.parsed).message)
