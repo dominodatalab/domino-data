@@ -10,10 +10,13 @@ from ...types import Response
 
 def _get_kwargs(
     name: str,
+    project_id: str,
     *,
     client: Client,
 ) -> Dict[str, Any]:
-    url = f"{client.base_url}/datasource/name/{name}"
+    url = "{}/datasource/name/{name}/project/{projectId}".format(
+        client.base_url, name=name, projectId=project_id
+    )
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -65,11 +68,13 @@ def _build_response(*, response: httpx.Response) -> Response[Union[DatasourceDto
 
 def sync_detailed(
     name: str,
+    project_id: str,
     *,
     client: Client,
 ) -> Response[Union[DatasourceDto, ErrorResponse]]:
     kwargs = _get_kwargs(
         name=name,
+        project_id=project_id,
         client=client,
     )
 
@@ -82,6 +87,7 @@ def sync_detailed(
 
 def sync(
     name: str,
+    project_id: str,
     *,
     client: Client,
 ) -> Optional[Union[DatasourceDto, ErrorResponse]]:
@@ -89,17 +95,20 @@ def sync(
 
     return sync_detailed(
         name=name,
+        project_id=project_id,
         client=client,
     ).parsed
 
 
 async def asyncio_detailed(
     name: str,
+    project_id: str,
     *,
     client: Client,
 ) -> Response[Union[DatasourceDto, ErrorResponse]]:
     kwargs = _get_kwargs(
         name=name,
+        project_id=project_id,
         client=client,
     )
 
@@ -111,6 +120,7 @@ async def asyncio_detailed(
 
 async def asyncio(
     name: str,
+    project_id: str,
     *,
     client: Client,
 ) -> Optional[Union[DatasourceDto, ErrorResponse]]:
@@ -119,6 +129,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             name=name,
+            project_id=project_id,
             client=client,
         )
     ).parsed

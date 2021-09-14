@@ -4,6 +4,7 @@ PYTHON := python
 
 #* OpenAPI variables
 TRAININGSET_YAML := openapi/trainingset.yaml
+DATASOURCE_YAML := openapi/datasource.yaml
 
 #* Poetry
 .PHONY: poetry-download
@@ -34,6 +35,14 @@ install-trainingset:
 .PHONY: update-trainingset
 update-trainingset:
 	poetry run openapi-python-client update --meta none --path $(TRAININGSET_YAML)
+
+.PHONY: install-datasource
+install-datasource:
+	poetry run openapi-python-client generate --meta none --path $(DATASOURCE_YAML)
+
+.PHONY: update-datasource
+update-datasource:
+	poetry run openapi-python-client update --meta none --path $(DATASOURCE_YAML)
 
 #* Formatters
 .PHONY: codestyle

@@ -3,9 +3,11 @@ from typing import Any, Dict, List, Type, TypeVar, Union, cast
 import attr
 
 from ..models.datasource_config import DatasourceConfig
+from ..models.datasource_dto_added_by import DatasourceDtoAddedBy
 from ..models.datasource_dto_credential_type import DatasourceDtoCredentialType
 from ..models.datasource_dto_data_source_type import DatasourceDtoDataSourceType
 from ..models.datasource_dto_status import DatasourceDtoStatus
+from ..models.datasource_owner_info import DatasourceOwnerInfo
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="DatasourceDto")
@@ -15,43 +17,45 @@ T = TypeVar("T", bound="DatasourceDto")
 class DatasourceDto:
     """ """
 
-    id: str
-    name: str
-    owner_id: str
-    owner_name: str
-    added_by: str
-    data_source_type: DatasourceDtoDataSourceType
+    added_by: DatasourceDtoAddedBy
     config: DatasourceConfig
     credential_type: DatasourceDtoCredentialType
+    data_source_type: DatasourceDtoDataSourceType
+    id: str
+    is_everyone: bool
     last_updated: int
     last_updated_by: str
-    is_everyone: bool
-    user_ids: List[str]
+    name: str
+    owner_id: str
+    owner_info: DatasourceOwnerInfo
     project_ids: List[str]
     status: DatasourceDtoStatus
+    user_ids: List[str]
     description: Union[Unset, None, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        id = self.id
-        name = self.name
-        owner_id = self.owner_id
-        owner_name = self.owner_name
-        added_by = self.added_by
-        data_source_type = self.data_source_type.value
+        added_by = self.added_by.to_dict()
 
         config = self.config.to_dict()
 
         credential_type = self.credential_type.value
 
+        data_source_type = self.data_source_type.value
+
+        id = self.id
+        is_everyone = self.is_everyone
         last_updated = self.last_updated
         last_updated_by = self.last_updated_by
-        is_everyone = self.is_everyone
-        user_ids = self.user_ids
+        name = self.name
+        owner_id = self.owner_id
+        owner_info = self.owner_info.to_dict()
 
         project_ids = self.project_ids
 
         status = self.status.value
+
+        user_ids = self.user_ids
 
         description = self.description
 
@@ -59,20 +63,20 @@ class DatasourceDto:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "id": id,
-                "name": name,
-                "ownerId": owner_id,
-                "ownerName": owner_name,
                 "addedBy": added_by,
-                "dataSourceType": data_source_type,
                 "config": config,
                 "credentialType": credential_type,
+                "dataSourceType": data_source_type,
+                "id": id,
+                "isEveryone": is_everyone,
                 "lastUpdated": last_updated,
                 "lastUpdatedBy": last_updated_by,
-                "isEveryone": is_everyone,
-                "userIds": user_ids,
+                "name": name,
+                "ownerId": owner_id,
+                "ownerInfo": owner_info,
                 "projectIds": project_ids,
                 "status": status,
+                "userIds": user_ids,
             }
         )
         if description is not UNSET:
@@ -83,51 +87,51 @@ class DatasourceDto:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        id = d.pop("id")
-
-        name = d.pop("name")
-
-        owner_id = d.pop("ownerId")
-
-        owner_name = d.pop("ownerName")
-
-        added_by = d.pop("addedBy")
-
-        data_source_type = DatasourceDtoDataSourceType(d.pop("dataSourceType"))
+        added_by = DatasourceDtoAddedBy.from_dict(d.pop("addedBy"))
 
         config = DatasourceConfig.from_dict(d.pop("config"))
 
         credential_type = DatasourceDtoCredentialType(d.pop("credentialType"))
 
+        data_source_type = DatasourceDtoDataSourceType(d.pop("dataSourceType"))
+
+        id = d.pop("id")
+
+        is_everyone = d.pop("isEveryone")
+
         last_updated = d.pop("lastUpdated")
 
         last_updated_by = d.pop("lastUpdatedBy")
 
-        is_everyone = d.pop("isEveryone")
+        name = d.pop("name")
 
-        user_ids = cast(List[str], d.pop("userIds"))
+        owner_id = d.pop("ownerId")
+
+        owner_info = DatasourceOwnerInfo.from_dict(d.pop("ownerInfo"))
 
         project_ids = cast(List[str], d.pop("projectIds"))
 
         status = DatasourceDtoStatus(d.pop("status"))
 
+        user_ids = cast(List[str], d.pop("userIds"))
+
         description = d.pop("description", UNSET)
 
         datasource_dto = cls(
-            id=id,
-            name=name,
-            owner_id=owner_id,
-            owner_name=owner_name,
             added_by=added_by,
-            data_source_type=data_source_type,
             config=config,
             credential_type=credential_type,
+            data_source_type=data_source_type,
+            id=id,
+            is_everyone=is_everyone,
             last_updated=last_updated,
             last_updated_by=last_updated_by,
-            is_everyone=is_everyone,
-            user_ids=user_ids,
+            name=name,
+            owner_id=owner_id,
+            owner_info=owner_info,
             project_ids=project_ids,
             status=status,
+            user_ids=user_ids,
             description=description,
         )
 
