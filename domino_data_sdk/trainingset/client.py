@@ -77,7 +77,7 @@ def get_training_set(name: str) -> model.TrainingSet:
 
 def list_training_sets(
     project_name: Optional[str] = None,
-    meta: Mapping[str, str] = {},
+    meta: Optional[Mapping[str, str]] = None,
     asc: bool = True,
     offset: int = 0,
     limit: int = 10000,
@@ -95,7 +95,10 @@ def list_training_sets(
         A list of matching TrainingSets.
     """
 
-    if not project_name:
+    if meta is None:
+        meta = {}
+
+    if project_name is None:
         project_name = "/".join(_get_project_name())
 
     response = post_find.sync_detailed(
@@ -166,11 +169,11 @@ def create_training_set_version(
     training_set_name: str,
     df: pd.DataFrame,
     description: Optional[str] = None,
-    key_columns: List[str] = [],
-    target_columns: List[str] = [],
-    exclude_columns: List[str] = [],
-    monitoring_meta: model.MonitoringMeta = model.MonitoringMeta(),
-    meta: Mapping[str, str] = {},
+    key_columns: Optional[List[str]] = None,
+    target_columns: Optional[List[str]] = None,
+    exclude_columns: Optional[List[str]] = None,
+    monitoring_meta: Optional[model.MonitoringMeta] = None,
+    meta: Optional[Mapping[str, str]] = None,
     **kwargs,
 ) -> model.TrainingSetVersion:
     """Create a TrainingSetVersion.
@@ -193,6 +196,21 @@ def create_training_set_version(
     Raises:
         ValueError: If project name not supplied by parameters or envvars.
     """
+
+    if key_columns is None:
+        key_columns = []
+
+    if target_columns is None:
+        target_columns = []
+
+    if exclude_columns is None:
+        exclude_columns = []
+
+    if monitoring_meta is None:
+        monitoring_meta = model.MonitoringMeta()
+
+    if meta is None:
+        meta = {}
 
     _check_columns(
         df,
@@ -334,9 +352,9 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
 
 def list_training_set_versions(
     project_name: Optional[str] = None,
-    meta: Mapping[str, str] = {},
+    meta: Optional[Mapping[str, str]] = None,
     training_set_name: Optional[str] = None,
-    training_set_meta: Mapping[str, str] = {},
+    training_set_meta: Optional[Mapping[str, str]] = None,
     asc: bool = True,
     offset: int = 0,
     limit: int = 10000,
@@ -356,7 +374,13 @@ def list_training_set_versions(
         A list of matching TrainingSetVersions.
     """
 
-    if not project_name:
+    if meta is None:
+        meta = {}
+
+    if training_set_meta is None:
+        training_set_meta = {}
+
+    if project_name is None:
         project_name = "/".join(_get_project_name())
 
     response = post_version_find.sync_detailed(
