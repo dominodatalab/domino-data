@@ -5,27 +5,31 @@ import httpx
 from ...client import Client
 from ...models.datasource_dto import DatasourceDto
 from ...models.error_response import ErrorResponse
-from ...types import Response
+from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     name: str,
-    project_id: str,
     *,
     client: Client,
+    run_id: Union[Unset, None, str] = UNSET,
 ) -> Dict[str, Any]:
-    url = "{}/datasource/name/{name}/project/{projectId}".format(
-        client.base_url, name=name, projectId=project_id
-    )
+    url = f"{client.base_url}/datasource/name/{name}"
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
+
+    params: Dict[str, Any] = {
+        "runId": run_id,
+    }
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     return {
         "url": url,
         "headers": headers,
         "cookies": cookies,
         "timeout": client.get_timeout(),
+        "params": params,
     }
 
 
@@ -68,14 +72,14 @@ def _build_response(*, response: httpx.Response) -> Response[Union[DatasourceDto
 
 def sync_detailed(
     name: str,
-    project_id: str,
     *,
     client: Client,
+    run_id: Union[Unset, None, str] = UNSET,
 ) -> Response[Union[DatasourceDto, ErrorResponse]]:
     kwargs = _get_kwargs(
         name=name,
-        project_id=project_id,
         client=client,
+        run_id=run_id,
     )
 
     response = httpx.get(
@@ -87,29 +91,29 @@ def sync_detailed(
 
 def sync(
     name: str,
-    project_id: str,
     *,
     client: Client,
+    run_id: Union[Unset, None, str] = UNSET,
 ) -> Optional[Union[DatasourceDto, ErrorResponse]]:
     """ """
 
     return sync_detailed(
         name=name,
-        project_id=project_id,
         client=client,
+        run_id=run_id,
     ).parsed
 
 
 async def asyncio_detailed(
     name: str,
-    project_id: str,
     *,
     client: Client,
+    run_id: Union[Unset, None, str] = UNSET,
 ) -> Response[Union[DatasourceDto, ErrorResponse]]:
     kwargs = _get_kwargs(
         name=name,
-        project_id=project_id,
         client=client,
+        run_id=run_id,
     )
 
     async with httpx.AsyncClient() as _client:
@@ -120,16 +124,16 @@ async def asyncio_detailed(
 
 async def asyncio(
     name: str,
-    project_id: str,
     *,
     client: Client,
+    run_id: Union[Unset, None, str] = UNSET,
 ) -> Optional[Union[DatasourceDto, ErrorResponse]]:
     """ """
 
     return (
         await asyncio_detailed(
             name=name,
-            project_id=project_id,
             client=client,
+            run_id=run_id,
         )
     ).parsed
