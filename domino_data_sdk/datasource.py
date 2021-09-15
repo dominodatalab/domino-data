@@ -127,9 +127,10 @@ class Client:
         Returns:
           Datasource entity with given name
         """
+        run_id = os.getenv("DOMINO_RUN_ID")
         response = get_datasource_by_name.sync_detailed(
             name=name,
-            project_id="6101d36365d4fe21238bad55",  # HACK until we fix this
+            run_id=run_id,
             client=self.domino,
         )
         if response.status_code == 200:
