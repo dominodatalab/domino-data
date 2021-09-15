@@ -11,10 +11,10 @@ class TrainingSet:
     """
     A TrainingSet.
 
-    Keyword arguments:
-    name -- unique name of the TrainingSet
-    description -- description of the TrainingSet
-    meta -- user defined metadata
+    Args:
+        name: Unique name of the TrainingSet.
+        description: Description of the TrainingSet.
+        meta: User defined metadata.
     """
 
     name: str
@@ -27,10 +27,10 @@ class TrainingSet:
 class MonitoringMeta:
     """MonitoringMeta
 
-    Keyword arguments:
-    timestamp_columns -- TODO
-    categorical_columns -- TODO
-    ordinal_columns -- all other columns are continuous
+    Args:
+        timestamp_columns: timestamp columns.
+        categorical_columns: categorical variables.
+        ordinal_columns: ordinal columns.
     """
 
     timestamp_columns: List[str] = field(default_factory=list)
@@ -41,16 +41,20 @@ class MonitoringMeta:
 @dataclass
 class TrainingSetVersion:
     """
-    A TrainingSetVersion
+    A TrainingSetVersion.
 
-    number -- the TrainingSetVersion number
-    training_set_name -- name of the TrainingSet this version belongs to
-    description -- description of this version
-    key_columns -- names of columns that represent IDs for retrieving features
-    target_columns -- target variables for prediction
-    exclude_columns -- columns to exclude when generating the training DataFrame
-    monitoring_meta -- monitoring specific metadata
-    meta -- user defined metadata
+    Args:
+        number: The TrainingSetVersion number.
+        training_set_name: Name of the TrainingSet this version belongs
+            to.
+        description: Description of this version.
+        key_columns: Names of columns that represent IDs for retrieving
+            features.
+        target_columns: Target variables for prediction.
+        exclude_columns: Columns to exclude when generating the training
+            DataFrame.
+        monitoring_meta: Monitoring specific metadata
+        meta: User defined metadata
     """
 
     training_set_name: str

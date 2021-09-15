@@ -1,3 +1,6 @@
+"""Domino TrainingSet client library."""
+
+
 from typing import List, Mapping, Optional, Tuple
 
 import json
@@ -40,8 +43,26 @@ from training_set_api_client.types import Response
 from ..trainingset import model  # XXX rename model
 
 
+class ServerException(Exception):
+    """Raised when TrainingSet server rejects a request"""
+
+    def __init__(self, message: str, server_msg: str):
+        self.message = message
+        self.server_msg = server_msg
+
+
+class SchemaMismatchException(Exception):
+    """Raised when the TrainingSet data columns do not match metadata."""
+
+
 def get_training_set(name: str) -> model.TrainingSet:
-    """Get a TrainingSet by name"""
+    """Get a TrainingSet by name
+
+    Args:
+        name: Name of the training set.
+
+    Returns:
+        The TrainingSet, if found."""
 
     response = get_training_set_name.sync_detailed(
         client=_get_client(),
@@ -61,14 +82,17 @@ def list_training_sets(
     offset: int = 0,
     limit: int = 10000,
 ) -> model.TrainingSet:
-    """List training sets
+    """Query training sets.
 
-    Keyword arguments:
-    project_name -- the project name (e.g. gmatev/quick_start)
-    meta -- match metadata key-value pairs
-    asc -- sort order by creation time, 1 for ascending -1 for descending
-    offset -- offset
-    limit -- limit
+    Args:
+        project_name: The project name (e.g. gmatev/quick_start).
+        meta: Metadata key-value pairs to match.
+        asc: Sort order by creation time, 1 for ascending -1 for descending.
+        offset: Offset
+        limit: Limit
+
+    Returns:
+        A list of matching TrainingSets.
     """
 
     if not project_name:
@@ -94,10 +118,13 @@ def list_training_sets(
 def update_training_set(
     updated: model.TrainingSet,
 ) -> model.TrainingSet:
-    """Updates a TrainingSet
+    """Update a TrainingSet.
 
-    Keyword arguments:
-    training_set -- updated TrainingSet
+    Args:
+        updated: Updated TrainingSet.
+
+    Returns:
+        The updated TrainingSet from the server.
     """
 
     response = put_training_set_name.sync_detailed(
@@ -120,8 +147,11 @@ def delete_training_set(name: str) -> bool:
 
     Will only delete if the TrainingSet has no versions.
 
-    Keyword arguments:
-    name -- name of the TrainingSet
+    Args:
+        name: Name of the TrainingSet.
+
+    Returns:
+        True if TrainingSet was deleted.
     """
 
     response = delete_training_set_name.sync_detailed(training_set_name=name, client=_get_client())
@@ -143,18 +173,25 @@ def create_training_set_version(
     meta: Mapping[str, str] = {},
     **kwargs,
 ) -> model.TrainingSetVersion:
-    """Create a TrainingSetVersion
+    """Create a TrainingSetVersion.
 
-    Keyword arguments:
-    training_set_name -- name of the TrainingSet this version belongs to
-    df -- a DataFrame holding the data
-    training_set_name -- name of the TrainingSet this version belongs to
-    description -- description of this version
-    key_columns -- names of columns that represent IDs for retrieving features
-    target_columns -- target variables for prediction
-    exclude_columns -- columns to exclude when generating the training DataFrame
-    monitoring_meta -- monitoring specific metadata
-    meta -- user defined metadata
+    Args:
+        training_set_name: Name of the TrainingSet this version belongs to.
+        df: A DataFrame holding the data.
+        training_set_name: Name of the TrainingSet this version belongs to.
+        description: Description of this version.
+        key_columns: Names of columns that represent IDs for retrieving features.
+        target_columns: Target variables for prediction.
+        exclude_columns: Columns to exclude when generating the training DataFrame.
+        monitoring_meta: Monitoring specific metadata.
+        meta: User defined metadata.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        The created TrainingSetVersion
+
+    Raises:
+        ValueError: If project name not supplied by parameters or envvars.
     """
 
     _check_columns(
@@ -174,7 +211,7 @@ def create_training_set_version(
         (project_owner, project_name) = _get_project_name()
 
     if not project_owner or not project_owner:
-        raise ("project owner and name are required")
+        raise ValueError("project owner and name are required")
 
     response = post_training_set_name.sync_detailed(
         client=_get_client(),
@@ -209,11 +246,14 @@ def create_training_set_version(
 
 
 def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
-    """Gets a TrainingSetVersion by version number
+    """Gets a TrainingSetVersion by version number.
 
-    Keyword arguments:
-    training_set_name -- name of the TrainingSet
-    number -- version number
+    Args:
+        training_set_name: Name of the TrainingSet.
+        number: Version number.
+
+    Returns:
+        The requested TrainingSetVersion.
     """
 
     response = get_training_set_name_number.sync_detailed(
@@ -228,29 +268,32 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
     return _to_TrainingSetVersion(response.parsed)
 
 
-def update_training_set_version(tsv: model.TrainingSetVersion) -> model.TrainingSetVersion:
+def update_training_set_version(version: model.TrainingSetVersion) -> model.TrainingSetVersion:
     """Updates this TrainingSetVersion.
 
-    Keyword arguments:
-    version -- TrainingSetVersion to update
+    Args:
+        version: TrainingSetVersion to update.
+
+    Returns:
+        The updated TrainingSetVersion from the server.
     """
 
     response = put_training_set_name_number.sync_detailed(
-        training_set_name=tsv.training_set_name,
-        number=tsv.number,
+        training_set_name=version.training_set_name,
+        number=version.number,
         client=_get_client(),
         json_body=UpdateTrainingSetVersionRequest(
-            key_columns=tsv.key_columns,
-            target_columns=tsv.target_columns,
-            exclude_columns=tsv.exclude_columns,
+            key_columns=version.key_columns,
+            target_columns=version.target_columns,
+            exclude_columns=version.exclude_columns,
             monitoring_meta=MonitoringMeta(
-                timestamp_columns=tsv.monitoring_meta.timestamp_columns,
-                categorical_columns=tsv.monitoring_meta.categorical_columns,
-                ordinal_columns=tsv.monitoring_meta.ordinal_columns,
+                timestamp_columns=version.monitoring_meta.timestamp_columns,
+                categorical_columns=version.monitoring_meta.categorical_columns,
+                ordinal_columns=version.monitoring_meta.ordinal_columns,
             ),
-            meta=UpdateTrainingSetVersionRequestMeta.from_dict(tsv.meta),
-            pending=tsv.pending,
-            description=tsv.description,
+            meta=UpdateTrainingSetVersionRequestMeta.from_dict(version.meta),
+            pending=version.pending,
+            description=version.description,
         ),
     )
 
@@ -263,8 +306,12 @@ def update_training_set_version(tsv: model.TrainingSetVersion) -> model.Training
 def delete_training_set_version(training_set_name: str, number: int) -> bool:
     """Deletes a TrainingSetVersion.
 
-    Keyword arguments:
-    version -- TrainingSetVersion to delete
+    Args:
+        training_set_name: Name of the TrainingSet.
+        number: TrainingSetVersion number.
+
+    Returns:
+        True if TrainingSetVersion was deleted.
     """
 
     tsv = get_training_set_version(training_set_name, number)
@@ -294,16 +341,19 @@ def list_training_set_versions(
     offset: int = 0,
     limit: int = 10000,
 ) -> [model.TrainingSetVersion]:
-    """List training sets
+    """List training sets.
 
-    Keyword arguments:
-    project_name -- the project name (e.g. gmatev/quick_start)
-    meta -- version metadata
-    training_set_name -- training set name
-    training_set_meta -- training set meta data
-    asc -- sort order by creation time, 1 for ascending -1 for descending
-    offset -- offset
-    limit -- limit
+    Args:
+        project_name: The project name (e.g. fred/quick_start).
+        meta: Version metadata.
+        training_set_name: Training set name.
+        training_set_meta: Training set meta data.
+        asc: Sort order by creation time, 1 for ascending -1 for descending.
+        offset: Offset.
+        limit: Limit.
+
+    Returns:
+        A list of matching TrainingSetVersions.
     """
 
     if not project_name:
@@ -377,16 +427,13 @@ def _raise_response_exn(response: Response, msg: str):
     except Exception:
         server_msg = None
 
-    if server_msg:
-        raise Exception(f"{msg}: {server_msg}")
-    else:
-        raise Exception(msg)
+    raise ServerException(msg, server_msg)
 
 
 def _check_columns(df: pd.DataFrame, columns: [str]):
     for c in columns:
         if c not in df.columns:
-            raise Exception(f"DataFrame missing column: {c}")
+            raise SchemaMismatchException(f"DataFrame missing column: {c}")
 
 
 def _get_project_name() -> Tuple[str, str]:
