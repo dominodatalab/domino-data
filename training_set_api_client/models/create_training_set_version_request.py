@@ -18,6 +18,7 @@ class CreateTrainingSetVersionRequest:
     key_columns: List[str]
     target_columns: List[str]
     exclude_columns: List[str]
+    all_columns: List[str]
     monitoring_meta: MonitoringMeta
     meta: CreateTrainingSetVersionRequestMeta
     description: Union[Unset, str] = UNSET
@@ -31,6 +32,8 @@ class CreateTrainingSetVersionRequest:
         target_columns = self.target_columns
 
         exclude_columns = self.exclude_columns
+
+        all_columns = self.all_columns
 
         monitoring_meta = self.monitoring_meta.to_dict()
 
@@ -47,6 +50,7 @@ class CreateTrainingSetVersionRequest:
                 "keyColumns": key_columns,
                 "targetColumns": target_columns,
                 "excludeColumns": exclude_columns,
+                "allColumns": all_columns,
                 "monitoringMeta": monitoring_meta,
                 "meta": meta,
             }
@@ -69,6 +73,8 @@ class CreateTrainingSetVersionRequest:
 
         exclude_columns = cast(List[str], d.pop("excludeColumns"))
 
+        all_columns = cast(List[str], d.pop("allColumns"))
+
         monitoring_meta = MonitoringMeta.from_dict(d.pop("monitoringMeta"))
 
         meta = CreateTrainingSetVersionRequestMeta.from_dict(d.pop("meta"))
@@ -81,6 +87,7 @@ class CreateTrainingSetVersionRequest:
             key_columns=key_columns,
             target_columns=target_columns,
             exclude_columns=exclude_columns,
+            all_columns=all_columns,
             monitoring_meta=monitoring_meta,
             meta=meta,
             description=description,

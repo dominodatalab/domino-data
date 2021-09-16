@@ -53,6 +53,7 @@ class TrainingSetVersion:
         target_columns: Target variables for prediction.
         exclude_columns: Columns to exclude when generating the training
             DataFrame.
+        all_columns: Names all columns in the dataframe.
         monitoring_meta: Monitoring specific metadata
         meta: User defined metadata
     """
@@ -63,7 +64,8 @@ class TrainingSetVersion:
     key_columns: List[str] = field(default_factory=list)
     target_columns: List[str] = field(default_factory=list)
     exclude_columns: List[str] = field(default_factory=list)
-    monitoring_meta: MonitoringMeta = field(default_factory=map)
+    all_columns: List[str] = field(default_factory=list)
+    monitoring_meta: MonitoringMeta = field(default_factory=MonitoringMeta)
     meta: Mapping[str, str] = field(default_factory=map)
     path: Optional[str] = None
     container_path: Optional[str] = None

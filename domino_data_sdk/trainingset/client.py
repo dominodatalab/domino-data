@@ -212,8 +212,10 @@ def create_training_set_version(
     if meta is None:
         meta = {}
 
+    all_columns = list(df.columns)
+
     _check_columns(
-        df,
+        all_columns,
         key_columns
         + target_columns
         + exclude_columns
@@ -240,6 +242,7 @@ def create_training_set_version(
             key_columns=key_columns,
             target_columns=target_columns,
             exclude_columns=exclude_columns,
+            all_columns=all_columns,
             monitoring_meta=MonitoringMeta(
                 timestamp_columns=monitoring_meta.timestamp_columns,
                 categorical_columns=monitoring_meta.categorical_columns,
@@ -432,6 +435,7 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
         key_columns=tsv.key_columns,
         target_columns=tsv.target_columns,
         exclude_columns=tsv.exclude_columns,
+        all_columns=tsv.all_columns,
         monitoring_meta=model.MonitoringMeta(
             timestamp_columns=tsv.monitoring_meta.timestamp_columns,
             categorical_columns=tsv.monitoring_meta.categorical_columns,
@@ -454,10 +458,10 @@ def _raise_response_exn(response: Response, msg: str):
     raise ServerException(msg, server_msg)
 
 
-def _check_columns(df: pd.DataFrame, columns: [str]):
-    for c in columns:
-        if c not in df.columns:
-            raise SchemaMismatchException(f"DataFrame missing column: {c}")
+def _check_columns(all_columns: [str], expected_columns: [str]):
+    diff = set(expected_columns) - set(all_columns)
+    if diff:
+        raise SchemaMismatchException(f"DataFrame missing columns: {diff}")
 
 
 def _get_project_name() -> Tuple[str, str]:

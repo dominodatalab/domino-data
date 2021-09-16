@@ -298,6 +298,10 @@ components:
           type: array
           items:
             type: string
+        allColumns:
+          type: array
+          items:
+            type: string
         monitoringMeta:
           $ref: '#/components/schemas/MonitoringMeta'
         description:
@@ -307,6 +311,7 @@ components:
           additionalProperties:
             type: string
       required:
+        - allColumns
         - excludeColumns
         - keyColumns
         - meta
@@ -346,6 +351,10 @@ components:
           type: array
           items:
             type: string
+        allColumns:
+          type: array
+          items:
+            type: string
         monitoringMeta:
           $ref: '#/components/schemas/MonitoringMeta'
         description:
@@ -357,6 +366,7 @@ components:
         pending:
           type: boolean
       required:
+        - allColumns
         - containerPath
         - creationTime
         - excludeColumns
