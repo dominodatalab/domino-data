@@ -89,3 +89,13 @@ build-remove:
 
 .PHONY: clean-all
 clean-all: pycache-remove build-remove
+
+#* Docs
+
+.PHONY: docs
+docs:
+	cd docs; poetry run make html
+
+.PHONY: open-docs
+open-docs:
+	open docs/build/html/index.html
