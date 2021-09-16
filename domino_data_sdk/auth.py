@@ -2,8 +2,6 @@
 
 from typing import Dict, Optional
 
-import os
-
 import attr
 from pyarrow import flight
 
