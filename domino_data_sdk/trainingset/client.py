@@ -40,6 +40,7 @@ from training_set_api_client.models import (
 )
 from training_set_api_client.types import Response
 
+from ..auth import AuthenticatedClient
 from ..trainingset import model  # XXX rename model
 
 
@@ -407,14 +408,15 @@ def list_training_set_versions(
     return [_to_TrainingSetVersion(tsv) for tsv in response.parsed]
 
 
-def _get_client() -> Client:
-    # TODO support tokens
-    host = os.getenv("DOMINO_USER_HOST")
+def _get_client() -> AuthenticatedClient:
+    domino_host = os.getenv("DOMINO_USER_HOST")
     api_key = os.getenv("DOMINO_USER_API_KEY")
-    return Client(base_url=f"{host}/trainingset").with_headers(
-        {
-            "X-Domino-Api-Key": api_key,
-        }
+    token_file = os.getenv("DOMINO_TOKEN_FILE")
+
+    return AuthenticatedClient(
+        base_url=f"{domino_host}/trainingset",
+        api_key=api_key,
+        token_file=token_file,
     )
 
 
