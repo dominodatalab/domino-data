@@ -1,7 +1,7 @@
 """Domino TrainingSet client library."""
 
 
-from typing import List, Mapping, Optional, Tuple
+from typing import List, Mapping, Optional
 
 import json
 import os
@@ -10,7 +10,6 @@ from stat import S_IRGRP, S_IROTH, S_IRUSR, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR
 
 import pandas as pd
 
-from training_set_api_client import Client
 from training_set_api_client.api.default import (
     delete_training_set_name,
     delete_training_set_name_number,
@@ -77,7 +76,6 @@ def get_training_set(name: str) -> model.TrainingSet:
 
 
 def list_training_sets(
-    project_name: Optional[str] = None,
     meta: Optional[Mapping[str, str]] = None,
     asc: bool = True,
     offset: int = 0,
@@ -86,7 +84,6 @@ def list_training_sets(
     """Query training sets.
 
     Args:
-        project_name: The project name (e.g. gmatev/quick_start).
         meta: Metadata key-value pairs to match.
         asc: Sort order by creation time, 1 for ascending -1 for descending.
         offset: Offset
@@ -99,13 +96,12 @@ def list_training_sets(
     if meta is None:
         meta = {}
 
-    if project_name is None:
-        project_name = "/".join(_get_project_name())
+    project_id = _get_project_id()
 
     response = post_find.sync_detailed(
         client=_get_client(),
         json_body=TrainingSetFilter(
-            project_name=project_name,
+            project_id=project_id,
             meta=TrainingSetFilterMeta.from_dict(meta),
         ),
         offset=offset,
@@ -193,9 +189,6 @@ def create_training_set_version(
 
     Returns:
         The created TrainingSetVersion
-
-    Raises:
-        ValueError: If project name not supplied by parameters or envvars.
     """
 
     if key_columns is None:
@@ -225,21 +218,13 @@ def create_training_set_version(
         + monitoring_meta.ordinal_columns,
     )
 
-    project_name = kwargs.get("project_name")
-    if project_name:
-        (project_owner, project_name) = project_name.split("/")
-    else:
-        (project_owner, project_name) = _get_project_name()
-
-    if not project_owner or not project_owner:
-        raise ValueError("project owner and name are required")
+    project_id = _get_project_id()
 
     response = post_training_set_name.sync_detailed(
         client=_get_client(),
         training_set_name=training_set_name,
         json_body=CreateTrainingSetVersionRequest(
-            project_owner_username=project_owner,
-            project_name=project_name,
+            project_id=project_id,
             key_columns=key_columns,
             target_columns=target_columns,
             exclude_columns=exclude_columns,
@@ -355,7 +340,6 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
 
 
 def list_training_set_versions(
-    project_name: Optional[str] = None,
     meta: Optional[Mapping[str, str]] = None,
     training_set_name: Optional[str] = None,
     training_set_meta: Optional[Mapping[str, str]] = None,
@@ -366,7 +350,6 @@ def list_training_set_versions(
     """List training sets.
 
     Args:
-        project_name: The project name (e.g. fred/quick_start).
         meta: Version metadata.
         training_set_name: Training set name.
         training_set_meta: Training set meta data.
@@ -384,8 +367,7 @@ def list_training_set_versions(
     if training_set_meta is None:
         training_set_meta = {}
 
-    if project_name is None:
-        project_name = "/".join(_get_project_name())
+    project_id = _get_project_id()
 
     response = post_version_find.sync_detailed(
         client=_get_client(),
@@ -394,7 +376,7 @@ def list_training_set_versions(
                 training_set_meta,
             ),
             meta=TrainingSetVersionFilterMeta.from_dict(meta),
-            project_name=project_name,
+            project_id=project_id,
             training_set_name=training_set_name,
         ),
         offset=offset,
@@ -466,8 +448,5 @@ def _check_columns(all_columns: [str], expected_columns: [str]):
         raise SchemaMismatchException(f"DataFrame missing columns: {diff}")
 
 
-def _get_project_name() -> Tuple[str, str]:
-    project_owner = os.getenv("DOMINO_PROJECT_OWNER")
-    project_name = os.getenv("DOMINO_PROJECT_NAME")
-
-    return (project_owner, project_name)
+def _get_project_id() -> str:
+    return os.getenv("DOMINO_PROJECT_ID")

@@ -12,12 +12,12 @@ T = TypeVar("T", bound="TrainingSetFilter")
 class TrainingSetFilter:
     """ """
 
-    project_name: str
+    project_id: str
     meta: Union[Unset, TrainingSetFilterMeta] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        project_name = self.project_name
+        project_id = self.project_id
         meta: Union[Unset, Dict[str, Any]] = UNSET
         if not isinstance(self.meta, Unset):
             meta = self.meta.to_dict()
@@ -26,7 +26,7 @@ class TrainingSetFilter:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "projectName": project_name,
+                "projectId": project_id,
             }
         )
         if meta is not UNSET:
@@ -37,7 +37,7 @@ class TrainingSetFilter:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        project_name = d.pop("projectName")
+        project_id = d.pop("projectId")
 
         _meta = d.pop("meta", UNSET)
         meta: Union[Unset, TrainingSetFilterMeta]
@@ -47,7 +47,7 @@ class TrainingSetFilter:
             meta = TrainingSetFilterMeta.from_dict(_meta)
 
         training_set_filter = cls(
-            project_name=project_name,
+            project_id=project_id,
             meta=meta,
         )
 

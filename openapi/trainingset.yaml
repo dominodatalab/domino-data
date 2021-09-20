@@ -282,9 +282,7 @@ components:
     CreateTrainingSetVersionRequest:
       type: object
       properties:
-        projectOwnerUsername:
-          type: string
-        projectName:
+        projectId:
           type: string
         keyColumns:
           type: array
@@ -316,8 +314,7 @@ components:
         - keyColumns
         - meta
         - monitoringMeta
-        - projectName
-        - projectOwnerUsername
+        - projectId
         - targetColumns
     TrainingSetVersion:
       type: object
@@ -434,18 +431,18 @@ components:
     TrainingSetFilter:
       type: object
       properties:
-        projectName:
+        projectId:
           type: string
         meta:
           type: object
           additionalProperties:
             type: string
       required:
-        - projectName
+        - projectId
     TrainingSetVersionFilter:
       type: object
       properties:
-        projectName:
+        projectId:
           type: string
         trainingSetName:
           type: string
@@ -459,5 +456,5 @@ components:
             type: string
       required:
         - meta
-        - projectName
+        - projectId
         - trainingSetMeta

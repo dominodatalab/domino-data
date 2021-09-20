@@ -13,8 +13,7 @@ T = TypeVar("T", bound="CreateTrainingSetVersionRequest")
 class CreateTrainingSetVersionRequest:
     """ """
 
-    project_owner_username: str
-    project_name: str
+    project_id: str
     key_columns: List[str]
     target_columns: List[str]
     exclude_columns: List[str]
@@ -25,8 +24,7 @@ class CreateTrainingSetVersionRequest:
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        project_owner_username = self.project_owner_username
-        project_name = self.project_name
+        project_id = self.project_id
         key_columns = self.key_columns
 
         target_columns = self.target_columns
@@ -45,8 +43,7 @@ class CreateTrainingSetVersionRequest:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "projectOwnerUsername": project_owner_username,
-                "projectName": project_name,
+                "projectId": project_id,
                 "keyColumns": key_columns,
                 "targetColumns": target_columns,
                 "excludeColumns": exclude_columns,
@@ -63,9 +60,7 @@ class CreateTrainingSetVersionRequest:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        project_owner_username = d.pop("projectOwnerUsername")
-
-        project_name = d.pop("projectName")
+        project_id = d.pop("projectId")
 
         key_columns = cast(List[str], d.pop("keyColumns"))
 
@@ -82,8 +77,7 @@ class CreateTrainingSetVersionRequest:
         description = d.pop("description", UNSET)
 
         create_training_set_version_request = cls(
-            project_owner_username=project_owner_username,
-            project_name=project_name,
+            project_id=project_id,
             key_columns=key_columns,
             target_columns=target_columns,
             exclude_columns=exclude_columns,
