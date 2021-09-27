@@ -159,6 +159,7 @@ make test && make check-codestyle && make mypy && make check-safety
 <details>
 <summary>8. Cleanup</summary>
 <p>
+
 Delete pycache files
 
 ```bash
@@ -175,6 +176,25 @@ Or to remove pycache and build:
 
 ```bash
 make clean-all
+```
+
+</p>
+</details>
+
+<details>
+<summary>9. Docs</summary>
+<p>
+
+Build the documentation
+
+```bash
+make docs
+```
+
+Open the docs index page
+
+```bash
+make open-docs
 ```
 
 </p>
