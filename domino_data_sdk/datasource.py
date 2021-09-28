@@ -1,6 +1,6 @@
 """Datasource module."""
 
-from typing import Any, Literal, Optional, cast
+from typing import Dict, Optional, cast
 
 import json
 import os
@@ -19,6 +19,45 @@ from datasource_api_client.models import (
 )
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory
+
+
+@attr.s
+class BaseConfig:
+    """Base datasource configuration."""
+
+    # pylint: disable=too-few-public-methods
+
+    DATABASE = "database"
+
+    PASSWORD = "password"
+    USERNAME = "username"
+
+
+@attr.s
+class RedshiftConfig(BaseConfig):
+    """Redshift datasource configuration."""
+
+    database: Optional[str] = attr.ib(kw_only=True)
+    password: Optional[str] = attr.ib(kw_only=True)
+    username: Optional[str] = attr.ib(kw_only=True)
+
+    def config(self) -> Dict[str, str]:
+        """Get configuration as dict."""
+        config = {}
+        if self.database is not None:
+            config[self.DATABASE] = self.database
+
+        return config
+
+    def creds(self) -> Dict[str, str]:
+        """Get credentials as dict."""
+        creds = {}
+        if self.password is not None:
+            creds[self.PASSWORD] = self.password
+        if self.username is not None:
+            creds[self.USERNAME] = self.username
+
+        return creds
 
 
 @dataclass
