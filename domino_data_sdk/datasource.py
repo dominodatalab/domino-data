@@ -1,6 +1,6 @@
 """Datasource module."""
 
-from typing import Optional, cast
+from typing import Any, Literal, Optional, cast
 
 import json
 import os
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 import attr
 import pandas
-from pyarrow import flight
+from pyarrow import csv, flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
 from datasource_api_client.models import (
@@ -30,8 +30,21 @@ class Result:
     statement: str
 
     def to_pandas(self) -> pandas.DataFrame:
-        """Load and transform the result into a pandas DataFrame."""
+        """Load and transform the result into a pandas DataFrame.
+
+        Returns:
+          Pandas dataframe loaded with entire resultset
+        """
         return self.reader.read_pandas()
+
+    def to_parquet(self, where: Any) -> None:
+        """Load and serialize the result to a local parquet file.
+
+        Args:
+          where: path of file-like object.
+        """
+        table = self.reader.read_all()
+        parquet.write_table(table, where)
 
 
 @dataclass(init=False)
