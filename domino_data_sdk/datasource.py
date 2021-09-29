@@ -1,10 +1,11 @@
 """Datasource module."""
 
-from typing import Dict, Optional, cast
+from typing import Any, Dict, Optional, cast
 
 import json
 import os
 from dataclasses import dataclass
+from enum import Enum
 
 import attr
 import pandas
@@ -20,44 +21,123 @@ from datasource_api_client.models import (
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory
 
+ELEMENT_TYPE_METADATA = "__element_type_metadata"
+ELEMENT_VALUE_METADATA = "__element_value_metadata"
 
-@attr.s
-class BaseConfig:
-    """Base datasource configuration."""
+CREDENTIAL_TYPE = "credential"
+CONFIGURATION_TYPE = "configuration"
 
-    # pylint: disable=too-few-public-methods
 
+class ConfigElem(Enum):
+    """Enumeration of valid config elements."""
+
+    ACCOUNT = "account"
+    BUCKET = "bucket"
     DATABASE = "database"
+    HOST = "host"
+    PORT = "port"
+    REGION = "region"
+    ROLE = "role"
+    SCHEMA = "schema"
+    WAREHOUSE = "warehouse"
+
+
+class CredElem(Enum):
+    """Enumeration of valid credential elements."""
 
     PASSWORD = "password"
     USERNAME = "username"
 
 
-@attr.s
-class RedshiftConfig(BaseConfig):
-    """Redshift datasource configuration."""
+def _cred(elem: CredElem) -> Any:
+    """Type helper for credentials attributes."""
+    metadata = {
+        ELEMENT_TYPE_METADATA: CREDENTIAL_TYPE,
+        ELEMENT_VALUE_METADATA: elem,
+    }
+    return attr.ib(default=None, kw_only=True, metadata=metadata)
 
-    database: Optional[str] = attr.ib(kw_only=True)
-    password: Optional[str] = attr.ib(kw_only=True)
-    username: Optional[str] = attr.ib(kw_only=True)
+
+def _filter_cred(att: Any, _: Any) -> Any:
+    """Filter credential type attributes."""
+    return att.metadata[ELEMENT_TYPE_METADATA] == CREDENTIAL_TYPE
+
+
+def _config(elem: ConfigElem) -> Any:
+    """Type helper for configuration attributes."""
+    metadata = {
+        ELEMENT_TYPE_METADATA: CONFIGURATION_TYPE,
+        ELEMENT_VALUE_METADATA: elem,
+    }
+    return attr.ib(default=None, kw_only=True, metadata=metadata)
+
+
+def _filter_config(att: Any, _: Any) -> Any:
+    """Filter configuration type attributes."""
+    return att.metadata[ELEMENT_TYPE_METADATA] == CONFIGURATION_TYPE
+
+
+@attr.s
+class Config:
+    """Base datasource configuration."""
 
     def config(self) -> Dict[str, str]:
         """Get configuration as dict."""
-        config = {}
-        if self.database is not None:
-            config[self.DATABASE] = self.database
+        fields = attr.fields_dict(self.__class__)
+        attrs = attr.asdict(self, filter=_filter_config)
 
-        return config
+        res = {}
+        for name, val in attrs.items():
+            field = fields[name]
+            if val is not None:
+                res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
+        return res
 
     def creds(self) -> Dict[str, str]:
         """Get credentials as dict."""
-        creds = {}
-        if self.password is not None:
-            creds[self.PASSWORD] = self.password
-        if self.username is not None:
-            creds[self.USERNAME] = self.username
+        fields = attr.fields_dict(self.__class__)
+        attrs = attr.asdict(self, filter=_filter_cred)
 
-        return creds
+        res = {}
+        for name, val in attrs.items():
+            field = fields[name]
+            if val is not None:
+                res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
+        return res
+
+
+@attr.s
+class RedshiftConfig(Config):
+    """Redshift datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s
+class SnowflakeConfig(Config):
+    """Snowflake datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+    schema: Optional[str] = _config(elem=ConfigElem.SCHEMA)
+    warehouse: Optional[str] = _config(elem=ConfigElem.DATABASE)
+    role: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s
+class S3Config(Config):
+    """S3 datasource configurationn."""
+
+    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
+    region: Optional[str] = _config(elem=ConfigElem.REGION)
+
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
 
 @dataclass
@@ -119,7 +199,7 @@ class Datasource:
         Returns:
           Result entity wrapping dataframe
         """
-        return self.client.execute(self.identifier, self.owner_id, query)
+        return self.client.execute(self.identifier, query)
 
 
 @dataclass
@@ -128,7 +208,8 @@ class BoardingPass:
 
     datasource_id: str
     query: str
-    user_id: str
+    config: Dict[str, str]
+    credential: Dict[str, str]
 
     def to_json(self) -> str:
         """Serialize self to JSON."""
@@ -136,7 +217,8 @@ class BoardingPass:
             {
                 "datasourceId": self.datasource_id,
                 "sqlQuery": self.query,
-                "userId": self.user_id,
+                "configOverwrites": self.config,
+                "credentialOverwrites": self.credential,
             }
         )
 
@@ -189,22 +271,33 @@ class Client:
             return Datasource(self, cast(DatasourceDto, response.parsed))
         raise Exception(cast(ErrorResponse, response.parsed).message)
 
-    def execute(self, datasource_id: str, owner_id: str, query: str) -> Result:
+    def execute(
+        self,
+        datasource_id: str,
+        query: str,
+        config: Optional[Dict[str, str]] = None,
+        credential: Optional[Dict[str, str]] = None,
+    ) -> Result:
         """Execute a given query against a datasource.
 
         Args:
           datasource_id: unique identifier of a datasource
           query: SQL query to execute
+          config: overwrite configuration dictionary
+          credential: overwrite credential dictionary
 
         Returns:
           Result entity encapsulating execution response
         """
+        config = {} if not config else config
+        credential = {} if not credential else credential
         reader = self.proxy.do_get(
             flight.Ticket(
                 BoardingPass(
-                    user_id=owner_id,
                     datasource_id=datasource_id,
                     query=query,
+                    config=config,
+                    credential=credential,
                 ).to_json()
             )
         )
