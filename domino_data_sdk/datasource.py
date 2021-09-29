@@ -9,7 +9,7 @@ from enum import Enum
 
 import attr
 import pandas
-from pyarrow import csv, flight, parquet
+from pyarrow import flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
 from datasource_api_client.models import (
