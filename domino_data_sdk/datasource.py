@@ -283,6 +283,9 @@ class Client:
 
         Returns:
             Datasource entity with given name
+
+        Raises:
+            Exception: If the response from Domino is not 200
         """
         run_id = os.getenv("DOMINO_RUN_ID")
         response = get_datasource_by_name.sync_detailed(
