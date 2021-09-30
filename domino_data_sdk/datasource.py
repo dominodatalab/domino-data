@@ -1,10 +1,9 @@
 """Datasource module."""
 
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional, Union, cast
 
 import json
 import os
-from dataclasses import dataclass
 from enum import Enum
 
 import attr
@@ -12,12 +11,7 @@ import pandas
 from pyarrow import flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
-from datasource_api_client.models import (
-    DatasourceDto,
-    DatasourceDtoCredentialType,
-    DatasourceDtoDataSourceType,
-    ErrorResponse,
-)
+from datasource_api_client.models import DatasourceDto, ErrorResponse
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory
 
@@ -93,7 +87,7 @@ class Config:
                 res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
         return res
 
-    def creds(self) -> Dict[str, str]:
+    def credential(self) -> Dict[str, str]:
         """Get credentials as dict."""
         fields = attr.fields_dict(self.__class__)
         attrs = attr.asdict(self, filter=_filter_cred)
@@ -140,19 +134,22 @@ class S3Config(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
 
-@dataclass
+DatasourceConfig = Union[RedshiftConfig, SnowflakeConfig, S3Config]
+
+
+@attr.s
 class Result:
     """Class for keeping query result metadata."""
 
-    client: "Client"
-    reader: flight.FlightStreamReader
-    statement: str
+    client: "Client" = attr.ib()
+    reader: flight.FlightStreamReader = attr.ib()
+    statement: str = attr.ib()
 
     def to_pandas(self) -> pandas.DataFrame:
         """Load and transform the result into a pandas DataFrame.
 
         Returns:
-          Pandas dataframe loaded with entire resultset
+            Pandas dataframe loaded with entire resultset
         """
         return self.reader.read_pandas()
 
@@ -160,56 +157,76 @@ class Result:
         """Load and serialize the result to a local parquet file.
 
         Args:
-          where: path of file-like object.
+            where: path of file-like object.
         """
         table = self.reader.read_all()
         parquet.write_table(table, where)
 
 
-@dataclass(init=False)
+@attr.s
 class Datasource:
-    """Class that represents a Domino datasource."""
+    """Represents a Domino datasource."""
 
     # pylint: disable=too-many-instance-attributes
-    # datasource is a complex entity with many attributes
 
-    client: "Client"
-    credential_type: DatasourceDtoCredentialType
-    datasource_type: DatasourceDtoDataSourceType
-    identifier: str
-    name: str
-    owner: str
-    owner_id: str
+    client: "Client" = attr.ib(repr=False)
+    config: Dict[str, Any] = attr.ib()
+    credential_type: str = attr.ib()
+    datasource_type: str = attr.ib()
+    identifier: str = attr.ib()
+    name: str = attr.ib()
+    owner: str = attr.ib()
 
-    def __init__(self, client: "Client", dto: DatasourceDto):
-        self.client = client
-        self.credential_type = dto.credential_type
-        self.datasource_type = dto.data_source_type
-        self.identifier = dto.id
-        self.name = dto.name
-        self.owner = dto.owner_info.owner_name
-        self.owner_id = dto.owner_id
+    _override_config: DatasourceConfig = attr.ib(init=False)
+
+    @classmethod
+    def from_dto(cls, client: "Client", dto: DatasourceDto) -> "Datasource":
+        """Build a datasource from a given DTO."""
+        return cls(
+            client=client,
+            config=dto.config.to_dict(),
+            credential_type=dto.credential_type.value,
+            datasource_type=dto.data_source_type.value,
+            identifier=dto.id,
+            name=dto.name,
+            owner=dto.owner_info.owner_name,
+        )
+
+    def update(self, config: DatasourceConfig) -> None:
+        """Store configuration overwrite for future query calls.
+
+        Args:
+            config: One of S3Config, RedshiftConfig or SnowflakeConfig
+        """
+        self._override_config = config
 
     def query(self, query: str) -> Result:
         """Execute a query against the datasource.
 
         Args:
-          query: SQL statement to execute
+            query: SQL statement to execute
 
         Returns:
-          Result entity wrapping dataframe
+            Result entity wrapping dataframe
         """
-        return self.client.execute(self.identifier, query)
+        return self.client.execute(
+            self.identifier,
+            query,
+            config=self._override_config.config(),
+            credential=self._override_config.credential(),
+        )
 
 
-@dataclass
+@attr.s
 class BoardingPass:
-    """Class that represent a query request to the Datasource Proxy service."""
+    """Represent a query request to the Datasource Proxy service."""
 
-    datasource_id: str
-    query: str
-    config: Dict[str, str]
-    credential: Dict[str, str]
+    # pylint: disable=too-few-public-methods
+
+    datasource_id: str = attr.ib()
+    query: str = attr.ib()
+    config: Dict[str, str] = attr.ib()
+    credential: Dict[str, str] = attr.ib()
 
     def to_json(self) -> str:
         """Serialize self to JSON."""
@@ -256,10 +273,10 @@ class Client:
         """Fetch a datasource by name.
 
         Args:
-          name: unique identifier of a datasource
+            name: unique identifier of a datasource
 
         Returns:
-          Datasource entity with given name
+            Datasource entity with given name
         """
         run_id = os.getenv("DOMINO_RUN_ID")
         response = get_datasource_by_name.sync_detailed(
@@ -268,7 +285,7 @@ class Client:
             client=self.domino,
         )
         if response.status_code == 200:
-            return Datasource(self, cast(DatasourceDto, response.parsed))
+            return Datasource.from_dto(self, cast(DatasourceDto, response.parsed))
         raise Exception(cast(ErrorResponse, response.parsed).message)
 
     def execute(
@@ -281,13 +298,13 @@ class Client:
         """Execute a given query against a datasource.
 
         Args:
-          datasource_id: unique identifier of a datasource
-          query: SQL query to execute
-          config: overwrite configuration dictionary
-          credential: overwrite credential dictionary
+            datasource_id: unique identifier of a datasource
+            query: SQL query to execute
+            config: overwrite configuration dictionary
+            credential: overwrite credential dictionary
 
         Returns:
-          Result entity encapsulating execution response
+            Result entity encapsulating execution response
         """
         config = {} if not config else config
         credential = {} if not credential else credential

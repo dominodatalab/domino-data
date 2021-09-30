@@ -2,6 +2,8 @@
 
 from typing import Dict, Optional
 
+from os.path import exists
+
 import attr
 from pyarrow import flight
 
@@ -54,7 +56,7 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
         """Called at the start of an RPC."""
         jwt = None
 
-        if self.token_file is not None:
+        if self.token_file is not None and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
 
