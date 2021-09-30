@@ -116,8 +116,8 @@ class SnowflakeConfig(Config):
 
     database: Optional[str] = _config(elem=ConfigElem.DATABASE)
     schema: Optional[str] = _config(elem=ConfigElem.SCHEMA)
-    warehouse: Optional[str] = _config(elem=ConfigElem.DATABASE)
-    role: Optional[str] = _config(elem=ConfigElem.DATABASE)
+    warehouse: Optional[str] = _config(elem=ConfigElem.WAREHOUSE)
+    role: Optional[str] = _config(elem=ConfigElem.ROLE)
 
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
@@ -177,7 +177,7 @@ class Datasource:
     name: str = attr.ib()
     owner: str = attr.ib()
 
-    _override_config: DatasourceConfig = attr.ib(init=False)
+    _config_override: Optional[DatasourceConfig] = attr.ib(init=False)
 
     @classmethod
     def from_dto(cls, client: "Client", dto: DatasourceDto) -> "Datasource":
@@ -193,12 +193,16 @@ class Datasource:
         )
 
     def update(self, config: DatasourceConfig) -> None:
-        """Store configuration overwrite for future query calls.
+        """Store configuration override for future query calls.
 
         Args:
             config: One of S3Config, RedshiftConfig or SnowflakeConfig
         """
-        self._override_config = config
+        self._config_override = config
+
+    def reset_config(self) -> None:
+        """Reset the configuration override."""
+        self._config_override = None
 
     def query(self, query: str) -> Result:
         """Execute a query against the datasource.
@@ -209,12 +213,14 @@ class Datasource:
         Returns:
             Result entity wrapping dataframe
         """
-        return self.client.execute(
-            self.identifier,
-            query,
-            config=self._override_config.config(),
-            credential=self._override_config.credential(),
-        )
+        if self._config_override is not None:
+            return self.client.execute(
+                self.identifier,
+                query,
+                config=self._config_override.config(),
+                credential=self._config_override.credential(),
+            )
+        return self.client.execute(self.identifier, query)
 
 
 @attr.s
