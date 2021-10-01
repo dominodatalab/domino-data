@@ -33,8 +33,9 @@ author = "Aaron Read, Gabriel Haim"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
     "sphinx_rtd_theme",
@@ -54,3 +55,6 @@ exclude_patterns: List[str] = []
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+
+# Napoleon config
+napoleon_google_docstring = True

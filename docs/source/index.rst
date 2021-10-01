@@ -21,6 +21,7 @@ Domino Data SDK
    usecases/simple_query
    usecases/custom_auth
    usecases/write_to_parquet.rst
+   usecases/config_override.rst
 
 Reference
 =========

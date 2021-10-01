@@ -2,6 +2,8 @@
 
 from typing import Dict, Optional
 
+from os.path import exists
+
 import attr
 from pyarrow import flight
 
@@ -44,7 +46,7 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     token_file: Optional[str] = attr.ib()
 
     def __attrs_post_init__(self):
-        if not (self.api_key or self.token_file):
+        if not (self.api_key or (self.token_file and exists(self.token_file))):
             raise Exception(
                 "One of two authentication methods needs to be supplied "
                 "(API Key or JWT Location)"
