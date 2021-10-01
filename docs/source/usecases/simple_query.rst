@@ -35,7 +35,7 @@ Assuming a Datasource named *redshift-test* has been configured with valid crede
     """
 
     # res is a simple wrapper of the query result
-    res = redshift.execute(query)
+    res = redshift.query(query)
     # to_pandas() loads the result into a pandas dataframe
     df = res.to_pandas()
     # check the first 10 rows
