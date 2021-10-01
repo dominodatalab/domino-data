@@ -177,7 +177,7 @@ class Datasource:
     name: str = attr.ib()
     owner: str = attr.ib()
 
-    _config_override: Optional[DatasourceConfig] = attr.ib(init=False)
+    _config_override: Optional[DatasourceConfig] = attr.ib(default=None, init=False)
 
     @classmethod
     def from_dto(cls, client: "Client", dto: DatasourceDto) -> "Datasource":
