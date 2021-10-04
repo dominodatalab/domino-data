@@ -46,7 +46,7 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     token_file: Optional[str] = attr.ib()
 
     def __attrs_post_init__(self):
-        if not (self.api_key or (self.token_file and exists(self.token_file))):
+        if not (self.api_key or self.token_file):
             raise Exception(
                 "One of two authentication methods needs to be supplied "
                 "(API Key or JWT Location)"
@@ -56,7 +56,7 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
         """Called at the start of an RPC."""
         jwt = None
 
-        if self.token_file is not None:
+        if self.token_file is not None and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
 
