@@ -23,6 +23,16 @@ Domino Data SDK
    usecases/write_to_parquet.rst
    usecases/config_override.rst
 
+.. toctree::
+   :caption: TrainingSet use cases
+   :maxdepth: 1
+   :glob:
+
+   usecases/create_trainingset
+   usecases/get_trainingset
+   usecases/update_trainingset
+   usecases/delete_trainingset
+
 Reference
 =========
 
