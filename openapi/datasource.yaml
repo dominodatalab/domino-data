@@ -13,6 +13,38 @@ tags:
     description: Datasource operations
 
 paths:
+  /url:
+    post:
+      operationId: postUrl
+      tag:
+        - Datasource
+      summary: Request a new signed URL for a blob datasource
+      requestBody:
+        description: Request body for a key in blob datasource
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UrlRequest'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: The server could not understand the request due to malformed syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+        '500':
+          description: An internal error prevented the server from performing this action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
   /datasource/name/{name}:
     get:
       operationId: getDatasourceByName
@@ -109,8 +141,9 @@ components:
         dataSourceType:
           type: string
           enum:
-            - SnowflakeConfig
             - RedshiftConfig
+            - S3Config
+            - SnowflakeConfig
         description:
           type: string
           nullable: true
@@ -156,3 +189,33 @@ components:
         - projectIds
         - status
         - userIds
+    ProxyErrorResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        subType:
+          type: string
+        rawError:
+          type: string
+    UrlRequest:
+      type: object
+      properties:
+        datasourceId:
+          type: string
+        objectKey:
+          type: string
+        isReadWrite:
+          type: boolean
+        configOverwrites:
+          type: object
+          additionalProperties:
+            type: string
+        credentialOverwrites:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - datasourceId
+        - objectKey
+        - isReadWrite

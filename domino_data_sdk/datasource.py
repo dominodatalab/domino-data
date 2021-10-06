@@ -7,13 +7,23 @@ import os
 from enum import Enum
 
 import attr
+import httpx
 import pandas
 from pyarrow import flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
-from datasource_api_client.models import DatasourceDto, ErrorResponse
+from datasource_api_client.api.default import post_url
+from datasource_api_client.models import (
+    DatasourceDto,
+    DatasourceDtoDataSourceType,
+    ErrorResponse,
+    ProxyErrorResponse,
+    UrlRequest,
+)
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory
+
+ACCEPT_HEADERS = {"Accept": "application/json"}
 
 ELEMENT_TYPE_METADATA = "__element_type_metadata"
 ELEMENT_VALUE_METADATA = "__element_value_metadata"
@@ -139,10 +149,10 @@ DatasourceConfig = Union[RedshiftConfig, SnowflakeConfig, S3Config]
 
 @attr.s
 class Result:
-    """Class for keeping query result metadata."""
+    """Represents a query result."""
 
-    client: "Client" = attr.ib()
-    reader: flight.FlightStreamReader = attr.ib()
+    client: "Client" = attr.ib(repr=False)
+    reader: flight.FlightStreamReader = attr.ib(repr=False)
     statement: str = attr.ib()
 
     def to_pandas(self) -> pandas.DataFrame:
@@ -164,6 +174,78 @@ class Result:
 
 
 @attr.s
+class Blob:
+    """Represents the blob of an object store."""
+
+    datasource: "BlobDatasource" = attr.ib(repr=False)
+    object_key: str = attr.ib()
+
+    def get(self) -> bytes:
+        """Get blob content as bytes."""
+        signed_url = self.datasource.get_signed_url(self.object_key, False)
+        res = httpx.get(signed_url)
+        res.raise_for_status()
+
+        return res.content
+
+    def download_file(self, filename: str) -> None:
+        """Download blob content to file located at filename.
+
+        The file will be created if it does not exists.
+
+        Args:
+            filename: path of file to write content to.
+        """
+        signed_url = self.datasource.get_signed_url(self.object_key, False)
+        with httpx.stream("GET", signed_url) as stream, open(filename, "wb") as file:
+            for data in stream.iter_bytes():
+                file.write(data)
+
+    def download_fileobj(self, fileobj: Any) -> None:
+        """Download blob content to file like object.
+
+        Args:
+            fileobj: A file-like object to download into.
+                At a minimum, it must implement the write method and must accept bytes.
+        """
+        signed_url = self.datasource.get_signed_url(self.object_key, False)
+        with httpx.stream("GET", signed_url) as stream:
+            for data in stream.iter_bytes():
+                fileobj.write(data)
+
+    def put(self, content: bytes) -> None:
+        """Upload content to blob.
+
+        Args:
+            content: bytes content
+        """
+        signed_url = self.datasource.get_signed_url(self.object_key, True)
+        res = httpx.put(signed_url, content=content)
+        res.raise_for_status()
+
+    def upload_file(self, filename: str) -> None:
+        """Upload content of file at filename to blob.
+
+        Args:
+            filename: path of file to upload.
+        """
+        signed_url = self.datasource.get_signed_url(self.object_key, True)
+        with open(filename, "rb") as file:
+            res = httpx.put(signed_url, content=file)
+        res.raise_for_status()
+
+    def upload_fileobj(self, fileobj: Any) -> None:
+        """Upload content of file like object to blob.
+
+        Args:
+            fileobj: bytes-like object or an iterable producing bytes.
+        """
+        signed_url = self.datasource.get_signed_url(self.object_key, True)
+        res = httpx.put(signed_url, content=fileobj)
+        res.raise_for_status()
+
+
+@attr.s
 class Datasource:
     """Represents a Domino datasource."""
 
@@ -177,7 +259,11 @@ class Datasource:
     name: str = attr.ib()
     owner: str = attr.ib()
 
-    _config_override: Optional[DatasourceConfig] = attr.ib(default=None, init=False)
+    _config_override: Optional[DatasourceConfig] = attr.ib(
+        default=None,
+        init=False,
+        repr=False,
+    )
 
     @classmethod
     def from_dto(cls, client: "Client", dto: DatasourceDto) -> "Datasource":
@@ -204,6 +290,11 @@ class Datasource:
         """Reset the configuration override."""
         self._config_override = None
 
+
+@attr.s
+class QueryDatasource(Datasource):
+    """Represents a tabular type datasource."""
+
     def query(self, query: str) -> Result:
         """Execute a query against the datasource.
 
@@ -221,6 +312,99 @@ class Datasource:
                 credential=self._config_override.credential(),
             )
         return self.client.execute(self.identifier, query)
+
+
+@attr.s
+class BlobDatasource(Datasource):
+    """Represents a blob type datasource."""
+
+    def Object(self, object_key: str) -> Blob:  # pylint: disable=invalid-name
+        """Return a blob object with given key and datasource client."""
+        return Blob(datasource=self, object_key=object_key)
+
+    def get_signed_url(self, object_key: str, is_read_write: bool = False) -> str:
+        """Get a signed URL for the given blob.
+
+        Args:
+            object_key: unique identifier of object to get signed URL for.
+            is_read_write: whether the URL should allow writes or not.
+
+        Returns:
+            Signed URL for given key
+        """
+        if self._config_override is not None:
+            return self.client.get_signed_url(
+                self.identifier,
+                object_key,
+                is_read_write,
+                config=self._config_override.config(),
+                credential=self._config_override.credential(),
+            )
+        return self.client.get_signed_url(self.identifier, object_key, is_read_write)
+
+    def get(self, object_key: str) -> bytes:
+        """Get blob content as bytes.
+
+        Args:
+            object_key: unique key of object
+        """
+        return self.Object(object_key).get()
+
+    def download_file(self, object_key: str, filename: str) -> None:
+        """Download blob content to file located at filename.
+
+        The file will be created if it does not exists.
+
+        Args:
+            object_key: unique key of object
+            filename: path of file to write content to.
+        """
+        return self.Object(object_key).download_file(filename)
+
+    def download_fileobj(self, object_key: str, fileobj: Any) -> None:
+        """Download blob content to file like object.
+
+        Args:
+            object_key: unique key of object
+            fileobj: A file-like object to download into.
+                At a minimum, it must implement the write method and must accept bytes.
+        """
+        return self.Object(object_key).download_fileobj(fileobj)
+
+    def put(self, object_key: str, content: bytes) -> None:
+        """Upload content to blob.
+
+        Args:
+            object_key: unique key of object
+            content: bytes content
+        """
+        return self.Object(object_key).put(content)
+
+    def upload_file(self, object_key: str, filename: str) -> None:
+        """Upload content of file at filename to blob.
+
+        Args:
+            object_key: unique key of object
+            filename: path of file to upload.
+        """
+        return self.Object(object_key).upload_file(filename)
+
+    def upload_fileobj(self, object_key: str, fileobj: Any) -> None:
+        """Upload content of file like object to blob.
+
+        Args:
+            object_key: unique key of object
+            fileobj: A file-like object to upload from.
+                At a minimum, it must implement the read method and must return bytes.
+        """
+        return self.Object(object_key).upload_fileobj(fileobj)
+
+
+DATASOURCES = {
+    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.S3CONFIG: BlobDatasource,
+}
 
 
 @attr.s
@@ -252,6 +436,7 @@ class Client:
 
     domino: AuthenticatedClient = attr.ib(init=False)
     proxy: flight.FlightClient = attr.ib(init=False)
+    proxy_http: AuthenticatedClient = attr.ib(init=False)
 
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
@@ -259,6 +444,7 @@ class Client:
     def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
         domino_host = os.getenv("DOMINO_API_HOST")
+        proxy_host = os.getenv("DOMINO_DATASOURCE_PROXY_HOST", "")
 
         self.proxy = flight.FlightClient(
             flight_host,
@@ -269,10 +455,16 @@ class Client:
                 )
             ],
         )
+        self.proxy_http = AuthenticatedClient(
+            base_url=proxy_host,
+            api_key=self.api_key,
+            token_file=self.token_file,
+        )
         self.domino = AuthenticatedClient(
             base_url=f"{domino_host}/v4",
             api_key=self.api_key,
             token_file=self.token_file,
+            headers=ACCEPT_HEADERS,
         )
 
     def get_datasource(self, name: str) -> Datasource:
@@ -294,8 +486,52 @@ class Client:
             client=self.domino,
         )
         if response.status_code == 200:
-            return Datasource.from_dto(self, cast(DatasourceDto, response.parsed))
+            datasource_dto = cast(DatasourceDto, response.parsed)
+            _datasource = DATASOURCES.get(datasource_dto.data_source_type, Datasource)
+            return _datasource.from_dto(self, datasource_dto)
         raise Exception(cast(ErrorResponse, response.parsed).message)
+
+    def get_signed_url(  # pylint: disable=too-many-arguments
+        self,
+        datasource_id: str,
+        object_key: str,
+        is_read_write: bool,
+        config: Optional[Dict[str, str]] = None,
+        credential: Optional[Dict[str, str]] = None,
+    ) -> str:
+        """Request a signed URL for a given datasource and object key.
+
+        Args:
+            datasource_id: unique identifier of a datasource
+            object_key: unique identifier of key to retrieve
+            is_read_write: whether the signed URL allows write or not.
+            config: overwrite configuration dictionary
+            credential: overwrite credential dictionary
+
+        Returns:
+            Signed URL of the request blob/key.
+        """
+        config = {} if not config else config
+        credential = {} if not credential else credential
+
+        response = post_url.sync_detailed(
+            client=self.proxy_http,
+            json_body=UrlRequest.from_dict(
+                {
+                    "datasourceId": datasource_id,
+                    "objectKey": object_key,
+                    "isReadWrite": is_read_write,
+                    "configOverwrites": config,
+                    "credential_verwrites": credential,
+                }
+            ),
+        )
+
+        if response.status_code == 200:
+            return cast(str, response.parsed)
+
+        error = cast(ProxyErrorResponse, response.parsed)
+        raise Exception(f"Error {error.type}:{error.sub_type}: {error.raw_error}")
 
     def execute(
         self,

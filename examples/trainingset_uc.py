@@ -1,4 +1,4 @@
-from trainingset import client, model
+from trainingset import client
 
 # Model training flows
 

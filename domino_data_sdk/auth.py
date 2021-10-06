@@ -57,7 +57,7 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
         jwt = None
 
         if self.token_file is not None and exists(self.token_file):
-            with open(self.token_file, encoding="ascii") as token_file:
+            with open(self.token_file, encoding="locale") as token_file:
                 jwt = token_file.readline().rstrip()
 
         return AuthMiddleware(self.api_key, jwt)
