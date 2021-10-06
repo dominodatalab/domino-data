@@ -347,6 +347,9 @@ class BlobDatasource(Datasource):
 
         Args:
             object_key: unique key of object
+
+        Returns:
+            blob content as bytes
         """
         return self.Object(object_key).get()
 
@@ -359,7 +362,7 @@ class BlobDatasource(Datasource):
             object_key: unique key of object
             filename: path of file to write content to.
         """
-        return self.Object(object_key).download_file(filename)
+        self.Object(object_key).download_file(filename)
 
     def download_fileobj(self, object_key: str, fileobj: Any) -> None:
         """Download blob content to file like object.
@@ -369,7 +372,7 @@ class BlobDatasource(Datasource):
             fileobj: A file-like object to download into.
                 At a minimum, it must implement the write method and must accept bytes.
         """
-        return self.Object(object_key).download_fileobj(fileobj)
+        self.Object(object_key).download_fileobj(fileobj)
 
     def put(self, object_key: str, content: bytes) -> None:
         """Upload content to blob.
@@ -378,7 +381,7 @@ class BlobDatasource(Datasource):
             object_key: unique key of object
             content: bytes content
         """
-        return self.Object(object_key).put(content)
+        self.Object(object_key).put(content)
 
     def upload_file(self, object_key: str, filename: str) -> None:
         """Upload content of file at filename to blob.
@@ -387,7 +390,7 @@ class BlobDatasource(Datasource):
             object_key: unique key of object
             filename: path of file to upload.
         """
-        return self.Object(object_key).upload_file(filename)
+        self.Object(object_key).upload_file(filename)
 
     def upload_fileobj(self, object_key: str, fileobj: Any) -> None:
         """Upload content of file like object to blob.
@@ -397,7 +400,7 @@ class BlobDatasource(Datasource):
             fileobj: A file-like object to upload from.
                 At a minimum, it must implement the read method and must return bytes.
         """
-        return self.Object(object_key).upload_fileobj(fileobj)
+        self.Object(object_key).upload_fileobj(fileobj)
 
 
 DATASOURCES = {
@@ -510,6 +513,9 @@ class Client:
 
         Returns:
             Signed URL of the request blob/key.
+
+        Raises:
+            Exception: if the response from the Proxy is not 200
         """
         config = {} if not config else config
         credential = {} if not credential else credential
