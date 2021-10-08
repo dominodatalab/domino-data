@@ -1,19 +1,19 @@
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import httpx
 
 from ...client import Client
+from ...models.list_request import ListRequest
 from ...models.proxy_error_response import ProxyErrorResponse
-from ...models.url_request import UrlRequest
 from ...types import Response
 
 
 def _get_kwargs(
     *,
     client: Client,
-    json_body: UrlRequest,
+    json_body: ListRequest,
 ) -> Dict[str, Any]:
-    url = f"{client.base_url}/url"
+    url = f"{client.base_url}/objectstore/list"
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -30,9 +30,10 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[Union[ProxyErrorResponse, str]]:
+def _parse_response(*, response: httpx.Response) -> Optional[Union[List[str], ProxyErrorResponse]]:
     if response.status_code == 200:
-        response_200 = response.json()
+        response_200 = cast(List[str], response.json())
+
         return response_200
     if response.status_code == 400:
         response_400 = ProxyErrorResponse.from_dict(response.json())
@@ -45,7 +46,7 @@ def _parse_response(*, response: httpx.Response) -> Optional[Union[ProxyErrorRes
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[Union[ProxyErrorResponse, str]]:
+def _build_response(*, response: httpx.Response) -> Response[Union[List[str], ProxyErrorResponse]]:
     return Response(
         status_code=response.status_code,
         content=response.content,
@@ -57,8 +58,8 @@ def _build_response(*, response: httpx.Response) -> Response[Union[ProxyErrorRes
 def sync_detailed(
     *,
     client: Client,
-    json_body: UrlRequest,
-) -> Response[Union[ProxyErrorResponse, str]]:
+    json_body: ListRequest,
+) -> Response[Union[List[str], ProxyErrorResponse]]:
     kwargs = _get_kwargs(
         client=client,
         json_body=json_body,
@@ -74,8 +75,8 @@ def sync_detailed(
 def sync(
     *,
     client: Client,
-    json_body: UrlRequest,
-) -> Optional[Union[ProxyErrorResponse, str]]:
+    json_body: ListRequest,
+) -> Optional[Union[List[str], ProxyErrorResponse]]:
     """ """
 
     return sync_detailed(
@@ -87,8 +88,8 @@ def sync(
 async def asyncio_detailed(
     *,
     client: Client,
-    json_body: UrlRequest,
-) -> Response[Union[ProxyErrorResponse, str]]:
+    json_body: ListRequest,
+) -> Response[Union[List[str], ProxyErrorResponse]]:
     kwargs = _get_kwargs(
         client=client,
         json_body=json_body,
@@ -103,8 +104,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: Client,
-    json_body: UrlRequest,
-) -> Optional[Union[ProxyErrorResponse, str]]:
+    json_body: ListRequest,
+) -> Optional[Union[List[str], ProxyErrorResponse]]:
     """ """
 
     return (

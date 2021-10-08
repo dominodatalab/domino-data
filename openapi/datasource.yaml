@@ -11,21 +11,23 @@ info:
 tags:
   - name: Datasource
     description: Datasource operations
+  - name: Proxy
+    description: Proxy operations
 
 paths:
-  /url:
+  /objectstore/key:
     post:
-      operationId: postUrl
-      tag:
-        - Datasource
-      summary: Request a new signed URL for a blob datasource
+      operationId: getKeyUrl
+      tags:
+        - Proxy
+      summary: Request a new signed URL for the key of a object store
       requestBody:
-        description: Request body for a key in blob datasource
+        description: Request body
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UrlRequest'
+              $ref: '#/components/schemas/KeyRequest'
       responses:
         '200':
           description: success
@@ -33,6 +35,40 @@ paths:
             application/json:
               schema:
                 type: string
+        '400':
+          description: The server could not understand the request due to malformed syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+        '500':
+          description: An internal error prevented the server from performing this action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxyErrorResponse'
+  /objectstore/list:
+    post:
+      operationId: listKeys
+      tags:
+        - Proxy
+      summary: Request a new signed URL for a blob datasource
+      requestBody:
+        description: Request body for a key in blob datasource
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListRequest'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
         '400':
           description: The server could not understand the request due to malformed syntax
           content:
@@ -198,24 +234,34 @@ components:
           type: string
         rawError:
           type: string
-    UrlRequest:
+    KeyRequest:
       type: object
       properties:
+        configOverwrites:
+          $ref: '#/components/schemas/DatasourceConfig'
+        credentialOverwrites:
+          $ref: '#/components/schemas/DatasourceConfig'
         datasourceId:
-          type: string
-        objectKey:
           type: string
         isReadWrite:
           type: boolean
-        configOverwrites:
-          type: object
-          additionalProperties:
-            type: string
-        credentialOverwrites:
-          type: object
-          additionalProperties:
-            type: string
+        objectKey:
+          type: string
       required:
         - datasourceId
-        - objectKey
         - isReadWrite
+        - objectKey
+    ListRequest:
+      type: object
+      properties:
+        configOverwrites:
+          $ref: '#/components/schemas/DatasourceConfig'
+        credentialOverwrites:
+          $ref: '#/components/schemas/DatasourceConfig'
+        datasourceId:
+          type: string
+        prefix:
+          type: string
+      required:
+        - datasourceId
+        - prefix

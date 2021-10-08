@@ -2,28 +2,27 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
-from ..models.url_request_config_overwrites import UrlRequestConfigOverwrites
-from ..models.url_request_credential_overwrites import UrlRequestCredentialOverwrites
+from ..models.datasource_config import DatasourceConfig
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="UrlRequest")
+T = TypeVar("T", bound="KeyRequest")
 
 
 @attr.s(auto_attribs=True)
-class UrlRequest:
+class KeyRequest:
     """ """
 
     datasource_id: str
-    object_key: str
     is_read_write: bool
-    config_overwrites: Union[Unset, UrlRequestConfigOverwrites] = UNSET
-    credential_overwrites: Union[Unset, UrlRequestCredentialOverwrites] = UNSET
+    object_key: str
+    config_overwrites: Union[Unset, DatasourceConfig] = UNSET
+    credential_overwrites: Union[Unset, DatasourceConfig] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         datasource_id = self.datasource_id
-        object_key = self.object_key
         is_read_write = self.is_read_write
+        object_key = self.object_key
         config_overwrites: Union[Unset, Dict[str, Any]] = UNSET
         if not isinstance(self.config_overwrites, Unset):
             config_overwrites = self.config_overwrites.to_dict()
@@ -37,8 +36,8 @@ class UrlRequest:
         field_dict.update(
             {
                 "datasourceId": datasource_id,
-                "objectKey": object_key,
                 "isReadWrite": is_read_write,
+                "objectKey": object_key,
             }
         )
         if config_overwrites is not UNSET:
@@ -53,34 +52,34 @@ class UrlRequest:
         d = src_dict.copy()
         datasource_id = d.pop("datasourceId")
 
-        object_key = d.pop("objectKey")
-
         is_read_write = d.pop("isReadWrite")
 
+        object_key = d.pop("objectKey")
+
         _config_overwrites = d.pop("configOverwrites", UNSET)
-        config_overwrites: Union[Unset, UrlRequestConfigOverwrites]
+        config_overwrites: Union[Unset, DatasourceConfig]
         if isinstance(_config_overwrites, Unset):
             config_overwrites = UNSET
         else:
-            config_overwrites = UrlRequestConfigOverwrites.from_dict(_config_overwrites)
+            config_overwrites = DatasourceConfig.from_dict(_config_overwrites)
 
         _credential_overwrites = d.pop("credentialOverwrites", UNSET)
-        credential_overwrites: Union[Unset, UrlRequestCredentialOverwrites]
+        credential_overwrites: Union[Unset, DatasourceConfig]
         if isinstance(_credential_overwrites, Unset):
             credential_overwrites = UNSET
         else:
-            credential_overwrites = UrlRequestCredentialOverwrites.from_dict(_credential_overwrites)
+            credential_overwrites = DatasourceConfig.from_dict(_credential_overwrites)
 
-        url_request = cls(
+        key_request = cls(
             datasource_id=datasource_id,
-            object_key=object_key,
             is_read_write=is_read_write,
+            object_key=object_key,
             config_overwrites=config_overwrites,
             credential_overwrites=credential_overwrites,
         )
 
-        url_request.additional_properties = d
-        return url_request
+        key_request.additional_properties = d
+        return key_request
 
     @property
     def additional_keys(self) -> List[str]:

@@ -1,5 +1,5 @@
-Execute a query
-===============
+Tabular store
+=============
 
 Setup
 -----

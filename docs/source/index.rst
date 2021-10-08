@@ -19,9 +19,10 @@ Domino Data SDK
    :glob:
 
    usecases/simple_query
+   usecases/object_store
+   usecases/write_to_parquet
    usecases/custom_auth
-   usecases/write_to_parquet.rst
-   usecases/config_override.rst
+   usecases/config_override
 
 Reference
 =========
