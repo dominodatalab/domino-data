@@ -464,7 +464,7 @@ class Client:
 
     def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
-        domino_host = os.getenv("DOMINO_API_HOST")
+        domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
         proxy_host = os.getenv("DOMINO_DATASOURCE_PROXY_HOST", "")
 
         self.proxy = flight.FlightClient(
@@ -502,9 +502,9 @@ class Client:
         """
         run_id = os.getenv("DOMINO_RUN_ID")
         response = get_datasource_by_name.sync_detailed(
-            name=name,
-            run_id=run_id,
+            name,
             client=self.domino,
+            run_id=run_id,
         )
         if response.status_code == 200:
             datasource_dto = cast(DatasourceDto, response.parsed)
