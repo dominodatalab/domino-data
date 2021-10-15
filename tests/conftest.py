@@ -12,6 +12,7 @@ DOMINO_API_HOST = "https://mcetin5238.workbench-accessdata-team-sandbox.domino.t
 
 # You need to run `kubectl port-forward -n <platform-ns> svc/datasource-proxy 8000:80`
 DOMINO_DATASOURCE_PROXY_HOST = "http://localhost:8000"
+DOMINO_DATASOURCE_PROXY_FLIGHT_HOST = "grpc://localhost:8080"
 
 # Find a valid token and copy/paste the value in the following file
 DOMINO_TOKEN_FILE = "tests/domino_token"
@@ -23,3 +24,7 @@ def env_setup(monkeypatch):
     monkeypatch.setenv("DOMINO_API_HOST", DOMINO_API_HOST)
     monkeypatch.setenv("DOMINO_USER_API_KEY", DOMINO_USER_API_KEY)
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_HOST", DOMINO_DATASOURCE_PROXY_HOST)
+    monkeypatch.setenv(
+        "DOMINO_DATASOURCE_PROXY_FLIGHT_HOST",
+        DOMINO_DATASOURCE_PROXY_FLIGHT_HOST,
+    )
