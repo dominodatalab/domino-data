@@ -13,11 +13,13 @@ interactions:
       user-agent:
       - python-httpx/0.18.2
       x-domino-api-key:
-      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+      - NOTAKEY
     method: GET
-    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/not-a-datasource
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/aduser-s3
   response:
-    content: '{"message":"Datasource with name not-a-datasource does not exist","success":false}'
+    content: '{"success":false,"message":"Your role does not authorize you to perform
+      this action","debugMessage":"AnonymousPrincipal is not authorized to perform
+      this action. Required: [ManageDataSourceInternalData], but missing [ManageDataSourceInternalData]","reason":{"required":["ManageDataSourceInternalData"],"missing":["ManageDataSourceInternalData"]}}'
     headers:
       Access-Control-Allow-Origin:
       - '*'
@@ -26,23 +28,19 @@ interactions:
       Connection:
       - keep-alive
       Content-Length:
-      - '82'
+      - '346'
       Content-Type:
       - application/json
       Date:
-      - Thu, 14 Oct 2021 22:22:34 GMT
+      - Thu, 14 Oct 2021 22:22:35 GMT
       Domino-Server:
       - nginx-ingress,nucleus,
       Play-Processing-Time:
-      - '6'
-      Set-Cookie:
-      - dominoSession=077b4b86-5c9b-4ee9-a5ca-20b31ea01b68; Max-Age=78840000; Expires=Sun,
-        14 Apr 2024 10:22:34 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
-        Secure; HTTPOnly
+      - '10'
       Vary:
       - Origin
       X-Frame-Options:
       - SAMEORIGIN
     http_version: HTTP/1.1
-    status_code: 404
+    status_code: 403
 version: 1

@@ -57,7 +57,7 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	poetry run pytest tests/
+	poetry run pytest --cov=domino_data_sdk tests/
 
 .PHONY: check-codestyle
 check-codestyle:

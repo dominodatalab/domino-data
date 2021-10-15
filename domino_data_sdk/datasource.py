@@ -112,7 +112,7 @@ class Config:
         return res
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class RedshiftConfig(Config):
     """Redshift datasource configuration."""
 
@@ -122,7 +122,7 @@ class RedshiftConfig(Config):
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
     """Snowflake datasource configuration."""
 
@@ -135,7 +135,7 @@ class SnowflakeConfig(Config):
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class S3Config(Config):
     """S3 datasource configurationn."""
 
@@ -547,7 +547,7 @@ class Client:
             return cast(List[str], response.parsed)
 
         error = cast(ProxyErrorResponse, response.parsed)
-        raise Exception(f"Error {error.type}:{error.sub_type}: {error.raw_error}")
+        raise Exception(f"{error.error_type}: {error.raw_error}")
 
     def get_key_url(  # pylint: disable=too-many-arguments
         self,
@@ -587,7 +587,7 @@ class Client:
             return cast(str, response.parsed)
 
         error = cast(ProxyErrorResponse, response.parsed)
-        raise Exception(f"Error {error.type}:{error.sub_type}: {error.raw_error}")
+        raise Exception(f"{error.error_type}: {error.raw_error}")
 
     def execute(
         self,

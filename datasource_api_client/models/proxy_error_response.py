@@ -11,21 +11,21 @@ T = TypeVar("T", bound="ProxyErrorResponse")
 class ProxyErrorResponse:
     """ """
 
-    type: Union[Unset, str] = UNSET
+    error_type: Union[Unset, str] = UNSET
     sub_type: Union[Unset, str] = UNSET
     raw_error: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        type = self.type
+        error_type = self.error_type
         sub_type = self.sub_type
         raw_error = self.raw_error
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if type is not UNSET:
-            field_dict["type"] = type
+        if error_type is not UNSET:
+            field_dict["errorType"] = error_type
         if sub_type is not UNSET:
             field_dict["subType"] = sub_type
         if raw_error is not UNSET:
@@ -36,14 +36,14 @@ class ProxyErrorResponse:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        type = d.pop("type", UNSET)
+        error_type = d.pop("errorType", UNSET)
 
         sub_type = d.pop("subType", UNSET)
 
         raw_error = d.pop("rawError", UNSET)
 
         proxy_error_response = cls(
-            type=type,
+            error_type=error_type,
             sub_type=sub_type,
             raw_error=raw_error,
         )

@@ -1,0 +1,87 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/aduser-s3
+  response:
+    content: '{"id":"61687566a71c0c05f92e9168","name":"aduser-s3","ownerId":"616874b4a71c0c05f92e915f","ownerInfo":{"ownerName":"ad-user","ownerEmail":"ad-user@dominodatalab.com","isOwnerAdmin":false},"addedBy":{"616874b6a71c0c05f92e9161":"ad-user"},"dataSourceType":"S3Config","config":{"type":"DataSourceS3Config","dataSourceType":"S3Config","bucket":"s3regression","region":"us-west-2"},"credentialType":"Individual","lastUpdated":1634317648469,"lastUpdatedBy":"6167728efa49a22d0025801c","lastAccessed":{"616874b6a71c0c05f92e9161":0},"addedToProjectTimeMap":{"616874b6a71c0c05f92e9161":1634235750239},"isEveryone":false,"userIds":["6167728efa49a22d0025801c"],"projectIds":["616874b6a71c0c05f92e9161"],"adminInfo":{"projectNames":{"616874b6a71c0c05f92e9161":"quick-start"},"projectIdOwnerUsernameMap":{"616874b6a71c0c05f92e9161":"ad-user"},"projectLastActiveMap":{"616874b6a71c0c05f92e9161":null}},"status":"Active"}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '904'
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 15 Oct 2021 17:23:26 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '17'
+      Set-Cookie:
+      - dominoSession=009ab16c-aed9-4a7f-a1ff-62d956433fe6; Max-Age=78840000; Expires=Mon,
+        15 Apr 2024 05:23:26 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      Vary:
+      - Origin
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"datasourceId": "61687566a71c0c05f92e9168", "isReadWrite": true, "objectKey":
+      "akey", "configOverwrites": {}, "credentialOverwrites": {}}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '138'
+      content-type:
+      - application/json
+      host:
+      - localhost:8000
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: POST
+    uri: http://localhost:8000/objectstore/key
+  response:
+    content: '"https://s3regression.s3.us-west-2.amazonaws.com/akey?X-Amz-Algorithm=AWS4-HMAC-SHA256\u0026X-Amz-Credential=AKIA573DHWSVPYQMB2J5%2F20211015%2Fus-west-2%2Fs3%2Faws4_request\u0026X-Amz-Date=20211015T172326Z\u0026X-Amz-Expires=900\u0026X-Amz-SignedHeaders=host\u0026X-Amz-Signature=9e111f73324404ec903fed6fbff19ff48722c070a00ab626a8d1097642079f95"
+
+      '
+    headers:
+      Content-Length:
+      - '346'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 15 Oct 2021 17:23:26 GMT
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1
