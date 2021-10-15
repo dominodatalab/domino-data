@@ -1,5 +1,7 @@
 """Datasource tests."""
 
+import io
+
 import pytest
 
 from domino_data_sdk import datasource as ds
@@ -197,4 +199,59 @@ def test_s3_config():
     assert s3c.credential() == {"username": "identite", "password": "cle-secrete"}
 
 
-# Object datasource
+# Object and object datasource
+
+
+@pytest.mark.vcr
+def test_object_store_get():
+    """Object datasource can get content as binary."""
+    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+
+    content = s3d.get("diabetes.csv")
+
+    assert content[0:30] == b"Pregnancies,Glucose,BloodPress"
+
+
+@pytest.mark.vcr
+def test_object_store_put():
+    """Object datasource can put binary content to object."""
+    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+
+    s3d.put("gabrieltest.csv", b"col1,col2\r\ncell11,cell12")
+
+
+@pytest.mark.vcr
+def test_object_store_list_objects():
+    """Object datasource can list objects."""
+    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+
+    objs = s3d.list_objects("gab")
+
+    assert isinstance(objs[0], ds._Object)  # pylint: disable=protected-access
+    assert objs[0].key == "gabrieltest.csv"
+
+
+@pytest.mark.vcr
+def test_object_store_upload_file(tmp_path):
+    """Object datasource can put file content to object."""
+    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+
+    tmp_file = tmp_path / "file.txt"
+    tmp_file.write_bytes(b"testcontent")
+
+    s3d.upload_file("gabrieltest.csv", tmp_file.absolute())
+
+
+@pytest.mark.vcr
+def test_object_store_upload_fileojb():
+    """Object datasource can put fileojb content to object."""
+    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+
+    fileobj = io.BytesIO(b"testcontent")
+
+    s3d.upload_fileobj("gabrieltest.csv", fileobj)
