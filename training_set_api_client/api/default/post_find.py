@@ -37,6 +37,7 @@ def _get_kwargs(
         "timeout": client.get_timeout(),
         "json": json_json_body,
         "params": params,
+        "verify": client.verify_ssl,
     }
 
 
