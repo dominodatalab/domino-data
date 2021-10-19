@@ -618,7 +618,7 @@ class Client:
             Result entity encapsulating execution response
 
         Raises:
-            FlightError: if the proxy fails to query or return data
+            flight.FlightError: if the proxy fails to query or return data
         """
         try:
             reader = self.proxy.do_get(
@@ -633,5 +633,5 @@ class Client:
             )
         except flight.FlightError as exc:
             exc.args = _unpack_flight_error(str(exc))
-            raise exc
+            raise
         return Result(self, reader, query)
