@@ -35,7 +35,10 @@ jobs:
 
     - name: Run tests
       run: |
-        make test
+        make test > pytest-coverage.txt
+
+    - name: Comment coverage
+      uses: coroo/pytest-coverage-commentator@v1.0.2
 
     - name: Run safety checks
       run: |
