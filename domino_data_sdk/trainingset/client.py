@@ -5,6 +5,7 @@ from typing import List, Mapping, Optional
 
 import json
 import os
+import re
 import shutil
 from stat import S_IRGRP, S_IROTH, S_IRUSR, S_IWUSR, S_IXGRP, S_IXOTH, S_IXUSR
 
@@ -40,7 +41,9 @@ from training_set_api_client.models import (
 from training_set_api_client.types import Response
 
 from ..auth import AuthenticatedClient
-from ..trainingset import model  # XXX rename model
+from ..trainingset import model
+
+_trainingset_name_pat = re.compile("^[-A-Za-z0-9_]+$")
 
 
 class ServerException(Exception):
@@ -63,6 +66,8 @@ def get_training_set(name: str) -> model.TrainingSet:
 
     Returns:
         The TrainingSet, if found."""
+
+    _validate_trainingset_name(name)
 
     response = get_training_set_name.sync_detailed(
         client=_get_client(),
@@ -127,6 +132,8 @@ def update_training_set(
         The updated TrainingSet from the server.
     """
 
+    _validate_trainingset_name(updated.name)
+
     response = put_training_set_name.sync_detailed(
         training_set_name=updated.name,
         client=_get_client(),
@@ -154,6 +161,8 @@ def delete_training_set(name: str) -> bool:
         True if TrainingSet was deleted.
     """
 
+    _validate_trainingset_name(name)
+
     response = delete_training_set_name.sync_detailed(training_set_name=name, client=_get_client())
 
     if response.status_code != 200:
@@ -178,7 +187,9 @@ def create_training_set_version(
     Args:
         training_set_name: Name of the TrainingSet this version belongs to.
         df: A DataFrame holding the data.
-        training_set_name: Name of the TrainingSet this version belongs to.
+        training_set_name: Name of the TrainingSet this version belongs to. training_set_name must
+            be a string containing only alphanumeric characters in the basic Latin alphabet
+            including dash and underscore: [-A-Za-z_]
         description: Description of this version.
         key_columns: Names of columns that represent IDs for retrieving features.
         target_columns: Target variables for prediction.
@@ -189,6 +200,7 @@ def create_training_set_version(
 
     Returns:
         The created TrainingSetVersion
+
     """
 
     if key_columns is None:
@@ -207,6 +219,8 @@ def create_training_set_version(
         meta = {}
 
     all_columns = list(df.columns)
+
+    _validate_trainingset_name(training_set_name)
 
     _check_columns(
         all_columns,
@@ -263,6 +277,8 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
         The requested TrainingSetVersion.
     """
 
+    _validate_trainingset_name(training_set_name)
+
     response = get_training_set_name_number.sync_detailed(
         client=_get_client(),
         training_set_name=training_set_name,
@@ -284,6 +300,8 @@ def update_training_set_version(version: model.TrainingSetVersion) -> model.Trai
     Returns:
         The updated TrainingSetVersion from the server.
     """
+
+    _validate_trainingset_name(version.training_set_name)
 
     response = put_training_set_name_number.sync_detailed(
         training_set_name=version.training_set_name,
@@ -320,6 +338,8 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
     Returns:
         True if TrainingSetVersion was deleted.
     """
+
+    _validate_trainingset_name(training_set_name)
 
     tsv = get_training_set_version(training_set_name, number)
 
@@ -450,3 +470,8 @@ def _check_columns(all_columns: [str], expected_columns: [str]):
 
 def _get_project_id() -> str:
     return os.getenv("DOMINO_PROJECT_ID")
+
+
+def _validate_trainingset_name(name: str):
+    if _trainingset_name_pat.match(name) is None:
+        raise ValueError(f"bad TrainingSet name '{name}'")
