@@ -1,5 +1,8 @@
 """pytest fixtures and configuration."""
 
+from typing import Callable
+
+import pyarrow
 import pytest
 
 # Change the following values if you want to record new cassettes:
@@ -10,7 +13,9 @@ import pytest
 DOMINO_USER_API_KEY = "b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148"
 DOMINO_API_HOST = "https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech"
 
-# You need to run `kubectl port-forward -n <platform-ns> svc/datasource-proxy 8000:80`
+# You need to run:
+# `kubectl port-forward -n <platform-ns> svc/datasource-proxy 8000:80`
+# `kubectl port-forward -n <platform-ns> svc/datasource-proxy 8080:8080`
 DOMINO_DATASOURCE_PROXY_HOST = "http://localhost:8000"
 DOMINO_DATASOURCE_PROXY_FLIGHT_HOST = "grpc://localhost:8080"
 
@@ -28,3 +33,25 @@ def env_setup(monkeypatch):
         "DOMINO_DATASOURCE_PROXY_FLIGHT_HOST",
         DOMINO_DATASOURCE_PROXY_FLIGHT_HOST,
     )
+
+
+@pytest.fixture
+def flight_server():
+    """Set a dummy flight server to test do_get."""
+
+    class FlightServer(pyarrow.flight.FlightServerBase):
+        """Dummy flight server."""
+
+        def do_get_callback(self, context, ticket):
+            """To be replaced"""
+            raise NotImplementedError
+
+        def do_get(self, context, ticket):
+            """Dummy method."""
+            return self.do_get_callback(context, ticket)
+
+    server = FlightServer(location=DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
+
+    yield server
+
+    server.shutdown()

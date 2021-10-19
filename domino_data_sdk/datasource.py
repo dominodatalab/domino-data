@@ -1,6 +1,6 @@
 """Datasource module."""
 
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import json
 import os
@@ -32,6 +32,16 @@ ELEMENT_VALUE_METADATA = "__element_value_metadata"
 
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
+
+FLIGHT_ERROR_SPLIT = ". Client context:"
+
+
+def _unpack_flight_error(error: str) -> Tuple[str]:
+    """Unpack a flight error message by remove extra information."""
+    try:
+        return (error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0],)
+    except ValueError:
+        return (error,)
 
 
 class ConfigElem(Enum):
@@ -607,14 +617,18 @@ class Client:
         Returns:
             Result entity encapsulating execution response
         """
-        reader = self.proxy.do_get(
-            flight.Ticket(
-                BoardingPass(
-                    datasource_id=datasource_id,
-                    query=query,
-                    config=config,
-                    credential=credential,
-                ).to_json()
+        try:
+            reader = self.proxy.do_get(
+                flight.Ticket(
+                    BoardingPass(
+                        datasource_id=datasource_id,
+                        query=query,
+                        config=config,
+                        credential=credential,
+                    ).to_json()
+                )
             )
-        )
+        except flight.FlightError as exc:
+            exc.args = _unpack_flight_error(str(exc))
+            raise exc
         return Result(self, reader, query)

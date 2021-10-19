@@ -1,7 +1,10 @@
 """Datasource tests."""
 
 import io
+import json
 
+import grpc
+import pyarrow
 import pytest
 
 from domino_data_sdk import datasource as ds
@@ -37,19 +40,21 @@ def test_get_datasource_with_jwt(monkeypatch):
 @pytest.mark.vcr
 def test_get_datasource_does_not_exists():
     """Client raises an error when datasource does not exists."""
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(
+        Exception,
+        match="Datasource with name not-a-datasource does not exist",
+    ):
         ds.Client().get_datasource("not-a-datasource")
-
-    assert str(exc.value) == "Datasource with name not-a-datasource does not exist"
 
 
 @pytest.mark.vcr
 def test_get_datasource_without_access():
     """Client raises an error when user does not have access to datasource."""
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(
+        Exception,
+        match="Your role does not authorize you to perform this action",
+    ):
         ds.Client(api_key="NOTAKEY", token_file=None).get_datasource("aduser-s3")
-
-    assert str(exc.value) == "Your role does not authorize you to perform this action"
 
 
 # Get Signed URL
@@ -85,10 +90,11 @@ def test_client_get_key_url_returns_not_found():
     """Client gets an error when getting url for a datasource that does not exists."""
     client = ds.Client()
 
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(
+        Exception,
+        match="credentialsError: credentials response was empty",
+    ):
         client.get_key_url("6167705cfe005a517943cc10", "akey", True, {}, {})
-
-    assert str(exc.value) == "credentialsError: credentials response was empty"
 
 
 # List Keys
@@ -115,11 +121,101 @@ def test_client_list_keys_returns_error():
     client = ds.Client()
     s3d = client.get_datasource("aduser-s3")
 
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(
+        Exception,
+        match="incorrect region, the bucket is not in 'us-west-2' region",
+    ):
         client.list_keys(s3d.identifier, "", {"bucket": "notreal"}, {})
 
-    # TODO this error is a mess, fix after proxy
-    assert "incorrect region, the bucket is not in 'us-west-2' region" in str(exc.value)
+
+# Execute
+
+
+def test_client_execute(flight_server):
+    """Client can execute a query."""
+
+    table = pyarrow.Table.from_pydict({})
+
+    def callback(_, ticket):
+        tkt = json.loads(ticket.ticket.decode("utf-8"))
+        assert tkt["datasourceId"] == "id"
+        assert tkt["sqlQuery"] == "SELECT 1"
+        assert tkt["configOverwrites"] == {}
+        assert tkt["credentialOverwrites"] == {}
+        return pyarrow.flight.RecordBatchStream(table)
+
+    flight_server.do_get_callback = callback
+    client = ds.Client()
+    result = client.execute("id", "SELECT 1", {}, {})
+
+    assert isinstance(result, ds.Result)
+    assert result.statement == "SELECT 1"
+    assert result.client == client
+
+
+def test_client_execute_result_to_pandas(flight_server):
+    """Client returns a valid result with data."""
+
+    table = pyarrow.Table.from_pydict(
+        {
+            "number": [7, 14, 21],
+            "name": ["squirtle", "kakuna", "spearow"],
+        }
+    )
+
+    def callback(_, __):
+        return pyarrow.flight.RecordBatchStream(table)
+
+    flight_server.do_get_callback = callback
+    result = ds.Client().execute("id", "SELECT 1", {}, {})
+    dataframe = result.to_pandas()
+
+    assert dataframe.at[0, "name"] == "squirtle"
+    assert dataframe.at[1, "name"] == "kakuna"
+    assert dataframe.at[2, "name"] == "spearow"
+    assert dataframe.at[0, "number"] == 7
+    assert dataframe.at[1, "number"] == 14
+    assert dataframe.at[2, "number"] == 21
+
+
+def test_client_execute_result_to_parquet(flight_server, tmp_path):
+    """Client returns a valid result with data."""
+
+    tmp_file = tmp_path / "file.parquet"
+    table = pyarrow.Table.from_pydict(
+        {
+            "number": [7, 14, 21],
+            "name": ["squirtle", "kakuna", "spearow"],
+        }
+    )
+
+    def callback(_, __):
+        return pyarrow.flight.RecordBatchStream(table)
+
+    flight_server.do_get_callback = callback
+    result = ds.Client().execute("id", "SELECT 1", {}, {})
+    result.to_parquet(tmp_file.absolute())
+
+    dataframe = ds.pandas.read_parquet(tmp_file.absolute(), engine="pyarrow")
+
+    assert dataframe.at[0, "name"] == "squirtle"
+    assert dataframe.at[1, "name"] == "kakuna"
+    assert dataframe.at[2, "name"] == "spearow"
+    assert dataframe.at[0, "number"] == 7
+    assert dataframe.at[1, "number"] == 14
+    assert dataframe.at[2, "number"] == 21
+
+
+def test_client_execute_unpack_exceptions(flight_server):
+    """Client raises prettier exceptions."""
+
+    def callback(context, _):
+        raise pyarrow.flight.FlightUnauthenticatedError("is bad")
+
+    flight_server.do_get_callback = callback
+
+    with pytest.raises(Exception, match="^is bad. Detail: Unauthenticated$"):
+        ds.Client().execute("id", "SELECT 1", {}, {})
 
 
 # Config
