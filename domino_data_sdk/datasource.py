@@ -616,6 +616,9 @@ class Client:
 
         Returns:
             Result entity encapsulating execution response
+
+        Raises:
+            FlightError: if the proxy fails to query or return data
         """
         try:
             reader = self.proxy.do_get(
