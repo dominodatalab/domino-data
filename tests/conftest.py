@@ -1,7 +1,5 @@
 """pytest fixtures and configuration."""
 
-from typing import Callable
-
 import pyarrow
 import pytest
 

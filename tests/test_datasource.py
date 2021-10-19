@@ -3,7 +3,6 @@
 import io
 import json
 
-import grpc
 import pyarrow
 import pytest
 
