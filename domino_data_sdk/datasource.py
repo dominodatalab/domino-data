@@ -9,6 +9,7 @@ from enum import Enum
 import attr
 import httpx
 import pandas
+from loguru import logger
 from pyarrow import flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
@@ -472,10 +473,25 @@ class Client:
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
 
+    logger: Any = attr.ib(init=False, repr=False)
+
     def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
         domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
         proxy_host = os.getenv("DOMINO_DATASOURCE_PROXY_HOST", "")
+
+        self.logger = logger.bind(
+            ip=os.getenv("DOMINO_NODE_IP"),
+            project=os.getenv("DOMINO_PROJECT_NAME"),
+            run_id=os.getenv("DOMINO_RUN_ID"),
+            user=os.getenv("DOMINO_STARTING_USERNAME"),
+        )
+        self.logger.info(
+            "initializing client with hosts: flight {}, domino {}, proxy {}",
+            flight_host,
+            domino_host,
+            proxy_host,
+        )
 
         self.proxy = flight.FlightClient(
             flight_host,
