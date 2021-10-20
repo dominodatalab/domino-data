@@ -9,7 +9,6 @@ from enum import Enum
 import attr
 import httpx
 import pandas
-from loguru import logger
 from pyarrow import flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
@@ -25,6 +24,7 @@ from datasource_api_client.models import (
 )
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory
+from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 
@@ -473,24 +473,16 @@ class Client:
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
 
-    logger: Any = attr.ib(init=False, repr=False)
-
     def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
         domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
         proxy_host = os.getenv("DOMINO_DATASOURCE_PROXY_HOST", "")
 
-        self.logger = logger.bind(
-            ip=os.getenv("DOMINO_NODE_IP"),
-            project=os.getenv("DOMINO_PROJECT_NAME"),
-            run_id=os.getenv("DOMINO_RUN_ID"),
-            user=os.getenv("DOMINO_STARTING_USERNAME"),
-        )
-        self.logger.info(
-            "initializing client with hosts: flight {}, domino {}, proxy {}",
-            flight_host,
-            domino_host,
-            proxy_host,
+        logger.info(
+            "initializing datasource client with hosts",
+            flight_host=flight_host,
+            domino_host=domino_host,
+            proxy_host=proxy_host,
         )
 
         self.proxy = flight.FlightClient(
@@ -526,6 +518,8 @@ class Client:
         Raises:
             Exception: If the response from Domino is not 200
         """
+        logger.info("get_datasource", datasource_name=name)
+
         run_id = os.getenv("DOMINO_RUN_ID")
         response = get_datasource_by_name.sync_detailed(
             name,
@@ -536,7 +530,10 @@ class Client:
             datasource_dto = cast(DatasourceDto, response.parsed)
             _datasource = DATASOURCES.get(datasource_dto.data_source_type, Datasource)
             return _datasource.from_dto(self, datasource_dto)
-        raise Exception(cast(ErrorResponse, response.parsed).message)
+
+        message = cast(ErrorResponse, response.parsed).message
+        logger.exception(message)
+        raise Exception(message)
 
     def list_keys(
         self,
@@ -559,6 +556,8 @@ class Client:
         Raises:
             Exception: if the response from the Proxy is not 200
         """
+        logger.info("list_keys", datasource_id=datasource_id, prefix=prefix)
+
         response = list_keys.sync_detailed(
             client=self.proxy_http,
             json_body=ListRequest(
@@ -573,6 +572,7 @@ class Client:
             return cast(List[str], response.parsed)
 
         error = cast(ProxyErrorResponse, response.parsed)
+        logger.exception(error)
         raise Exception(f"{error.error_type}: {error.raw_error}")
 
     def get_key_url(  # pylint: disable=too-many-arguments
@@ -598,6 +598,8 @@ class Client:
         Raises:
             Exception: if the response from the Proxy is not 200
         """
+        logger.info("get_key_url", datasource_id=datasource_id, object_key=object_key)
+
         response = get_key_url.sync_detailed(
             client=self.proxy_http,
             json_body=KeyRequest(
@@ -613,6 +615,7 @@ class Client:
             return cast(str, response.parsed)
 
         error = cast(ProxyErrorResponse, response.parsed)
+        logger.exception(error)
         raise Exception(f"{error.error_type}: {error.raw_error}")
 
     def execute(
@@ -636,6 +639,8 @@ class Client:
         Raises:
             flight.FlightError: if the proxy fails to query or return data
         """
+        logger.info("execute", datasource_id=datasource_id, query=query)
+
         try:
             reader = self.proxy.do_get(
                 flight.Ticket(
@@ -648,6 +653,7 @@ class Client:
                 )
             )
         except flight.FlightError as exc:
+            logger.exception(exc)
             exc.args = _unpack_flight_error(str(exc))
             raise
         return Result(self, reader, query)
