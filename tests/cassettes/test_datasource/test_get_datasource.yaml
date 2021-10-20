@@ -1,0 +1,105 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/redshift_sdk_test
+  response:
+    content: '{"id":"61677736fa49a22d0025804d","name":"redshift_sdk_test","description":"Generic
+      data source for redshift system test","ownerId":"61677430fa49a22d00258025","ownerInfo":{"ownerName":"system-test","ownerEmail":"systester@dominodatalab.com","isOwnerAdmin":false},"addedBy":{"61677649fa49a22d00258039":"system-test"},"dataSourceType":"RedshiftConfig","config":{"type":"DataSourceRedshiftConfig","dataSourceType":"RedshiftConfig","host":"redshift-cluster-regression.cen4bofhbbfl.us-west-2.redshift.amazonaws.com","port":"5439","database":"dev"},"credentialType":"Individual","lastUpdated":1634250138905,"lastUpdatedBy":"6167728efa49a22d0025801c","lastAccessed":{"61677649fa49a22d00258039":1634170729467},"addedToProjectTimeMap":{"61677649fa49a22d00258039":1634170729467},"isEveryone":false,"userIds":["6167728efa49a22d0025801c"],"projectIds":["61677649fa49a22d00258039"],"adminInfo":{"projectNames":{},"projectIdOwnerUsernameMap":{},"projectLastActiveMap":{"61677649fa49a22d00258039":"2021-10-14T00:18:45.051Z"}},"status":"Active"}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 14 Oct 2021 22:22:33 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '11'
+      Set-Cookie:
+      - dominoSession=aeecbe42-824c-4125-9019-fadd18b6b74c; Max-Age=78840000; Expires=Sun,
+        14 Apr 2024 10:22:33 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/aduser-s3
+  response:
+    content: '{"id":"61687566a71c0c05f92e9168","name":"aduser-s3","ownerId":"616874b4a71c0c05f92e915f","ownerInfo":{"ownerName":"ad-user","ownerEmail":"ad-user@dominodatalab.com","isOwnerAdmin":false},"addedBy":{"616874b6a71c0c05f92e9161":"ad-user"},"dataSourceType":"S3Config","config":{"type":"DataSourceS3Config","dataSourceType":"S3Config","bucket":"s3regression","region":"us-west-2"},"credentialType":"Individual","lastUpdated":1634250146829,"lastUpdatedBy":"6167728efa49a22d0025801c","lastAccessed":{"616874b6a71c0c05f92e9161":0},"addedToProjectTimeMap":{"616874b6a71c0c05f92e9161":1634235750239},"isEveryone":false,"userIds":["6167728efa49a22d0025801c"],"projectIds":["616874b6a71c0c05f92e9161"],"adminInfo":{"projectNames":{"616874b6a71c0c05f92e9161":"quick-start"},"projectIdOwnerUsernameMap":{"616874b6a71c0c05f92e9161":"ad-user"},"projectLastActiveMap":{"616874b6a71c0c05f92e9161":null}},"status":"Active"}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '904'
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 14 Oct 2021 22:22:34 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '9'
+      Set-Cookie:
+      - dominoSession=21a0df92-70e1-4023-979b-b679e2215ffb; Max-Age=78840000; Expires=Sun,
+        14 Apr 2024 10:22:34 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      Vary:
+      - Origin
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

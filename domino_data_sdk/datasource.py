@@ -1,6 +1,6 @@
 """Datasource module."""
 
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import json
 import os
@@ -32,6 +32,16 @@ ELEMENT_VALUE_METADATA = "__element_value_metadata"
 
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
+
+FLIGHT_ERROR_SPLIT = ". Client context:"
+
+
+def _unpack_flight_error(error: str) -> Tuple[str]:
+    """Unpack a flight error message by remove extra information."""
+    try:
+        return (error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0],)
+    except ValueError:
+        return (error,)
 
 
 class ConfigElem(Enum):
@@ -112,7 +122,7 @@ class Config:
         return res
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class RedshiftConfig(Config):
     """Redshift datasource configuration."""
 
@@ -122,7 +132,7 @@ class RedshiftConfig(Config):
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
     """Snowflake datasource configuration."""
 
@@ -135,7 +145,7 @@ class SnowflakeConfig(Config):
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class S3Config(Config):
     """S3 datasource configurationn."""
 
@@ -502,9 +512,9 @@ class Client:
         """
         run_id = os.getenv("DOMINO_RUN_ID")
         response = get_datasource_by_name.sync_detailed(
-            name=name,
-            run_id=run_id,
+            name,
             client=self.domino,
+            run_id=run_id,
         )
         if response.status_code == 200:
             datasource_dto = cast(DatasourceDto, response.parsed)
@@ -547,7 +557,7 @@ class Client:
             return cast(List[str], response.parsed)
 
         error = cast(ProxyErrorResponse, response.parsed)
-        raise Exception(f"Error {error.type}:{error.sub_type}: {error.raw_error}")
+        raise Exception(f"{error.error_type}: {error.raw_error}")
 
     def get_key_url(  # pylint: disable=too-many-arguments
         self,
@@ -587,7 +597,7 @@ class Client:
             return cast(str, response.parsed)
 
         error = cast(ProxyErrorResponse, response.parsed)
-        raise Exception(f"Error {error.type}:{error.sub_type}: {error.raw_error}")
+        raise Exception(f"{error.error_type}: {error.raw_error}")
 
     def execute(
         self,
@@ -606,15 +616,22 @@ class Client:
 
         Returns:
             Result entity encapsulating execution response
+
+        Raises:
+            flight.FlightError: if the proxy fails to query or return data
         """
-        reader = self.proxy.do_get(
-            flight.Ticket(
-                BoardingPass(
-                    datasource_id=datasource_id,
-                    query=query,
-                    config=config,
-                    credential=credential,
-                ).to_json()
+        try:
+            reader = self.proxy.do_get(
+                flight.Ticket(
+                    BoardingPass(
+                        datasource_id=datasource_id,
+                        query=query,
+                        config=config,
+                        credential=credential,
+                    ).to_json()
+                )
             )
-        )
+        except flight.FlightError as exc:
+            exc.args = _unpack_flight_error(str(exc))
+            raise
         return Result(self, reader, query)

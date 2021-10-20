@@ -1,0 +1,55 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      authorization:
+      - Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJHbUVfSGw3bUFsdG1OZThSSmwxeThIWG1mNlh6bktZQWdQTnA2Z2VHeF9vIn0.eyJleHAiOjE2MzQyNTAyMjQsImlhdCI6MTYzNDI0OTkyNCwiYXV0aF90aW1lIjoxNjM0MjM1NzY2LCJqdGkiOiI1YmU0ODU0NS0xZGIzLTQ4MmItOWI5ZS05ZTJhODA2NGI3N2MiLCJpc3MiOiJodHRwczovL21jZXRpbjUyMzgud29ya2JlbmNoLWFjY2Vzc2RhdGEtdGVhbS1zYW5kYm94LmRvbWluby50ZWNoL2F1dGgvcmVhbG1zL0RvbWlub1JlYWxtIiwiYXVkIjpbImRtbS1hcGktY2xpZW50IiwiYWNjb3VudCJdLCJzdWIiOiJjNzY4NThmNS0xMjVkLTQ0YzMtYjgzMS05NzkyMGU5MGYxMjkiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkb21pbm8tcGxheSIsInNlc3Npb25fc3RhdGUiOiIzMTQwNDZlMy1lYzkwLTQ2MjQtYWJmZi1jYjg0M2FiZWJlMDciLCJhY3IiOiIwIiwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iLCJkZWZhdWx0LXJvbGVzLWRvbWlub3JlYWxtIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiZG1tLWFwaS1jbGllbnQiOnsicm9sZXMiOlsicHJhY3RpdGlvbmVyIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBlbWFpbCBvZmZsaW5lX2FjY2VzcyBwcm9maWxlIiwic2lkIjoiMzE0MDQ2ZTMtZWM5MC00NjI0LWFiZmYtY2I4NDNhYmViZTA3IiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJuYW1lIjoiaW50ZWdyYXRpb24tdGVzdCBpbnRlZ3JhdGlvbi10ZXN0IiwicHJlZmVycmVkX3VzZXJuYW1lIjoiaW50ZWdyYXRpb24tdGVzdCIsImdpdmVuX25hbWUiOiJpbnRlZ3JhdGlvbi10ZXN0IiwiZmFtaWx5X25hbWUiOiJpbnRlZ3JhdGlvbi10ZXN0IiwiZW1haWwiOiJ0ZXN0LW5vdGlmcytpbnRlZ3JhdGlvbi10ZXN0QGRvbWlub2RhdGFsYWIuY29tIn0.gVmiKdPN3Y0Hcyzc98sUbDOq39QZcHphzn1uxTnjlZGnjPJo9uGghVYV0dgbHPzkpkq6Rq5o4szEawyPZF0sJj4utdUM2akTomlKoWeHjuWY-oK_MUrJ-r-Zc6u8wsa3CR1p_lOmwiMUaa6OMbweTwYClmB8nzq6gxzY1BGGHPlD7benrLj3uYa62rLIvd5JkvUNlUOUdNNydrd3-5vZAkdspVgOoUse3o-hkS5AhAAt92peErDUsWy15ZML_7oegHaqSHNDEDFgUXzE_Vfi6svfmjWXk3qG0KO1w4GW6fqH_wbFvQJygH0mh8wD6ZeITqFO5O1zpR2fUr9Vs6kmwg
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/redshift_sdk_test
+  response:
+    content: '{"id":"61677736fa49a22d0025804d","name":"redshift_sdk_test","description":"Generic
+      data source for redshift system test","ownerId":"61677430fa49a22d00258025","ownerInfo":{"ownerName":"system-test","ownerEmail":"systester@dominodatalab.com","isOwnerAdmin":false},"addedBy":{"61677649fa49a22d00258039":"system-test"},"dataSourceType":"RedshiftConfig","config":{"type":"DataSourceRedshiftConfig","dataSourceType":"RedshiftConfig","host":"redshift-cluster-regression.cen4bofhbbfl.us-west-2.redshift.amazonaws.com","port":"5439","database":"dev"},"credentialType":"Individual","lastUpdated":1634250138905,"lastUpdatedBy":"6167728efa49a22d0025801c","lastAccessed":{"61677649fa49a22d00258039":1634170729467},"addedToProjectTimeMap":{"61677649fa49a22d00258039":1634170729467},"isEveryone":false,"userIds":["6167728efa49a22d0025801c"],"projectIds":["61677649fa49a22d00258039"],"adminInfo":{"projectNames":{},"projectIdOwnerUsernameMap":{},"projectLastActiveMap":{"61677649fa49a22d00258039":"2021-10-14T00:18:45.051Z"}},"status":"Active"}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 14 Oct 2021 22:22:34 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '11'
+      Set-Cookie:
+      - dominoSession=310edbed-7409-43db-8e37-29b495b26082; Max-Age=78840000; Expires=Sun,
+        14 Apr 2024 10:22:34 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

@@ -30,7 +30,7 @@ class AuthenticatedClient(Client):
             return {"X-Domino-Api-Key": self.api_key, **self.headers}
 
         if self.token_file:
-            with open(self.token_file, encoding="locale") as token_file:
+            with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
             return {"Authorization": f"Bearer {jwt}", **self.headers}
 

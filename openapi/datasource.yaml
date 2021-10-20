@@ -228,7 +228,7 @@ components:
     ProxyErrorResponse:
       type: object
       properties:
-        type:
+        errorType:
           type: string
         subType:
           type: string
