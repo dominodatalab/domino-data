@@ -1,7 +1,6 @@
 # type: ignore[attr-defined]
 """Domino Data SDK for interacting with Access Data features"""
 
-import sys
 from importlib import metadata as importlib_metadata
 
 

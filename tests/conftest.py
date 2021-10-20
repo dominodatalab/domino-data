@@ -31,6 +31,7 @@ def env_setup(monkeypatch):
         "DOMINO_DATASOURCE_PROXY_FLIGHT_HOST",
         DOMINO_DATASOURCE_PROXY_FLIGHT_HOST,
     )
+    monkeypatch.setenv("DOMINO_PROJECT_ID", "616f201f45a10655afeaaf9f")
 
 
 @pytest.fixture
@@ -53,3 +54,8 @@ def flight_server():
     yield server
 
     server.shutdown()
+
+
+@pytest.fixture
+def training_set_dir(tmpdir, monkeypatch):
+    monkeypatch.setenv("DOMINO_TRAINING_SET_PATH", str(tmpdir))
