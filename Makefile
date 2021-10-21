@@ -57,13 +57,13 @@ formatting: codestyle
 #* Linting
 .PHONY: test
 test:
-	poetry run pytest --cov=domino_data_sdk tests/
+	poetry run pytest --cov=domino_data tests/
 
 .PHONY: check-codestyle
 check-codestyle:
 	poetry run isort --diff --check-only --settings-path pyproject.toml ./
 	poetry run black --diff --check --config pyproject.toml ./
-	poetry run darglint --verbosity 2 domino_data_sdk tests
+	poetry run darglint --verbosity 2 domino_data tests
 
 .PHONY: mypy
 mypy:
@@ -73,7 +73,7 @@ mypy:
 check-safety:
 	poetry check
 	poetry run safety check --full-report
-	poetry run bandit -ll --recursive domino_data_sdk tests
+	poetry run bandit -ll --recursive domino_data tests
 
 .PHONY: lint
 lint: test check-codestyle mypy check-safety

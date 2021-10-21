@@ -6,7 +6,7 @@ import json
 import pyarrow
 import pytest
 
-from domino_data_sdk import datasource as ds
+from domino_data import datasource as ds
 from tests.conftest import DOMINO_TOKEN_FILE
 
 # Get Datasource

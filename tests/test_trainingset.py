@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from domino_data_sdk.trainingset import client, model
+from domino_data.trainingset import client, model
 
 
 @pytest.mark.vcr

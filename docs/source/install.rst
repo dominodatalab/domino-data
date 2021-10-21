@@ -15,19 +15,19 @@ If you want to use your own environment, you can easily install the SDK by addin
 .. code-block:: docker
 
    ## Install Domino Data SDK
-   RUN pip install --user domino-data-sdk
+   RUN pip install --user dominodatalab-data
 
 Python Package Index (PyPI)
 ---------------------------
 
-The SDK is published in `PyPI <https://pypi.org/project/domino-data-sdk>`_ and you can install it directly with pip:
+The SDK is published in `PyPI <https://pypi.org/project/dominodatalab-data>`_ and you can install it directly with pip:
 
 .. code-block:: console
 
-   $ python -m pip install domino-data-sdk
+   $ python -m pip install dominodatalab-data
 
 
 Releases
 --------
 
-Release history is available `here <https://pypi.org/project/domino-data-sdk/#history>`_.
+Release history is available `here <https://pypi.org/project/dominodatalab-data/#history>`_.

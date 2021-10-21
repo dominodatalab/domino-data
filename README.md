@@ -2,15 +2,15 @@
 
 <div align="center">
 
-[![Build status](https://github.com/cerebrotech/data-access-sdk/workflows/build/badge.svg?branch=master&event=push)](https://github.com/cerebrotech/data-access-sdk/actions?query=workflow%3Abuild)
-[![Python Version](https://img.shields.io/pypi/pyversions/domino-data-sdk.svg)](https://pypi.org/project/domino-data-sdk/)
-[![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/cerebrotech/data-access-sdk/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
+[![Build status](https://github.com/dominodatalab/domino-data/workflows/build/badge.svg?branch=master&event=push)](https://github.com/dominodatalab/domino-data/actions?query=workflow%3Abuild)
+[![Python Version](https://img.shields.io/pypi/pyversions/dominodatalab-data.svg)](https://pypi.org/project/dominodatalab-data/)
+[![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/dominodatalab/domino-data/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-green.svg)](https://github.com/PyCQA/bandit)
-[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/cerebrotech/data-access-sdk/blob/master/.pre-commit-config.yaml)
-[![Semantic Versions](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--versions-e10079.svg)](https://github.com/cerebrotech/data-access-sdk/releases)
-[![License](https://img.shields.io/github/license/cerebrotech/data-access-sdk)](https://github.com/cerebrotech/data-access-sdk/blob/master/LICENSE)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/dominodatalab/domino-data/blob/master/.pre-commit-config.yaml)
+[![Semantic Versions](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--versions-e10079.svg)](https://github.com/dominodatalab/domino-data/releases)
+[![License](https://img.shields.io/github/license/dominodatalab/domino-data)](https://github.com/dominodatalab/domino-data/blob/master/LICENSE)
 
 Domino Data SDK for interacting with Access Data features
 
@@ -19,18 +19,18 @@ Domino Data SDK for interacting with Access Data features
 ## Installation
 
 ```bash
-pip install -U domino-data-sdk
+pip install -U dominodatalab-data
 ```
 
 or install with `Poetry`
 
 ```bash
-poetry add domino-data-sdk
+poetry add dominodatalab-data
 ```
 
 ### Makefile usage
 
-[`Makefile`](https://github.com/cerebrotech/data-access-sdk/blob/master/Makefile) contains a lot of functions for faster development.
+[`Makefile`](https://github.com/dominodatalab/domino-data/blob/master/Makefile) contains a lot of functions for faster development.
 
 <details>
 <summary>1. Download and remove Poetry</summary>
@@ -202,7 +202,7 @@ make open-docs
 
 ## 📈 Releases
 
-You can see the list of available releases on the [GitHub Releases](https://github.com/cerebrotech/data-access-sdk/releases) page.
+You can see the list of available releases on the [GitHub Releases](https://github.com/dominodatalab/domino-data/releases) page.
 
 We follow [Semantic Versions](https://semver.org/) specification.
 
@@ -219,26 +219,26 @@ We use [`Release Drafter`](https://github.com/marketplace/actions/release-drafte
 |            `documentation`            |    📝 Documentation     |
 |            `dependencies`             | ⬆️ Dependencies updates |
 
-You can update it in [`release-drafter.yml`](https://github.com/cerebrotech/data-access-sdk/blob/master/.github/release-drafter.yml).
+You can update it in [`release-drafter.yml`](https://github.com/dominodatalab/domino-data/blob/master/.github/release-drafter.yml).
 
 GitHub creates the `bug`, `enhancement`, and `documentation` labels for you. Dependabot creates the `dependencies` label. Create the remaining labels on the Issues tab of your GitHub repository, when you need them.
 
 ## 🛡 License
 
-[![License](https://img.shields.io/github/license/cerebrotech/data-access-sdk)](https://github.com/cerebrotech/data-access-sdk/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/dominodatalab/domino-data)](https://github.com/dominodatalab/domino-data/blob/master/LICENSE)
 
-This project is licensed under the terms of the `Apache Software License 2.0` license. See [LICENSE](https://github.com/cerebrotech/data-access-sdk/blob/master/LICENSE) for more details.
+This project is licensed under the terms of the `Apache Software License 2.0` license. See [LICENSE](https://github.com/dominodatalab/domino-data/blob/master/LICENSE) for more details.
 
 ## 📃 Citation
 
 ```bibtex
-@misc{domino-data-sdk,
-  author = {cerebrotech},
+@misc{dominodatalab-data,
+  author = {dominodatalab},
   title = {Domino Data SDK for interacting with Access Data features},
   year = {2021},
   publisher = {GitHub},
   journal = {GitHub repository},
-  howpublished = {\url{https://github.com/cerebrotech/data-access-sdk}}
+  howpublished = {\url{https://github.com/dominodatalab/domino-data}}
 }
 ```
 

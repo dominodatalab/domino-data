@@ -14,7 +14,7 @@ Get the datasource from the client:
 
 .. code-block:: python
 
-   from domino_data_sdk.datasource import Client
+   from domino_data.datasource import Client
 
    s3_dev = Client().get_datasource("s3-dev")
 

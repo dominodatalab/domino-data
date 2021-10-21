@@ -19,7 +19,7 @@ Assuming a Datasource named *redshift-test* has been configured with valid crede
 
 .. code-block:: python
 
-   from domino_data_sdk.datasource import Client
+   from domino_data.datasource import Client
 
    # instantiate a client and fetch the datasource instance
    redshift = Client().get_datasource("redshift-test")

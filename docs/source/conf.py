@@ -15,7 +15,7 @@ from typing import List
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../domino_data_sdk"))
+sys.path.insert(0, os.path.abspath("../../domino_data"))
 
 
 # -- Project information -----------------------------------------------------

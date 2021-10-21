@@ -41,7 +41,7 @@ Reference
    :caption: Modules
    :maxdepth: 2
 
-   domino_data_sdk
+   domino_data
 
 Indices and tables
 ==================

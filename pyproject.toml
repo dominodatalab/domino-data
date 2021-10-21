@@ -4,21 +4,21 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "domino-data-sdk"
+name = "dominodatalab-data"
 version = "0.1.0b24"
 description = "Domino Data SDK for interacting with Access Data features"
 readme = "README.md"
 authors = [
-    "Aaron Read <aaron.read@cerebrotech.com>",
-    "Gabriel Haim <gabriel.haim@cerebrotech.com>",
+    "Aaron Read <aaron.read@dominodatalab.com>",
+    "Gabriel Haim <gabriel.haim@dominodatalab.com>",
 ]
 license = "Apache Software License 2.0"
-repository = "https://github.com/cerebrotech/data-access-sdk"
-homepage = "https://github.com/cerebrotech/data-access-sdk"
+repository = "https://github.com/dominodatalab/domino-data"
+homepage = "https://github.com/dominodatalab/domino-data"
 
 # Generated client need to be bundled
 packages = [
-    { include = "domino_data_sdk" },
+    { include = "domino_data" },
     { include = "datasource_api_client" },
     { include = "training_set_api_client" },
 ]
@@ -108,7 +108,7 @@ color_output = true
 
 [tool.mypy]
 # mypy configurations: https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
-exclude = 'examples/|domino_data_sdk/trainingset/'
+exclude = 'examples/|domino_data/trainingset/'
 python_version = 3.8
 pretty = true
 show_traceback = true
