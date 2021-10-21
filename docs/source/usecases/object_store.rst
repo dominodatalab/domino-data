@@ -14,9 +14,9 @@ Get the datasource from the client:
 
 .. code-block:: python
 
-   from domino_data.datasource import Client
+   from domino_data.data_sources import DataSourceClient
 
-   s3_dev = Client().get_datasource("s3-dev")
+   s3_dev = DataSourceClient().get_datasource("s3-dev")
 
 
 You can list objects available in the datasource. You can also specify a prefix:

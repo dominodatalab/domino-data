@@ -8,7 +8,7 @@ Because we use `PyArrow <https://arrow.apache.org/docs/python/>`_ to serialize a
 
 .. code-block:: python
 
-   redshift = Client().get_datasource("redshift-test")
+   redshift = DataSourceClient().get_datasource("redshift-test")
 
    res = redshift.query("SELECT * FROM wines LIMIT 1000")
 
@@ -24,7 +24,7 @@ Because serializing to a CSV is lossy, we recommend using the `Pandas.to_csv <ht
 
 .. code-block:: python
     
-   redshift = Client().get_datasource("redshift-test")
+   redshift = DataSourceClient().get_datasource("redshift-test")
 
    res = redshift.query("SELECT * FROM wines LIMIT 1000")
 

@@ -6,7 +6,7 @@ import json
 import pyarrow
 import pytest
 
-from domino_data import datasource as ds
+from domino_data import data_sources as ds
 from tests.conftest import DOMINO_TOKEN_FILE
 
 # Get Datasource
@@ -15,7 +15,7 @@ from tests.conftest import DOMINO_TOKEN_FILE
 @pytest.mark.vcr
 def test_get_datasource():
     """Client can fetch an existing datasource."""
-    client = ds.Client()
+    client = ds.DataSourceClient()
     redshift_test = client.get_datasource("redshift_sdk_test")
     s3_test = client.get_datasource("aduser-s3")
 
@@ -29,7 +29,7 @@ def test_get_datasource_with_jwt(monkeypatch):
     monkeypatch.delenv("DOMINO_USER_API_KEY")
     monkeypatch.setenv("DOMINO_TOKEN_FILE", DOMINO_TOKEN_FILE)
 
-    client = ds.Client()
+    client = ds.DataSourceClient()
     assert client.api_key is None
     assert client.token_file is not None
 
@@ -43,7 +43,7 @@ def test_get_datasource_does_not_exists():
         Exception,
         match="Datasource with name not-a-datasource does not exist",
     ):
-        ds.Client().get_datasource("not-a-datasource")
+        ds.DataSourceClient().get_datasource("not-a-datasource")
 
 
 @pytest.mark.vcr
@@ -53,7 +53,10 @@ def test_get_datasource_without_access():
         Exception,
         match="Your role does not authorize you to perform this action",
     ):
-        ds.Client(api_key="NOTAKEY", token_file=None).get_datasource("aduser-s3")
+        ds.DataSourceClient(
+            api_key="NOTAKEY",
+            token_file=None,
+        ).get_datasource("aduser-s3")
 
 
 # Get Signed URL
@@ -62,7 +65,7 @@ def test_get_datasource_without_access():
 @pytest.mark.vcr
 def test_client_get_key_url():
     """Client can retrieve a signed URL of an object in a datasource."""
-    client = ds.Client()
+    client = ds.DataSourceClient()
     s3d = client.get_datasource("aduser-s3")
 
     url = client.get_key_url(s3d.identifier, "akey", True, {}, {})
@@ -75,7 +78,7 @@ def test_client_get_key_url():
 @pytest.mark.vcr
 def test_client_get_key_url_with_override():
     """Client can retrieve a signed URL when overriding settings of a datasource."""
-    client = ds.Client()
+    client = ds.DataSourceClient()
     s3d = client.get_datasource("aduser-s3")
 
     url = client.get_key_url(s3d.identifier, "akey", True, {"region": "us-east-1"}, {})
@@ -87,7 +90,7 @@ def test_client_get_key_url_with_override():
 @pytest.mark.vcr
 def test_client_get_key_url_returns_not_found():
     """Client gets an error when getting url for a datasource that does not exists."""
-    client = ds.Client()
+    client = ds.DataSourceClient()
 
     with pytest.raises(
         Exception,
@@ -102,7 +105,7 @@ def test_client_get_key_url_returns_not_found():
 @pytest.mark.vcr
 def test_client_list_keys_in_object_store():
     """Client get list of keys in a datasource."""
-    client = ds.Client()
+    client = ds.DataSourceClient()
     s3d = client.get_datasource("aduser-s3")
 
     keys = client.list_keys(s3d.identifier, "", {}, {})
@@ -117,7 +120,7 @@ def test_client_list_keys_in_object_store():
 @pytest.mark.vcr
 def test_client_list_keys_returns_error():
     """Client get list of keys in a datasource."""
-    client = ds.Client()
+    client = ds.DataSourceClient()
     s3d = client.get_datasource("aduser-s3")
 
     with pytest.raises(
@@ -144,7 +147,7 @@ def test_client_execute(flight_server):
         return pyarrow.flight.RecordBatchStream(table)
 
     flight_server.do_get_callback = callback
-    client = ds.Client()
+    client = ds.DataSourceClient()
     result = client.execute("id", "SELECT 1", {}, {})
 
     assert isinstance(result, ds.Result)
@@ -166,7 +169,7 @@ def test_client_execute_result_to_pandas(flight_server):
         return pyarrow.flight.RecordBatchStream(table)
 
     flight_server.do_get_callback = callback
-    result = ds.Client().execute("id", "SELECT 1", {}, {})
+    result = ds.DataSourceClient().execute("id", "SELECT 1", {}, {})
     dataframe = result.to_pandas()
 
     assert dataframe.at[0, "name"] == "squirtle"
@@ -192,7 +195,7 @@ def test_client_execute_result_to_parquet(flight_server, tmp_path):
         return pyarrow.flight.RecordBatchStream(table)
 
     flight_server.do_get_callback = callback
-    result = ds.Client().execute("id", "SELECT 1", {}, {})
+    result = ds.DataSourceClient().execute("id", "SELECT 1", {}, {})
     result.to_parquet(tmp_file.absolute())
 
     dataframe = ds.pandas.read_parquet(tmp_file.absolute(), engine="pyarrow")
@@ -214,7 +217,7 @@ def test_client_execute_unpack_exceptions(flight_server):
     flight_server.do_get_callback = callback
 
     with pytest.raises(Exception, match="^is bad. Detail: Unauthenticated$"):
-        ds.Client().execute("id", "SELECT 1", {}, {})
+        ds.DataSourceClient().execute("id", "SELECT 1", {}, {})
 
 
 # Config
@@ -300,7 +303,7 @@ def test_s3_config():
 @pytest.mark.vcr
 def test_object_store_get():
     """Object datasource can get content as binary."""
-    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.DataSourceClient().get_datasource("aduser-s3")
     s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
 
     content = s3d.get("diabetes.csv")
@@ -311,7 +314,7 @@ def test_object_store_get():
 @pytest.mark.vcr
 def test_object_store_put():
     """Object datasource can put binary content to object."""
-    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.DataSourceClient().get_datasource("aduser-s3")
     s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
 
     s3d.put("gabrieltest.csv", b"col1,col2\r\ncell11,cell12")
@@ -320,7 +323,7 @@ def test_object_store_put():
 @pytest.mark.vcr
 def test_object_store_list_objects():
     """Object datasource can list objects."""
-    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.DataSourceClient().get_datasource("aduser-s3")
     s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
 
     objs = s3d.list_objects("gab")
@@ -332,7 +335,7 @@ def test_object_store_list_objects():
 @pytest.mark.vcr
 def test_object_store_upload_file(tmp_path):
     """Object datasource can put file content to object."""
-    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.DataSourceClient().get_datasource("aduser-s3")
     s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
 
     tmp_file = tmp_path / "file.txt"
@@ -344,7 +347,7 @@ def test_object_store_upload_file(tmp_path):
 @pytest.mark.vcr
 def test_object_store_upload_fileojb():
     """Object datasource can put fileojb content to object."""
-    s3d = ds.Client().get_datasource("aduser-s3")
+    s3d = ds.DataSourceClient().get_datasource("aduser-s3")
     s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
 
     fileobj = io.BytesIO(b"testcontent")

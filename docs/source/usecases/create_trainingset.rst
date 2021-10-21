@@ -9,7 +9,7 @@ A TrainingSet may only include versions from the same project. Attempting to add
 different project will result in an error.
 
 TrainingSet names must be strings containing only alphanumeric characters in the basic Latin
-alphabet including dash and underscore: [-A-Za-z_]
+alphabet including dash and underscore: ``[-A-Za-z_-]``
 
 .. code-block:: python
 

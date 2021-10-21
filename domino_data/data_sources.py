@@ -164,7 +164,7 @@ DatasourceConfig = Union[Config, RedshiftConfig, SnowflakeConfig, S3Config]
 class Result:
     """Represents a query result."""
 
-    client: "Client" = attr.ib(repr=False)
+    client: "DataSourceClient" = attr.ib(repr=False)
     reader: flight.FlightStreamReader = attr.ib(repr=False)
     statement: str = attr.ib()
 
@@ -264,7 +264,7 @@ class Datasource:
 
     # pylint: disable=too-many-instance-attributes
 
-    client: "Client" = attr.ib(repr=False)
+    client: "DataSourceClient" = attr.ib(repr=False)
     config: Dict[str, Any] = attr.ib()
     credential_type: str = attr.ib()
     datasource_type: str = attr.ib()
@@ -275,7 +275,7 @@ class Datasource:
     _config_override: DatasourceConfig = attr.ib(factory=Config, init=False, repr=False)
 
     @classmethod
-    def from_dto(cls, client: "Client", dto: DatasourceDto) -> "Datasource":
+    def from_dto(cls, client: "DataSourceClient", dto: DatasourceDto) -> "Datasource":
         """Build a datasource from a given DTO."""
         return cls(
             client=client,
@@ -463,7 +463,7 @@ class BoardingPass:
 
 
 @attr.s
-class Client:
+class DataSourceClient:
     """API client and bindings."""
 
     domino: AuthenticatedClient = attr.ib(init=False)

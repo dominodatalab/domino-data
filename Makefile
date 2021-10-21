@@ -88,7 +88,7 @@ build-remove:
 	rm -rf build/
 
 .PHONY: clean-all
-clean-all: pycache-remove build-remove
+clean-all: pycache-remove build-remove docs-remove
 
 #* Docs
 
@@ -99,3 +99,7 @@ docs:
 .PHONY: open-docs
 open-docs:
 	open docs/build/html/index.html
+
+.PHONY: docs-remove
+docs-remove:
+	cd docs; poetry run make clean

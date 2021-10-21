@@ -41,7 +41,7 @@ from training_set_api_client.models import (
 from training_set_api_client.types import Response
 
 from ..auth import AuthenticatedClient
-from ..trainingset import model
+from ..training_sets import model
 
 _trainingset_name_pat = re.compile("^[-A-Za-z0-9_]+$")
 
@@ -189,7 +189,7 @@ def create_training_set_version(
         df: A DataFrame holding the data.
         training_set_name: Name of the TrainingSet this version belongs to. training_set_name must
             be a string containing only alphanumeric characters in the basic Latin alphabet
-            including dash and underscore: [-A-Za-z_]
+            including dash and underscore: `[-A-Za-z_]`
         description: Description of this version.
         key_columns: Names of columns that represent IDs for retrieving features.
         target_columns: Target variables for prediction.
