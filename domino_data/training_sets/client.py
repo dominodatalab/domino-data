@@ -85,7 +85,7 @@ def list_training_sets(
     asc: bool = True,
     offset: int = 0,
     limit: int = 10000,
-) -> model.TrainingSet:
+) -> List[model.TrainingSet]:
     """Query training sets.
 
     Args:
