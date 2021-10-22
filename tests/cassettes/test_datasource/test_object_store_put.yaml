@@ -1,0 +1,123 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/aduser-s3
+  response:
+    content: '{"id":"61687566a71c0c05f92e9168","name":"aduser-s3","ownerId":"616874b4a71c0c05f92e915f","ownerInfo":{"ownerName":"ad-user","ownerEmail":"ad-user@dominodatalab.com","isOwnerAdmin":false},"addedBy":{"61677290fa49a22d0025801e":"integration-test","616874b6a71c0c05f92e9161":"ad-user"},"dataSourceType":"S3Config","config":{"type":"DataSourceS3Config","dataSourceType":"S3Config","bucket":"s3regression","region":"us-west-2"},"credentialType":"Individual","lastUpdated":1634320169874,"lastUpdatedBy":"6167728efa49a22d0025801c","lastAccessed":{"61677290fa49a22d0025801e":1634320169874,"616874b6a71c0c05f92e9161":0},"addedToProjectTimeMap":{"61677290fa49a22d0025801e":1634320114971,"616874b6a71c0c05f92e9161":1634235750239},"isEveryone":false,"userIds":["6167728efa49a22d0025801c"],"projectIds":["616874b6a71c0c05f92e9161","61677290fa49a22d0025801e"],"adminInfo":{"projectNames":{"61677290fa49a22d0025801e":"quick-start","616874b6a71c0c05f92e9161":"quick-start"},"projectIdOwnerUsernameMap":{"61677290fa49a22d0025801e":"integration-test","616874b6a71c0c05f92e9161":"ad-user"},"projectLastActiveMap":{"616874b6a71c0c05f92e9161":null,"61677290fa49a22d0025801e":"2021-10-15T15:25:10.263Z"}},"status":"Active"}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 15 Oct 2021 18:43:46 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '18'
+      Set-Cookie:
+      - dominoSession=37723d57-15f6-4632-8126-03bd20dbb02b; Max-Age=78840000; Expires=Mon,
+        15 Apr 2024 06:43:46 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"datasourceId": "61687566a71c0c05f92e9168", "isReadWrite": true, "objectKey":
+      "gabrieltest.csv", "configOverwrites": {}, "credentialOverwrites": {}}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '149'
+      content-type:
+      - application/json
+      host:
+      - localhost:8000
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: POST
+    uri: http://localhost:8000/objectstore/key
+  response:
+    content: '"https://s3regression.s3.us-west-2.amazonaws.com/gabrieltest.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256\u0026X-Amz-Credential=AKIA573DHWSVPYQMB2J5%2F20211015%2Fus-west-2%2Fs3%2Faws4_request\u0026X-Amz-Date=20211015T184346Z\u0026X-Amz-Expires=900\u0026X-Amz-SignedHeaders=host\u0026X-Amz-Signature=7ae953d493018e68904287f226a74672498ee74600e7e37fb8f67b40beeaba3d"
+
+      '
+    headers:
+      Content-Length:
+      - '357'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 15 Oct 2021 18:43:46 GMT
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: "col1,col2\r\ncell11,cell12"
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '24'
+      host:
+      - s3regression.s3.us-west-2.amazonaws.com
+      user-agent:
+      - python-httpx/0.18.2
+    method: PUT
+    uri: https://s3regression.s3.us-west-2.amazonaws.com/gabrieltest.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA573DHWSVPYQMB2J5%2F20211015%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20211015T184346Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host&X-Amz-Signature=7ae953d493018e68904287f226a74672498ee74600e7e37fb8f67b40beeaba3d
+  response:
+    content: ''
+    headers:
+      Content-Length:
+      - '0'
+      Date:
+      - Fri, 15 Oct 2021 18:43:47 GMT
+      ETag:
+      - '"ae3795503d4574fa54ecd76a35cb57fe"'
+      Server:
+      - AmazonS3
+      x-amz-id-2:
+      - TtO2nZL78t269xXuQfSqoe7yNPsRIQj+0xWfbX1dR3PGCJ21KQF/B5c+2gn8nthj6ngJKVngKgU=
+      x-amz-request-id:
+      - Z53W9MH4A0FF4QK6
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

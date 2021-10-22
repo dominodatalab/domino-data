@@ -1,0 +1,207 @@
+interactions:
+- request:
+    body: '{"projectId": "616f201f45a10655afeaaf9f", "keyColumns": [], "targetColumns":
+      [], "excludeColumns": [], "allColumns": ["a", "b", "c", "d", "e", "f"], "monitoringMeta":
+      {"timestampColumns": [], "categoricalColumns": [], "ordinalColumns": []}, "meta":
+      {}, "description": null}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '273'
+      content-type:
+      - application/json
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - 70d8a428050f3c369b71360f30795efbb0682ef1aa91f144955291f60d8eeb99
+    method: POST
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/trainingset/foo
+  response:
+    content: '{"id":"616f5f4445a10655afeaafca","trainingSetId":"616f5f4345a10655afeaafc9","trainingSetName":"foo","number":1,"creationTime":"2021-10-20T00:13:56.004964Z","path":"/trainingset/616f201f45a10655afeaaf9f/616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","containerPath":"616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","keyColumns":[],"targetColumns":[],"excludeColumns":[],"allColumns":["a","b","c","d","e","f"],"monitoringMeta":{"timestampColumns":[],"categoricalColumns":[],"ordinalColumns":[]},"meta":{},"pending":true}'
+    headers:
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '525'
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Wed, 20 Oct 2021 00:13:56 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '87'
+      Set-Cookie:
+      - dominoSession=08d1a583-f63d-4eff-ad16-250b5c743ef0; Max-Age=78840000; Expires=Fri,
+        19 Apr 2024 12:13:56 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"keyColumns": [], "targetColumns": [], "excludeColumns": [], "monitoringMeta":
+      {"timestampColumns": [], "categoricalColumns": [], "ordinalColumns": []}, "meta":
+      {}, "pending": false}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '183'
+      content-type:
+      - application/json
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - 70d8a428050f3c369b71360f30795efbb0682ef1aa91f144955291f60d8eeb99
+    method: PUT
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/trainingset/foo/1
+  response:
+    content: '{"id":"616f5f4445a10655afeaafca","trainingSetId":"616f5f4345a10655afeaafc9","trainingSetName":"foo","number":1,"creationTime":"2021-10-20T00:13:56.004Z","path":"/trainingset/616f201f45a10655afeaaf9f/616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","containerPath":"616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","keyColumns":[],"targetColumns":[],"excludeColumns":[],"allColumns":["a","b","c","d","e","f"],"monitoringMeta":{"timestampColumns":[],"categoricalColumns":[],"ordinalColumns":[]},"meta":{},"pending":false}'
+    headers:
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '523'
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Wed, 20 Oct 2021 00:13:56 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '82'
+      Set-Cookie:
+      - dominoSession=cbc534be-2a2a-4c82-801b-82ec0fee5bf5; Max-Age=78840000; Expires=Fri,
+        19 Apr 2024 12:13:56 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"keyColumns": [], "targetColumns": [], "excludeColumns": [], "monitoringMeta":
+      {"timestampColumns": [], "categoricalColumns": [], "ordinalColumns": []}, "meta":
+      {"foo": "bar"}, "pending": false, "description": "my description"}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '228'
+      content-type:
+      - application/json
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - 70d8a428050f3c369b71360f30795efbb0682ef1aa91f144955291f60d8eeb99
+    method: PUT
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/trainingset/foo/1
+  response:
+    content: '{"id":"616f5f4445a10655afeaafca","trainingSetId":"616f5f4345a10655afeaafc9","trainingSetName":"foo","number":1,"creationTime":"2021-10-20T00:13:56.004Z","path":"/trainingset/616f201f45a10655afeaaf9f/616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","containerPath":"616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","keyColumns":[],"targetColumns":[],"excludeColumns":[],"allColumns":["a","b","c","d","e","f"],"monitoringMeta":{"timestampColumns":[],"categoricalColumns":[],"ordinalColumns":[]},"description":"my
+      description","meta":{"foo":"bar"},"pending":false}'
+    headers:
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '565'
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Wed, 20 Oct 2021 00:13:56 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '82'
+      Set-Cookie:
+      - dominoSession=fc890bbc-eabd-480c-ae4e-c5dd3a618f27; Max-Age=78840000; Expires=Fri,
+        19 Apr 2024 12:13:56 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: ''
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - 70d8a428050f3c369b71360f30795efbb0682ef1aa91f144955291f60d8eeb99
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/trainingset/foo/1
+  response:
+    content: '{"id":"616f5f4445a10655afeaafca","trainingSetId":"616f5f4345a10655afeaafc9","trainingSetName":"foo","number":1,"creationTime":"2021-10-20T00:13:56.004Z","path":"/trainingset/616f201f45a10655afeaaf9f/616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","containerPath":"616f5f4345a10655afeaafc9/616f5f4445a10655afeaafca","keyColumns":[],"targetColumns":[],"excludeColumns":[],"allColumns":["a","b","c","d","e","f"],"monitoringMeta":{"timestampColumns":[],"categoricalColumns":[],"ordinalColumns":[]},"description":"my
+      description","meta":{"foo":"bar"},"pending":false}'
+    headers:
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '565'
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Wed, 20 Oct 2021 00:13:56 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '10'
+      Set-Cookie:
+      - dominoSession=2d3e17ee-d2f4-4117-b640-330616faa623; Max-Age=78840000; Expires=Fri,
+        19 Apr 2024 12:13:56 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

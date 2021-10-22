@@ -1,0 +1,134 @@
+# Poetry pyproject.toml: https://python-poetry.org/docs/pyproject/
+[build-system]
+requires = ["poetry_core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "dominodatalab-data"
+version = "0.1.0"
+description = "Domino Data SDK for interacting with Access Data features"
+readme = "README.md"
+authors = [
+    "Aaron Read <aaron.read@dominodatalab.com>",
+    "Gabriel Haim <gabriel.haim@dominodatalab.com>",
+]
+license = "Apache Software License 2.0"
+repository = "https://github.com/dominodatalab/domino-data"
+homepage = "https://github.com/dominodatalab/domino-data"
+
+# Generated client need to be bundled
+packages = [
+    { include = "domino_data" },
+    { include = "datasource_api_client" },
+    { include = "training_set_api_client" },
+]
+
+# Keywords description https://python-poetry.org/docs/pyproject/#keywords
+keywords = []  #! Update me
+
+# Pypi classifiers: https://pypi.org/classifiers/
+classifiers = [  #! Update me
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+]
+
+
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = ">=1.3.0"
+httpx = ">=0.15.4,<0.19.0"
+attrs = ">=20.1.0,<22.0.0"
+python-dateutil = "^2.8.0"
+pyarrow = "^5.0.0"
+loguru = "^0.5.3"
+
+[tool.poetry.dev-dependencies]
+bandit = "^1.7.0"
+black = {version = "^21.7b0", allow-prereleases = true}
+darglint = "^1.8.0"
+isort = {extras = ["colors"], version = "^5.9.3"}
+mypy = "^0.910"
+mypy-extensions = "^0.4.3"
+pre-commit = "^2.13.0"
+pydocstyle = "^6.1.1"
+pylint = "^2.9.6"
+pytest = "^6.2.4"
+pyupgrade = "^2.23.1"
+safety = "^1.10.3"
+openapi-python-client = "^0.10.3"
+Sphinx = "^4.1.2"
+sphinx-rtd-theme = "^0.5.2"
+sphinx-autodoc-typehints = "^1.12.0"
+pytest-recording = "^0.12.0"
+pdbpp = "^0.10.3"
+pytest-cov = "^3.0.0"
+grpcio = "^1.41.0"
+
+[tool.black]
+# https://github.com/psf/black
+target-version = ["py38"]
+line-length = 100
+color = true
+
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | env
+    | venv
+)/
+'''
+
+[tool.isort]
+# https://github.com/timothycrosley/isort/
+py_version = 38
+line_length = 100
+
+known_typing = ["typing", "types", "typing_extensions", "mypy", "mypy_extensions"]
+sections = ["FUTURE", "TYPING", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+include_trailing_comma = true
+profile = "black"
+multi_line_output = 3
+indent = 4
+color_output = true
+
+[tool.mypy]
+# mypy configurations: https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
+exclude = 'datasource_api_client/|domino_data/training_sets/'
+python_version = 3.8
+pretty = true
+show_traceback = true
+color_output = true
+
+allow_redefinition = false
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+ignore_missing_imports = true
+implicit_reexport = true
+no_implicit_optional = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
+strict_equality = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
