@@ -212,12 +212,32 @@ def test_client_execute_unpack_exceptions(flight_server):
     """Client raises prettier exceptions."""
 
     def callback(context, _):
-        raise pyarrow.flight.FlightUnauthenticatedError("is bad")
+        raise pyarrow.flight.FlightInternalError("is bad")
 
     flight_server.do_get_callback = callback
 
-    with pytest.raises(Exception, match="^is bad. Detail: Unauthenticated$"):
+    with pytest.raises(Exception, match="^is bad. Detail: Internal$"):
         ds.DataSourceClient().execute("id", "SELECT 1", {}, {})
+
+
+def test_client_retries_on_unauthenticated(flight_server):
+    """Client retries do_get when getting authentication errors."""
+
+    counter = 0
+    table = pyarrow.Table.from_pydict({})
+
+    def callback(_, __):
+        nonlocal counter
+        counter += 1
+        if counter >= 2:
+            return pyarrow.flight.RecordBatchStream(table)
+        raise pyarrow.flight.FlightUnauthenticatedError("is not you")
+
+    flight_server.do_get_callback = callback
+
+    ds.DataSourceClient().execute("id", "SELECT 1", {}, {})
+
+    assert counter == 2
 
 
 # Config

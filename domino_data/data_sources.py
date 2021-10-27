@@ -7,6 +7,7 @@ import os
 from enum import Enum
 
 import attr
+import backoff
 import httpx
 import pandas
 from pyarrow import ArrowException, flight, parquet
@@ -646,17 +647,23 @@ class DataSourceClient:
         logger.info("execute", datasource_id=datasource_id, query=query)
 
         try:
-            reader = self.proxy.do_get(
-                flight.Ticket(
-                    BoardingPass(
-                        datasource_id=datasource_id,
-                        query=query,
-                        config=config,
-                        credential=credential,
-                    ).to_json()
-                )
+            reader = self._do_get(
+                BoardingPass(
+                    datasource_id=datasource_id,
+                    query=query,
+                    config=config,
+                    credential=credential,
+                ).to_json()
             )
         except (flight.FlightError, ArrowException) as exc:
             logger.exception(exc)
             raise DominoError(_unpack_flight_error(str(exc))) from None
         return Result(self, reader, query)
+
+    @backoff.on_exception(
+        backoff.expo,
+        flight.FlightUnauthenticatedError,
+        max_time=60,
+    )
+    def _do_get(self, ticket: str) -> flight.FlightStreamReader:
+        return self.proxy.do_get(flight.Ticket(ticket))
