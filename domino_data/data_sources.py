@@ -9,7 +9,7 @@ from enum import Enum
 import attr
 import httpx
 import pandas
-from pyarrow import flight, parquet
+from pyarrow import ArrowException, flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
 from datasource_api_client.api.proxy import get_key_url, list_keys
@@ -37,12 +37,16 @@ CONFIGURATION_TYPE = "configuration"
 FLIGHT_ERROR_SPLIT = ". Client context:"
 
 
-def _unpack_flight_error(error: str) -> Tuple[str]:
+class DominoError(Exception):
+    """Base exception for known errors."""
+
+
+def _unpack_flight_error(error: str) -> str:
     """Unpack a flight error message by remove extra information."""
     try:
-        return (error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0],)
+        return error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0]
     except ValueError:
-        return (error,)
+        return error
 
 
 class ConfigElem(Enum):
@@ -637,7 +641,7 @@ class DataSourceClient:
             Result entity encapsulating execution response
 
         Raises:
-            flight.FlightError: if the proxy fails to query or return data
+            DominoError: if the proxy fails to query or return data
         """
         logger.info("execute", datasource_id=datasource_id, query=query)
 
@@ -652,8 +656,7 @@ class DataSourceClient:
                     ).to_json()
                 )
             )
-        except flight.FlightError as exc:
+        except (flight.FlightError, ArrowException) as exc:
             logger.exception(exc)
-            exc.args = _unpack_flight_error(str(exc))
-            raise
+            raise DominoError(_unpack_flight_error(str(exc))) from None
         return Result(self, reader, query)
