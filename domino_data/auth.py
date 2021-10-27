@@ -32,7 +32,6 @@ class AuthenticatedClient(Client):
         if self.token_file:
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
-                print(jwt)
             return {"Authorization": f"Bearer {jwt}", **self.headers}
 
         return self.headers
