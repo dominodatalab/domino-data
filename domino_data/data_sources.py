@@ -1,6 +1,6 @@
 """Datasource module."""
 
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import json
 import os

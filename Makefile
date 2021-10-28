@@ -50,6 +50,7 @@ codestyle:
 	poetry run pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
 	poetry run isort --settings-path pyproject.toml ./
 	poetry run black --config pyproject.toml ./
+	poetry run flake8 --config setup.cfg domino_data/
 
 .PHONY: formatting
 formatting: codestyle
