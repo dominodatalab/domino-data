@@ -490,7 +490,7 @@ class DataSourceClient:
             proxy_host=proxy_host,
         )
 
-        self.set_flight_client()
+        self._set_proxy()
         self.proxy_http = AuthenticatedClient(
             base_url=proxy_host,
             api_key=self.api_key,
@@ -503,7 +503,7 @@ class DataSourceClient:
             headers=ACCEPT_HEADERS,
         )
 
-    def set_flight_client(self):
+    def _set_proxy(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
         self.proxy = flight.FlightClient(
             flight_host,
@@ -651,7 +651,7 @@ class DataSourceClient:
         logger.info("execute", datasource_id=datasource_id, query=query)
 
         try:
-            self.set_flight_client()
+            self._set_proxy()
             reader = self._do_get(
                 BoardingPass(
                     datasource_id=datasource_id,
