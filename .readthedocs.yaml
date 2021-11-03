@@ -1,0 +1,5 @@
+# Latest version, recommended
+version: 2
+
+# Default only builds HTML
+formats: []
