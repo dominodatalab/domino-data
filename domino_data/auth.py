@@ -38,6 +38,22 @@ class AuthenticatedClient(Client):
 
 
 @attr.s(auto_attribs=True)
+class ProxyClient(AuthenticatedClient):
+    """A client that authenticate all requests but with Proxy headers."""
+
+    def get_headers(self) -> Dict[str, str]:
+        if self.api_key:
+            self.headers["X-Domino-Api-Key"] = self.api_key
+
+        if self.token_file:
+            with open(self.token_file, encoding="ascii") as token_file:
+                jwt = token_file.readline().rstrip()
+            self.headers["X-Domino-Jwt"] = jwt
+
+        return self.headers
+
+
+@attr.s(auto_attribs=True)
 class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     """Middleware Factory for authenticating flight requests."""
 

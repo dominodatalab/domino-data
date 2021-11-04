@@ -25,6 +25,7 @@ DOMINO_TOKEN_FILE = "tests/domino_token"
 def env_setup(monkeypatch):
     """Set the right environment variables for recorded tests."""
     monkeypatch.setenv("DOMINO_API_HOST", DOMINO_API_HOST)
+    monkeypatch.setenv("DOMINO_TOKEN_FILE", DOMINO_TOKEN_FILE)
     monkeypatch.setenv("DOMINO_USER_API_KEY", DOMINO_USER_API_KEY)
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_HOST", DOMINO_DATASOURCE_PROXY_HOST)
     monkeypatch.setenv(

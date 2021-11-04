@@ -7,7 +7,6 @@ import pyarrow
 import pytest
 
 from domino_data import data_sources as ds
-from tests.conftest import DOMINO_TOKEN_FILE
 
 # Get Datasource
 
@@ -27,7 +26,6 @@ def test_get_datasource():
 def test_get_datasource_with_jwt(monkeypatch):
     """Client can fetch a datasource using JWT."""
     monkeypatch.delenv("DOMINO_USER_API_KEY")
-    monkeypatch.setenv("DOMINO_TOKEN_FILE", DOMINO_TOKEN_FILE)
 
     client = ds.DataSourceClient()
     assert client.api_key is None
@@ -128,6 +126,36 @@ def test_client_list_keys_returns_error():
         match="incorrect region, the bucket is not in 'us-west-2' region",
     ):
         client.list_keys(s3d.identifier, "", {"bucket": "notreal"}, {})
+
+
+# Log Metric
+
+
+@pytest.mark.vcr
+def test_client_log_metric_read():
+    """Client log objectstore metric in read mode."""
+    client = ds.DataSourceClient()
+
+    client._log_metric("S3Config", 1000, False)  # pylint: disable=protected-access
+
+
+@pytest.mark.vcr
+def test_client_log_metric_write():
+    """Client log objectstore metric in write mode."""
+    client = ds.DataSourceClient()
+
+    client._log_metric("S3Config", 1000, True)  # pylint: disable=protected-access
+
+
+def test_client_wrong_type_log_nothing():
+    """Client log nothing if the datasource type is not valid."""
+    client = ds.DataSourceClient()
+
+    client._log_metric(  # pylint: disable=protected-access
+        "RedshiftConfig",
+        1000,
+        False,
+    )
 
 
 # Execute

@@ -10,4 +10,6 @@ from .datasource_owner_info import DatasourceOwnerInfo
 from .error_response import ErrorResponse
 from .key_request import KeyRequest
 from .list_request import ListRequest
+from .log_metric_m import LogMetricM
+from .log_metric_t import LogMetricT
 from .proxy_error_response import ProxyErrorResponse

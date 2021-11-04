@@ -1,0 +1,26 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - localhost:8000
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: HEAD
+    uri: http://localhost:8000/objectstore/metric?t=S3Config&b=1000&m=write
+  response:
+    content: ''
+    headers:
+      Date:
+      - Thu, 04 Nov 2021 01:21:12 GMT
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1
