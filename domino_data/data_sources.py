@@ -13,7 +13,7 @@ import pandas
 from pyarrow import ArrowException, flight, parquet
 
 from datasource_api_client.api.datasource import get_datasource_by_name
-from datasource_api_client.api.proxy import get_key_url, list_keys
+from datasource_api_client.api.proxy import get_key_url, list_keys, log_metric
 from datasource_api_client.models import DatasourceConfig as APIConfig
 from datasource_api_client.models import (
     DatasourceDto,
@@ -21,10 +21,12 @@ from datasource_api_client.models import (
     ErrorResponse,
     KeyRequest,
     ListRequest,
+    LogMetricM,
+    LogMetricT,
     ProxyErrorResponse,
 )
 
-from .auth import AuthenticatedClient, AuthMiddlewareFactory
+from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
@@ -204,6 +206,12 @@ class _Object:
         res = httpx.get(signed_url)
         res.raise_for_status()
 
+        self.datasource.client._log_metric(  # pylint: disable=protected-access
+            self.datasource.datasource_type,
+            len(res.content),
+            False,
+        )
+
         return res.content
 
     def download_file(self, filename: str) -> None:
@@ -215,9 +223,17 @@ class _Object:
             filename: path of file to write content to.
         """
         signed_url = self.datasource.get_key_url(self.key, False)
+        content_size = 0
         with httpx.stream("GET", signed_url) as stream, open(filename, "wb") as file:
             for data in stream.iter_bytes():
+                content_size += len(data)
                 file.write(data)
+
+        self.datasource.client._log_metric(  # pylint: disable=protected-access
+            self.datasource.datasource_type,
+            content_size,
+            False,
+        )
 
     def download_fileobj(self, fileobj: Any) -> None:
         """Download object content to file like object.
@@ -227,9 +243,17 @@ class _Object:
                 At a minimum, it must implement the write method and must accept bytes.
         """
         signed_url = self.datasource.get_key_url(self.key, False)
+        content_size = 0
         with httpx.stream("GET", signed_url) as stream:
             for data in stream.iter_bytes():
+                content_size += len(data)
                 fileobj.write(data)
+
+        self.datasource.client._log_metric(  # pylint: disable=protected-access
+            self.datasource.datasource_type,
+            content_size,
+            False,
+        )
 
     def put(self, content: bytes) -> None:
         """Upload content to object.
@@ -241,6 +265,12 @@ class _Object:
         res = httpx.put(signed_url, content=content)
         res.raise_for_status()
 
+        self.datasource.client._log_metric(  # pylint: disable=protected-access
+            self.datasource.datasource_type,
+            len(content),
+            True,
+        )
+
     def upload_file(self, filename: str) -> None:
         """Upload content of file at filename to object.
 
@@ -251,6 +281,13 @@ class _Object:
         with open(filename, "rb") as file:
             res = httpx.put(signed_url, content=file)
         res.raise_for_status()
+
+        content_size = os.path.getsize(filename)
+        self.datasource.client._log_metric(  # pylint: disable=protected-access
+            self.datasource.datasource_type,
+            content_size,
+            True,
+        )
 
     def upload_fileobj(self, fileobj: Any) -> None:
         """Upload content of file like object to object.
@@ -491,7 +528,7 @@ class DataSourceClient:
         )
 
         self._set_proxy()
-        self.proxy_http = AuthenticatedClient(
+        self.proxy_http = ProxyClient(
             base_url=proxy_host,
             api_key=self.api_key,
             token_file=self.token_file,
@@ -626,6 +663,35 @@ class DataSourceClient:
         error = cast(ProxyErrorResponse, response.parsed)
         logger.exception(error)
         raise Exception(f"{error.error_type}: {error.raw_error}")
+
+    def _log_metric(
+        self,
+        datasource_type: str,
+        bytes_processed: int,
+        is_read_write: bool,
+    ) -> None:
+        """Log metric about file size being processed.
+
+        Args:
+            datasource_type: type of datasource
+            bytes_processed: count of read or written bytes
+            is_read_write: whether used for read or write
+        """
+        mode = LogMetricM.WRITE if is_read_write else LogMetricM.READ
+        type_map = {DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG}
+        type_ = type_map.get(datasource_type)
+        if not type_:
+            return
+
+        try:
+            log_metric.sync_detailed(
+                client=self.proxy_http,
+                t=type_,
+                b=bytes_processed,
+                m=mode,
+            )
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception(exc)
 
     def execute(
         self,

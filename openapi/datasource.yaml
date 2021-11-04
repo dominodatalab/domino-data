@@ -81,6 +81,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProxyErrorResponse'
+  /objectstore/metric:
+    head:
+      operationId: logMetric
+      tags:
+        - Proxy
+      summary: Log metrics about file size read or written
+      parameters:
+        - in: query
+          name: t
+          description: Datasource type
+          schema:
+            type: string
+            enum: [S3Config]
+          required: true
+        - in: query
+          name: b
+          description: Bytes processed
+          schema:
+            type: integer
+          required: true
+        - in: query
+          name: m
+          description: Processing mode
+          schema:
+            type: string
+            enum: [read, write]
+          required: true
+      responses:
+        '200':
+          description: success
   /datasource/name/{name}:
     get:
       operationId: getDatasourceByName
