@@ -13,7 +13,7 @@ alphabet including dash and underscore: ``[-A-Za-z_-]``
 
 .. code-block:: python
 
-    training_set_version = client.create_training_set_version(
+    training_set_version = TrainingSetClient.create_training_set_version(
         training_set_name=training_set_name,
         df=my_df,
         key_columns=["user_id", "transaction_id"],
