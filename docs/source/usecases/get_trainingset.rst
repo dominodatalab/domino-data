@@ -10,7 +10,7 @@ TrainingSetVersions may be retrieved by name and number.
 
 .. code-block:: python
 
-    tsv_by_num = client.get_training_set_version(
+    tsv_by_num = TrainingSetClient.get_training_set_version(
         training_set_name="my-training-set",
         number=2,
     )
@@ -36,7 +36,7 @@ metadata, and TrainingSetVersion metadata. Results matching all search fields wi
 
 .. code-block:: python
 
-    versions = client.list_training_set_versions(
+    versions = TrainingSetClient.list_training_set_versions(
         training_set_name="my-training-set",
         meta={"year": "2021"},
         training_set_meta={"category": "widgets"}
@@ -50,7 +50,7 @@ TrainingSets may be retrieved by name.
 
 .. code-block:: python
 
-   ts = client.get_training_set("my-training-set")
+   ts = TrainingSetClient.get_training_set("my-training-set")
 
 Find TrainingSets
 -----------------
@@ -59,6 +59,6 @@ TrainingSets may be searched for by metadata. Results matching all metadata fiel
 
 .. code-block:: python
 
-   ts = client.list_training_sets(
+   ts = TrainingSetClient.list_training_sets(
        meta={"category": "widgets"},
    )

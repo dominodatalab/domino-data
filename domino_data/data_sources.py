@@ -508,9 +508,9 @@ class BoardingPass:
 class DataSourceClient:
     """API client and bindings."""
 
-    domino: AuthenticatedClient = attr.ib(init=False)
-    proxy: flight.FlightClient = attr.ib(init=False)
-    proxy_http: AuthenticatedClient = attr.ib(init=False)
+    domino: AuthenticatedClient = attr.ib(init=False, repr=False)
+    proxy: flight.FlightClient = attr.ib(init=False, repr=False)
+    proxy_http: AuthenticatedClient = attr.ib(init=False, repr=False)
 
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
