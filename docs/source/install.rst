@@ -31,7 +31,7 @@ Python Package Index (PyPI)
 
    $ python -m pip install dominodatalab[data]
 
-If you really only want the Data SDK, it is published in `PyPI <https://pypi.org/project/dominodatalab-data>`_:
+If you only want the Data SDK, it is published in `PyPI <https://pypi.org/project/dominodatalab-data>`_:
 
 .. code-block:: console
 
