@@ -16,7 +16,7 @@ To override the API key:
 
 .. code-block:: python
 
-   from domino_data.data_sources import DataSourceClient
+   from domino.data_sources import DataSourceClient
 
    custom_api_key = "VALID_API_KEY"
 
@@ -28,7 +28,7 @@ To override the location of the token file:
 
 .. code-block:: python
 
-   from domino_data.data_sources import DataSourceClient
+   from domino.data_sources import DataSourceClient
 
    custom_token_file = "/valid/token/file/location"
 

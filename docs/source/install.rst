@@ -3,7 +3,7 @@
 Install the Data SDK
 ====================
 
-You can use the SDK by using the right Domino environment or by installing it with **pip**.
+You can use the SDK by using the right Domino environment. If you want to install it manually with **pip** we highly recommand installing it as an extra dependency of the main `python domino package <https://github.com/dominodatalab/python-domino>`_.
 
 Domino Standard Environment
 ---------------------------
@@ -14,13 +14,24 @@ If you want to use your own environment, you can easily install the SDK by addin
 
 .. code-block:: docker
 
-   ## Install Domino Data SDK
-   RUN pip install --user dominodatalab-data
+   USER root
+
+   ## Install Domino and Data SDK packages
+   RUN python -m pip install dominodatalab[data]
+
+   USER ubuntu
 
 Python Package Index (PyPI)
 ---------------------------
 
-The SDK is published in `PyPI <https://pypi.org/project/dominodatalab-data>`_ and you can install it directly with pip:
+.. note::
+    If you use the SDK as a standalone library, the package name will be `domino_data`. We recommand installing it as part of the main domino package for easier and consistent import (see :ref:`usecase-simple-query` for an example)
+
+.. code-block:: console
+
+   $ python -m pip install dominodatalab[data]
+
+If you really only want the Data SDK, it is published in `PyPI <https://pypi.org/project/dominodatalab-data>`_:
 
 .. code-block:: console
 
