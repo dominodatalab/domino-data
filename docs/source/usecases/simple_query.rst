@@ -1,3 +1,5 @@
+.. _usecase-simple-query:
+
 Tabular store
 =============
 
@@ -19,7 +21,7 @@ Assuming a Datasource named *redshift-test* has been configured with valid crede
 
 .. code-block:: python
 
-   from domino_data.data_sources import DataSourceClient
+   from domino.data_sources import DataSourceClient
 
    # instantiate a client and fetch the datasource instance
    redshift = DataSourceClient().get_datasource("redshift-test")

@@ -15,7 +15,7 @@ You can create a config override with any of the config classes and update your 
 
 .. code-block:: python
 
-   from domino_data.data_sources import DataSourceClient, SnowflakeConfig
+   from domino.data_sources import DataSourceClient, SnowflakeConfig
 
    snowflake = DataSourceClient().get_datasource("snowflake-prod")
 
@@ -35,7 +35,7 @@ To remove the config override, simply reset it:
 
 .. code-block:: python
 
-   from domino_data.data_sources import DataSourceClient, SnowflakeConfig
+   from domino.data_sources import DataSourceClient, SnowflakeConfig
 
    snowflake = DataSourceClient().get_datasource("snowflake-prod")
    # Update to dev database
