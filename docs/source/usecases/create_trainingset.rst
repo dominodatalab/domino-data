@@ -12,10 +12,12 @@ TrainingSet names must be strings containing only alphanumeric characters in the
 alphabet including dash and underscore: ``[-A-Za-z_-]``
 
 .. code-block:: python
-
+    from domino_data.training_sets import client as TrainingSetClient
+    from domino_data.training_sets import model
+    
     training_set_version = TrainingSetClient.create_training_set_version(
         training_set_name=training_set_name,
-        df=my_df,
+        df=my_pandas_dataframe,
         key_columns=["user_id", "transaction_id"],
         target_columns=["is_fraud"],
         exclude_columns=["extra_column1", "extra_column2"],
@@ -23,6 +25,6 @@ alphabet including dash and underscore: ``[-A-Za-z_-]``
             timestamp_columns=["ts"],
             categorical_columns=["categorical_column1", "categorical_column2"],
             ordinal_columns=["ordinal_column1"],
-        )
+        ),
         meta={"year": "2021"}
     )
