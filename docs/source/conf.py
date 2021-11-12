@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath("../../domino_data"))
 
 # -- Project information -----------------------------------------------------
 
-project = "Domino Data SDK"
+project = "Domino Data API"
 copyright = "2021, Aaron Read, Gabriel Haim"
 author = "Aaron Read, Gabriel Haim"
 

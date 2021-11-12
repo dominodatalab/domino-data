@@ -4,7 +4,7 @@ info:
   contact:
     name: Gabriel Haim
     email: gabriel.haim@dominodatalab.com
-  description: Lightweight Datasource API for Domino Data SDK usage.
+  description: Lightweight Datasource API for Domino Data API usage.
   title: Datasource API
   version: 0.0.1
 
