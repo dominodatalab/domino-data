@@ -1,4 +1,4 @@
-Domino Data SDK
+Domino Data API
 ===============
 
 Training Set

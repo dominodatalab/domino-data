@@ -1,4 +1,4 @@
-# Domino Data SDK
+# Domino Data API
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 [![Semantic Versions](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--versions-e10079.svg)](https://github.com/dominodatalab/domino-data/releases)
 [![License](https://img.shields.io/github/license/dominodatalab/domino-data)](https://github.com/dominodatalab/domino-data/blob/master/LICENSE)
 
-Domino Data SDK for interacting with Access Data features
+Domino Data API for interacting with Access Data features
 
 </div>
 
@@ -234,7 +234,7 @@ This project is licensed under the terms of the `Apache Software License 2.0` li
 ```bibtex
 @misc{dominodatalab-data,
   author = {dominodatalab},
-  title = {Domino Data SDK for interacting with Access Data features},
+  title = {Domino Data API for interacting with Access Data features},
   year = {2021},
   publisher = {GitHub},
   journal = {GitHub repository},
