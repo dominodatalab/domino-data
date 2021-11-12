@@ -51,7 +51,7 @@ To remove the config override, simply reset it:
 Classes
 -------
 
-.. currentmodule:: domino.data_sources
+.. currentmodule:: domino_data.data_sources
 
 Redshift
 ^^^^^^^^
