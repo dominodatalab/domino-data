@@ -12,6 +12,7 @@ TrainingSet names must be strings containing only alphanumeric characters in the
 alphabet including dash and underscore: ``[-A-Za-z_-]``
 
 .. code-block:: python
+
     from domino.training_sets import TrainingSetClient, model
     
     training_set_version = TrainingSetClient.create_training_set_version(
@@ -27,3 +28,10 @@ alphabet including dash and underscore: ``[-A-Za-z_-]``
         ),
         meta={"year": "2021"}
     )
+
+Note that you are unable to use a TrainingSet for model monitoring unless you providing a value for
+the ``monitoirng_meta`` keyword argument. You can still create a TrainingSet without this argument,
+but TrainingSets created without the ``monitoring_meta`` keyword argument cannot be used for model
+monitoring. If you try to use a Training Set created without the ``monitoring_meta`` keyword
+argument, you will see the error ``The selected Feature Set Version cannot currently be used for
+monitoring because it does not contain a schema definition.``
