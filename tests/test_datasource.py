@@ -116,6 +116,18 @@ def test_client_list_keys_in_object_store():
 
 
 @pytest.mark.vcr
+def test_client_list_keys_without_jwt(monkeypatch):
+    """Client is defensive against missing JWT file."""
+    monkeypatch.setenv("DOMINO_TOKEN_FILE", "notafile")
+    client = ds.DataSourceClient()
+    s3d = client.get_datasource("aduser-s3")
+
+    keys = client.list_keys(s3d.identifier, "", {}, {})
+
+    assert keys
+
+
+@pytest.mark.vcr
 def test_client_list_keys_returns_error():
     """Client get list of keys in a datasource."""
     client = ds.DataSourceClient()

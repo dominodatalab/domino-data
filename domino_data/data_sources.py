@@ -44,6 +44,10 @@ class DominoError(Exception):
     """Base exception for known errors."""
 
 
+class UnauthenticatedError(DominoError):
+    """To handle exponential backoff."""
+
+
 def _unpack_flight_error(error: str) -> str:
     """Unpack a flight error message by remove extra information."""
     try:
@@ -581,6 +585,7 @@ class DataSourceClient:
         logger.exception(message)
         raise Exception(message)
 
+    @backoff.on_exception(backoff.expo, UnauthenticatedError, max_time=60)
     def list_keys(
         self,
         datasource_id: str,
@@ -601,6 +606,7 @@ class DataSourceClient:
 
         Raises:
             Exception: if the response from the Proxy is not 200
+            UnauthenticatedError: if the request has invalid authentication
         """
         logger.info("list_keys", datasource_id=datasource_id, prefix=prefix)
 
@@ -616,11 +622,14 @@ class DataSourceClient:
 
         if response.status_code == 200:
             return cast(List[str], response.parsed)
+        if response.status_code == 401:
+            raise UnauthenticatedError
 
         error = cast(ProxyErrorResponse, response.parsed)
         logger.exception(error)
         raise Exception(f"{error.error_type}: {error.raw_error}")
 
+    @backoff.on_exception(backoff.expo, UnauthenticatedError, max_time=60)
     def get_key_url(  # pylint: disable=too-many-arguments
         self,
         datasource_id: str,
@@ -643,6 +652,7 @@ class DataSourceClient:
 
         Raises:
             Exception: if the response from the Proxy is not 200
+            UnauthenticatedError: if the request has invalid authentication
         """
         logger.info("get_key_url", datasource_id=datasource_id, object_key=object_key)
 
@@ -659,6 +669,8 @@ class DataSourceClient:
 
         if response.status_code == 200:
             return cast(str, response.parsed)
+        if response.status_code == 401:
+            raise UnauthenticatedError
 
         error = cast(ProxyErrorResponse, response.parsed)
         logger.exception(error)
@@ -731,10 +743,6 @@ class DataSourceClient:
             raise DominoError(_unpack_flight_error(str(exc))) from None
         return Result(self, reader, query)
 
-    @backoff.on_exception(
-        backoff.expo,
-        flight.FlightUnauthenticatedError,
-        max_time=60,
-    )
+    @backoff.on_exception(backoff.expo, flight.FlightUnauthenticatedError, max_time=60)
     def _do_get(self, ticket: str) -> flight.FlightStreamReader:
         return self.proxy.do_get(flight.Ticket(ticket))
