@@ -29,7 +29,7 @@ class AuthenticatedClient(Client):
         if self.api_key:
             return {"X-Domino-Api-Key": self.api_key, **self.headers}
 
-        if self.token_file:
+        if self.token_file and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
             return {"Authorization": f"Bearer {jwt}", **self.headers}
@@ -45,7 +45,7 @@ class ProxyClient(AuthenticatedClient):
         if self.api_key:
             self.headers["X-Domino-Api-Key"] = self.api_key
 
-        if self.token_file:
+        if self.token_file and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
             self.headers["X-Domino-Jwt"] = jwt
