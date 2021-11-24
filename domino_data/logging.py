@@ -1,20 +1,25 @@
 """Logging module."""
 
 import os
+import tempfile
 
 from loguru import logger as _logger
 
-LOGFILE_LOCATION = "$HOME/.logs/domino_data.log"
+LOGFILE_LOCATION = "domino_logs/data_api.log"
+
+
+def getsink():
+    """Return log sink location."""
+    return f"{tempfile.gettempdir()}/{LOGFILE_LOCATION}"
 
 
 def getlogger():
     """Configure and return a logger."""
-    sink = os.path.expandvars(LOGFILE_LOCATION)
     _logger.configure(
         handlers=[
             {
                 "format": "[{time}] {message}",
-                "sink": sink,
+                "sink": getsink(),
                 "rotation": "1 day",
                 "retention": 7,
                 "enqueue": True,
