@@ -12,8 +12,9 @@ TrainingSet names must be strings containing only alphanumeric characters in the
 alphabet including dash and underscore: ``[-A-Za-z_-]``
 
 .. code-block:: python
+
     from domino.training_sets import TrainingSetClient, model
-    
+
     training_set_version = TrainingSetClient.create_training_set_version(
         training_set_name=training_set_name,
         df=my_pandas_dataframe,
