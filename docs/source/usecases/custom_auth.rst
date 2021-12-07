@@ -6,11 +6,11 @@ Custom Authentication
 Default
 -------
 
-Please refer to :ref:`auth` for the default behavior of the DataSourceClient.
+Please refer to :ref:`auth` for the default behavior of the DataSourceClient and TrainingSetClient.
 
 
-Usage
------
+Datasources
+-----------
 
 To override the API key:
 
@@ -34,3 +34,31 @@ To override the location of the token file:
 
    client = DataSourceClient(token_file=custom_token_file)
    db = client.get_datasource("my-db")
+
+
+Training Sets
+-------------
+
+The training set client is a python module wrapping a set of API methods. To override authentication, you need to set the right environment variable with your own user API key.
+
+Python
+^^^^^^
+
+.. code-block:: python
+
+   import os
+
+   os.environ["DOMINO_USER_API_KEY"] = "<your-own-api-key>"
+
+   # If the client version is <0.1.8
+   os.environ["DOMINO_API_HOST"] = os.getenv("DOMINO_USER_HOST")
+
+Shell
+^^^^^
+
+.. code-block:: shell
+
+   export DOMINO_USER_API_KEY=<your-own-api-key>
+
+   # if the client version is <0.1.8
+   export DOMINO_API_HOST=$DOMINO_USER_HOST

@@ -18,6 +18,7 @@ Availability
 
 Those two methods are not available in all run types. Follow the following matrix for availability:
 
+
 +---------------+---------+-------+---------+
 | Run type      | Who?    | Token | Api Key |
 +===============+=========+=======+=========+
@@ -33,3 +34,8 @@ Those two methods are not available in all run types. Follow the following matri
 +---------------+---------+-------+---------+
 | Model API     | N/A     | No    | No      |
 +---------------+---------+-------+---------+
+
+.. warning::
+   As described in the matrix, Model API does not support automatic authentication.
+
+   You will have to follow the instructions in the :ref:`custom-auth` section to use the DataSourceClient or the TrainingSetClient in this type of run.
