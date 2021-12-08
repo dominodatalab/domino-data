@@ -28,9 +28,9 @@ class MonitoringMeta:
     """
     MonitoringMeta. Choose the right attribute for the right model monitoring type.
 
-    - Using **ordinal_columns** will make your Training Set valid for **Regression** model.
+    - Using **ordinal_columns** will make your Training Set valid for **Regression** models.
 
-    - Using **categorical_columns** will make your Training Set valid for **Classification** model.
+    - Using **categorical_columns** will make your Training Set valid for **Classification** models.
 
     Args:
         timestamp_columns: timestamp columns.
