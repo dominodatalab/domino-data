@@ -411,7 +411,7 @@ def list_training_set_versions(
 
 
 def _get_client() -> AuthenticatedClient:
-    domino_host = os.getenv("DOMINO_API_HOST")
+    domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST"))
     api_key = os.getenv("DOMINO_USER_API_KEY")
     token_file = os.getenv("DOMINO_TOKEN_FILE")
 
