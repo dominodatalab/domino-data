@@ -25,12 +25,17 @@ class TrainingSet:
 
 @dataclass
 class MonitoringMeta:
-    """MonitoringMeta
+    """
+    MonitoringMeta. Choose the right attribute for the right model monitoring type.
+
+    - Using **ordinal_columns** will make your Training Set valid for **Regression** models.
+
+    - Using **categorical_columns** will make your Training Set valid for **Classification** models.
 
     Args:
         timestamp_columns: timestamp columns.
-        categorical_columns: categorical variables.
-        ordinal_columns: ordinal columns.
+        categorical_columns: categorical columns (prediction only).
+        ordinal_columns: ordinal columns (prediction only).
     """
 
     timestamp_columns: List[str] = field(default_factory=list)
