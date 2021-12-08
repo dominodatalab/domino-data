@@ -28,3 +28,11 @@ alphabet including dash and underscore: ``[-A-Za-z_-]``
         ),
         meta={"year": "2021"}
     )
+
+Note that you are unable to use a TrainingSet for model monitoring unless you providing a value for
+the ``monitoring_meta`` keyword argument. You can still create a TrainingSet without this argument,
+but TrainingSets created without the ``monitoring_meta`` keyword argument cannot be used for model
+monitoring. If you select a Training Set created without the ``monitoring_meta`` keyword
+argument while trying to register a Model API for monitoring from the Monitoring tab of the page
+for that Model API, then you will see the error ``The selected Feature Set Version cannot currently be used for
+monitoring because it does not contain a schema definition.``
