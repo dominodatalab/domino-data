@@ -50,7 +50,7 @@ Python
 
    os.environ["DOMINO_USER_API_KEY"] = "<your-own-api-key>"
 
-   # If the client version is <0.1.8
+   # In model API if the client version is <0.1.8
    os.environ["DOMINO_API_HOST"] = os.getenv("DOMINO_USER_HOST")
 
 Shell
@@ -60,5 +60,5 @@ Shell
 
    export DOMINO_USER_API_KEY=<your-own-api-key>
 
-   # if the client version is <0.1.8
+   # In model API if the client version is <0.1.8
    export DOMINO_API_HOST=$DOMINO_USER_HOST
