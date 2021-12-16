@@ -9,7 +9,7 @@ import pandas as pd
 @dataclass
 class TrainingSet:
     """
-    A TrainingSet.
+    A Training Set.
 
     Args:
         name: Unique name of the TrainingSet.
@@ -26,16 +26,15 @@ class TrainingSet:
 @dataclass
 class MonitoringMeta:
     """
-    MonitoringMeta. Choose the right attribute for the right model monitoring type.
+    Monitoring Meta.
 
-    - Using **ordinal_columns** will make your Training Set valid for **Regression** models.
-
-    - Using **categorical_columns** will make your Training Set valid for **Classification** models.
+    For more details about the parameters, refer to :class:`.TrainingSetVersion`.
 
     Args:
-        timestamp_columns: timestamp columns.
-        categorical_columns: categorical columns (prediction only).
-        ordinal_columns: ordinal columns (prediction only).
+        timestamp_columns: Timestamp columns.
+        categorical_columns: Categorical columns.
+        ordinal_columns: Ordinal columns. Currently, ordinal columns are skipped by the
+            Model Monitor.
     """
 
     timestamp_columns: List[str] = field(default_factory=list)
@@ -46,20 +45,29 @@ class MonitoringMeta:
 @dataclass
 class TrainingSetVersion:
     """
-    A TrainingSetVersion.
+    A Training Set Version.
+
+    Any columns that are not inside ``key_columns``, ``exclude_columns``, \
+        ``MonitoringMeta.categorical_columns``, ``MonitoringMeta.timestamp_columns``, \
+        or ``MonitoringMeta.ordinal_columns`` are automatically marked as numerical \
+        columns.
 
     Args:
         number: The TrainingSetVersion number.
-        training_set_name: Name of the TrainingSet this version belongs
-            to.
+        training_set_name: Name of the TrainingSet this version belongs to.
         description: Description of this version.
-        key_columns: Names of columns that represent IDs for retrieving
-            features.
-        target_columns: Target variables for prediction.
-        exclude_columns: Columns to exclude when generating the training
-            DataFrame.
+        key_columns: Row identifier columns.
+        target_columns:
+            Prediction columns.
+
+            * For **classifications models**, this must be a **categorical** column. \
+                Be sure to also include this column in \
+                :py:attr:`.MonitoringMeta.categorical_columns`.
+
+            * For **regression models**, it must be a **numerical** column.
+        exclude_columns: Any columns that should be excluded.
         all_columns: Names all columns in the dataframe.
-        monitoring_meta: Monitoring specific metadata
+        monitoring_meta: Monitoring specific metadata.
         meta: User defined metadata
     """
 
