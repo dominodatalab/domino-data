@@ -178,7 +178,13 @@ class S3Config(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
 
-DatasourceConfig = Union[Config, RedshiftConfig, PostgreSQLConfig, SnowflakeConfig, S3Config]
+DatasourceConfig = Union[
+    Config,
+    RedshiftConfig,
+    PostgreSQLConfig,
+    SnowflakeConfig,
+    S3Config
+]
 
 
 @attr.s
