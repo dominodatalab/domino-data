@@ -321,6 +321,7 @@ def test_redshift_config():
     assert red.config() == {"database": "dev2"}
     assert red.credential() == {"username": "awsadmin", "password": "protec"}
 
+
 def test_postgreSQL_config():
     """PostgreSQL config serializes to expected keys."""
 
@@ -328,6 +329,7 @@ def test_postgreSQL_config():
 
     assert pg.config() == {"database": "dev2"}
     assert pg.credential() == {"username": "awsadmin", "password": "protec"}
+
 
 def test_snowflake_config():
     """Snowflake config serializes to expected keys."""
