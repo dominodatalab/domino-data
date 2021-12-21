@@ -183,7 +183,7 @@ DatasourceConfig = Union[
     RedshiftConfig,
     PostgreSQLConfig,
     SnowflakeConfig,
-    S3Config
+    S3Config,
 ]
 
 
@@ -425,13 +425,13 @@ class ObjectStoreDatasource(Datasource):
         Returns:
             Signed URL for given key
         """
-        return self.client.get_key_url(
+        return cast(str, self.client.get_key_url(
             self.identifier,
             object_key,
             is_read_write,
             config=self._config_override.config(),
             credential=self._config_override.credential(),
-        )
+        ))
 
     def get(self, object_key: str) -> bytes:
         """Get object content as bytes.
