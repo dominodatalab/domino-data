@@ -145,6 +145,16 @@ class RedshiftConfig(Config):
 
 
 @attr.s(auto_attribs=True)
+class PostgreSQLConfig(Config):
+    """PostgreSQL datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
     """Snowflake datasource configuration."""
 
@@ -168,7 +178,7 @@ class S3Config(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
 
-DatasourceConfig = Union[Config, RedshiftConfig, SnowflakeConfig, S3Config]
+DatasourceConfig = Union[Config, RedshiftConfig, PostgreSQLConfig, SnowflakeConfig, S3Config]
 
 
 @attr.s
@@ -337,7 +347,7 @@ class Datasource:
         """Store configuration override for future query calls.
 
         Args:
-            config: One of S3Config, RedshiftConfig or SnowflakeConfig
+            config: One of S3Config, RedshiftConfig, PostgreSQLConfig or SnowflakeConfig
         """
         self._config_override = config
 
@@ -481,6 +491,7 @@ class ObjectStoreDatasource(Datasource):
 DATASOURCES = {
     DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
 }
 

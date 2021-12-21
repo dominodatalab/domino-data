@@ -61,6 +61,14 @@ Redshift
    :undoc-members:
    :noindex:
 
+PostgreSQL
+^^^^^^^^^^
+
+.. autoclass:: PostgreSQLConfig
+  :members:
+  :undoc-members:
+  :noindex:
+
 Snowflake
 ^^^^^^^^^
 

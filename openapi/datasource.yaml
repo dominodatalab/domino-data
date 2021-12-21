@@ -208,6 +208,7 @@ components:
           type: string
           enum:
             - RedshiftConfig
+            - PostgreSQLConfig
             - S3Config
             - SnowflakeConfig
         description:
