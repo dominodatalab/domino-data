@@ -53,6 +53,14 @@ Classes
 
 .. currentmodule:: domino_data.data_sources
 
+PostgreSQL
+^^^^^^^^^^
+
+.. autoclass:: PostgreSQLConfig
+  :members:
+  :undoc-members:
+  :noindex:
+
 Redshift
 ^^^^^^^^
 

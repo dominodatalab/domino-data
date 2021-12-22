@@ -313,6 +313,15 @@ def test_config_returns_overrides():
     assert dum4.credential() == {}
 
 
+def test_postgreSQL_config():
+    """PostgreSQL config serializes to expected keys."""
+
+    pg = ds.PostgreSQLConfig(database="dev2", username="awsadmin", password="protec")
+
+    assert pg.config() == {"database": "dev2"}
+    assert pg.credential() == {"username": "awsadmin", "password": "protec"}
+
+
 def test_redshift_config():
     """Redshift config serializes to expected keys."""
 

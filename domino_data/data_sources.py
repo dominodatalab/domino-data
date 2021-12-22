@@ -135,6 +135,16 @@ class Config:
 
 
 @attr.s(auto_attribs=True)
+class PostgreSQLConfig(Config):
+    """PostgreSQL datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s(auto_attribs=True)
 class RedshiftConfig(Config):
     """Redshift datasource configuration."""
 
@@ -168,7 +178,13 @@ class S3Config(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
 
-DatasourceConfig = Union[Config, RedshiftConfig, SnowflakeConfig, S3Config]
+DatasourceConfig = Union[
+    Config,
+    PostgreSQLConfig,
+    RedshiftConfig,
+    SnowflakeConfig,
+    S3Config,
+]
 
 
 @attr.s
@@ -337,7 +353,7 @@ class Datasource:
         """Store configuration override for future query calls.
 
         Args:
-            config: One of S3Config, RedshiftConfig or SnowflakeConfig
+            config: One of S3Config, RedshiftConfig, PostgreSQLConfig or SnowflakeConfig
         """
         self._config_override = config
 
@@ -409,12 +425,15 @@ class ObjectStoreDatasource(Datasource):
         Returns:
             Signed URL for given key
         """
-        return self.client.get_key_url(
-            self.identifier,
-            object_key,
-            is_read_write,
-            config=self._config_override.config(),
-            credential=self._config_override.credential(),
+        return cast(
+            str,
+            self.client.get_key_url(
+                self.identifier,
+                object_key,
+                is_read_write,
+                config=self._config_override.config(),
+                credential=self._config_override.credential(),
+            ),
         )
 
     def get(self, object_key: str) -> bytes:
@@ -479,8 +498,9 @@ class ObjectStoreDatasource(Datasource):
 
 
 DATASOURCES = {
-    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
 }
 

@@ -14,7 +14,7 @@ def _get_kwargs(
     client: Client,
     run_id: Union[Unset, None, str] = UNSET,
 ) -> Dict[str, Any]:
-    url = f"{client.base_url}/datasource/name/{name}"
+    url = "{}/datasource/name/{name}".format(client.base_url, name=name)
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -30,7 +30,6 @@ def _get_kwargs(
         "cookies": cookies,
         "timeout": client.get_timeout(),
         "params": params,
-        "verify": client.verify_ssl,
     }
 
 
@@ -77,6 +76,16 @@ def sync_detailed(
     client: Client,
     run_id: Union[Unset, None, str] = UNSET,
 ) -> Response[Union[DatasourceDto, ErrorResponse]]:
+    """Get datasource by name
+
+    Args:
+        name (str):
+        run_id (Union[Unset, None, str]):
+
+    Returns:
+        Response[Union[DatasourceDto, ErrorResponse]]
+    """
+
     kwargs = _get_kwargs(
         name=name,
         client=client,
@@ -84,6 +93,7 @@ def sync_detailed(
     )
 
     response = httpx.get(
+        verify=client.verify_ssl,
         **kwargs,
     )
 
@@ -96,7 +106,15 @@ def sync(
     client: Client,
     run_id: Union[Unset, None, str] = UNSET,
 ) -> Optional[Union[DatasourceDto, ErrorResponse]]:
-    """ """
+    """Get datasource by name
+
+    Args:
+        name (str):
+        run_id (Union[Unset, None, str]):
+
+    Returns:
+        Response[Union[DatasourceDto, ErrorResponse]]
+    """
 
     return sync_detailed(
         name=name,
@@ -111,13 +129,23 @@ async def asyncio_detailed(
     client: Client,
     run_id: Union[Unset, None, str] = UNSET,
 ) -> Response[Union[DatasourceDto, ErrorResponse]]:
+    """Get datasource by name
+
+    Args:
+        name (str):
+        run_id (Union[Unset, None, str]):
+
+    Returns:
+        Response[Union[DatasourceDto, ErrorResponse]]
+    """
+
     kwargs = _get_kwargs(
         name=name,
         client=client,
         run_id=run_id,
     )
 
-    async with httpx.AsyncClient() as _client:
+    async with httpx.AsyncClient(verify=client.verify_ssl) as _client:
         response = await _client.get(**kwargs)
 
     return _build_response(response=response)
@@ -129,7 +157,15 @@ async def asyncio(
     client: Client,
     run_id: Union[Unset, None, str] = UNSET,
 ) -> Optional[Union[DatasourceDto, ErrorResponse]]:
-    """ """
+    """Get datasource by name
+
+    Args:
+        name (str):
+        run_id (Union[Unset, None, str]):
+
+    Returns:
+        Response[Union[DatasourceDto, ErrorResponse]]
+    """
 
     return (
         await asyncio_detailed(

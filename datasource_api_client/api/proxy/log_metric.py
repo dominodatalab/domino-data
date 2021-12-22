@@ -15,7 +15,7 @@ def _get_kwargs(
     b: int,
     m: LogMetricM,
 ) -> Dict[str, Any]:
-    url = f"{client.base_url}/objectstore/metric"
+    url = "{}/objectstore/metric".format(client.base_url)
 
     headers: Dict[str, Any] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -37,7 +37,6 @@ def _get_kwargs(
         "cookies": cookies,
         "timeout": client.get_timeout(),
         "params": params,
-        "verify": client.verify_ssl,
     }
 
 
@@ -57,6 +56,17 @@ def sync_detailed(
     b: int,
     m: LogMetricM,
 ) -> Response[Any]:
+    """Log metrics about file size read or written
+
+    Args:
+        t (LogMetricT):
+        b (int):
+        m (LogMetricM):
+
+    Returns:
+        Response[Any]
+    """
+
     kwargs = _get_kwargs(
         client=client,
         t=t,
@@ -65,6 +75,7 @@ def sync_detailed(
     )
 
     response = httpx.head(
+        verify=client.verify_ssl,
         **kwargs,
     )
 
@@ -78,6 +89,17 @@ async def asyncio_detailed(
     b: int,
     m: LogMetricM,
 ) -> Response[Any]:
+    """Log metrics about file size read or written
+
+    Args:
+        t (LogMetricT):
+        b (int):
+        m (LogMetricM):
+
+    Returns:
+        Response[Any]
+    """
+
     kwargs = _get_kwargs(
         client=client,
         t=t,
@@ -85,7 +107,7 @@ async def asyncio_detailed(
         m=m,
     )
 
-    async with httpx.AsyncClient() as _client:
+    async with httpx.AsyncClient(verify=client.verify_ssl) as _client:
         response = await _client.head(**kwargs)
 
     return _build_response(response=response)

@@ -7,7 +7,12 @@ T = TypeVar("T", bound="DatasourceOwnerInfo")
 
 @attr.s(auto_attribs=True)
 class DatasourceOwnerInfo:
-    """ """
+    """
+    Attributes:
+        owner_name (str):
+        owner_email (str):
+        is_owner_admin (bool):
+    """
 
     owner_name: str
     owner_email: str

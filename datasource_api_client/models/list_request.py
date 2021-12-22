@@ -10,7 +10,13 @@ T = TypeVar("T", bound="ListRequest")
 
 @attr.s(auto_attribs=True)
 class ListRequest:
-    """ """
+    """
+    Attributes:
+        datasource_id (str):
+        prefix (str):
+        config_overwrites (Union[Unset, DatasourceConfig]):
+        credential_overwrites (Union[Unset, DatasourceConfig]):
+    """
 
     datasource_id: str
     prefix: str

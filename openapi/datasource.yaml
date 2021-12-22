@@ -207,6 +207,7 @@ components:
         dataSourceType:
           type: string
           enum:
+            - PostgreSQLConfig
             - RedshiftConfig
             - S3Config
             - SnowflakeConfig

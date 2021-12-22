@@ -10,7 +10,14 @@ T = TypeVar("T", bound="KeyRequest")
 
 @attr.s(auto_attribs=True)
 class KeyRequest:
-    """ """
+    """
+    Attributes:
+        datasource_id (str):
+        is_read_write (bool):
+        object_key (str):
+        config_overwrites (Union[Unset, DatasourceConfig]):
+        credential_overwrites (Union[Unset, DatasourceConfig]):
+    """
 
     datasource_id: str
     is_read_write: bool
