@@ -133,10 +133,9 @@ class Config:
                 res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
         return res
 
-
 @attr.s(auto_attribs=True)
-class RedshiftConfig(Config):
-    """Redshift datasource configuration."""
+class PostgreSQLConfig(Config):
+    """PostgreSQL datasource configuration."""
 
     database: Optional[str] = _config(elem=ConfigElem.DATABASE)
 
@@ -145,8 +144,8 @@ class RedshiftConfig(Config):
 
 
 @attr.s(auto_attribs=True)
-class PostgreSQLConfig(Config):
-    """PostgreSQL datasource configuration."""
+class RedshiftConfig(Config):
+    """Redshift datasource configuration."""
 
     database: Optional[str] = _config(elem=ConfigElem.DATABASE)
 
@@ -180,8 +179,8 @@ class S3Config(Config):
 
 DatasourceConfig = Union[
     Config,
-    RedshiftConfig,
     PostgreSQLConfig,
+    RedshiftConfig,
     SnowflakeConfig,
     S3Config,
 ]
@@ -498,9 +497,9 @@ class ObjectStoreDatasource(Datasource):
 
 
 DATASOURCES = {
-    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
 }
 
