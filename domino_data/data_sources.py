@@ -133,6 +133,7 @@ class Config:
                 res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
         return res
 
+
 @attr.s(auto_attribs=True)
 class PostgreSQLConfig(Config):
     """PostgreSQL datasource configuration."""
