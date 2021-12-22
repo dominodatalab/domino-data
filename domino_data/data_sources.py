@@ -169,7 +169,7 @@ class SnowflakeConfig(Config):
 
 @attr.s(auto_attribs=True)
 class S3Config(Config):
-    """S3 datasource configurationn."""
+    """S3 datasource configuration."""
 
     bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
     region: Optional[str] = _config(elem=ConfigElem.REGION)
