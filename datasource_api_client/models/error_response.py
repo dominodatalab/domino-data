@@ -9,7 +9,10 @@ T = TypeVar("T", bound="ErrorResponse")
 
 @attr.s(auto_attribs=True)
 class ErrorResponse:
-    """ """
+    """
+    Attributes:
+        message (Union[Unset, str]): Error message
+    """
 
     message: Union[Unset, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)

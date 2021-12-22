@@ -15,7 +15,24 @@ T = TypeVar("T", bound="DatasourceDto")
 
 @attr.s(auto_attribs=True)
 class DatasourceDto:
-    """ """
+    """
+    Attributes:
+        added_by (DatasourceDtoAddedBy):
+        config (DatasourceConfig):
+        credential_type (DatasourceDtoCredentialType):
+        data_source_type (DatasourceDtoDataSourceType):
+        id (str):
+        is_everyone (bool):
+        last_updated (int):
+        last_updated_by (str):
+        name (str):
+        owner_id (str):
+        owner_info (DatasourceOwnerInfo):
+        project_ids (List[str]):
+        status (DatasourceDtoStatus):
+        user_ids (List[str]):
+        description (Union[Unset, None, str]):
+    """
 
     added_by: DatasourceDtoAddedBy
     config: DatasourceConfig
