@@ -53,6 +53,14 @@ Classes
 
 .. currentmodule:: domino_data.data_sources
 
+MySQL
+^^^^^^^^^^
+
+.. autoclass:: MySQLConfig
+  :members:
+  :undoc-members:
+  :noindex:
+
 PostgreSQL
 ^^^^^^^^^^
 
@@ -84,3 +92,11 @@ S3
    :members:
    :undoc-members:
    :noindex:
+
+SQLServer
+^^^^^^^^^^
+
+.. autoclass:: SQLServerConfig
+  :members:
+  :undoc-members:
+  :noindex:
