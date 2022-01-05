@@ -207,6 +207,7 @@ components:
         dataSourceType:
           type: string
           enum:
+            - GCSConfig
             - MySQLConfig
             - PostgreSQLConfig
             - RedshiftConfig

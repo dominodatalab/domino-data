@@ -197,6 +197,15 @@ class SQLServerConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
+@attr.s(auto_attribs=True)
+class GCSConfig(Config):
+    """S3 datasource configuration."""
+
+    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
+
+    project_id: Optional[str] = _cred(elem=CredElem.USERNAME)
+    key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
 
 DatasourceConfig = Union[
     Config,
@@ -206,6 +215,7 @@ DatasourceConfig = Union[
     SnowflakeConfig,
     S3Config,
     SQLServerConfig,
+    GCSConfig,
 ]
 
 
@@ -375,8 +385,8 @@ class Datasource:
         """Store configuration override for future query calls.
 
         Args:
-            config: One of S3Config, RedshiftConfig, PostgreSQLConfig, MySQLConfig,
-                SQLServerConfig, or SnowflakeConfig
+            config: One of S3Config, GCSConfig, RedshiftConfig, PostgreSQLConfig,
+                 MySQLConfig, SQLServerConfig, or SnowflakeConfig
         """
         self._config_override = config
 
@@ -521,6 +531,7 @@ class ObjectStoreDatasource(Datasource):
 
 
 DATASOURCES = {
+    DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,

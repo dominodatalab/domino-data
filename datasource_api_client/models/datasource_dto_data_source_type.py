@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class DatasourceDtoDataSourceType(str, Enum):
+    GCSCONFIG = "GCSConfig"
     MYSQLCONFIG = "MySQLConfig"
     POSTGRESQLCONFIG = "PostgreSQLConfig"
     REDSHIFTCONFIG = "RedshiftConfig"

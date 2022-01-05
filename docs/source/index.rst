@@ -10,6 +10,8 @@ This Python library lets you access tabular and file-based data using consistent
 
 In Domino 5.1, this new data access method is supported for Snowflake, Redshift, PostgreSQL, MySQL, and SQL Server and S3, with additional data sources planned for future releases.
 
+In Domino 5.1, new data source support will be added for Google Cloud Storage.
+
 .. NOTE:: This is a preview feature, not officially supported.
 
 

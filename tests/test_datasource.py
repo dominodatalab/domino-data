@@ -383,6 +383,18 @@ def test_sqlserver_config():
     assert sqlServer.config() == {"database": "dev2"}
     assert sqlServer.credential() == {"username": "awsadmin", "password": "protec"}
 
+def test_gcp_config():
+    """GCP config serializes to expected keys."""
+
+    s3c = ds.S3Config(
+        bucket="cestino",
+        aws_access_key_id="identita",
+        aws_secret_access_key="chiave-segreta",
+    )
+
+    assert s3c.config() == {"bucket": "cestino"}
+    assert s3c.credential() == {"username": "identita", "password": "chiave-segreta"}
+
 
 # Object and object datasource
 

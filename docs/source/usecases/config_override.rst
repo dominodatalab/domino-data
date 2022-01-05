@@ -100,3 +100,11 @@ SQLServer
   :members:
   :undoc-members:
   :noindex:
+
+GCS
+^^^
+
+.. autoclass:: GCSConfig
+   :members:
+   :undoc-members:
+   :noindex:
