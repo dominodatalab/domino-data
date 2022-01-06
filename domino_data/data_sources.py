@@ -198,8 +198,18 @@ class SQLServerConfig(Config):
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
 
+@attr.s(auto_attribs=True)
+class GCSConfig(Config):
+    """GCS datasource configuration."""
+
+    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
+
+    private_key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
 DatasourceConfig = Union[
     Config,
+    GCSConfig,
     MySQLConfig,
     PostgreSQLConfig,
     RedshiftConfig,
@@ -375,8 +385,8 @@ class Datasource:
         """Store configuration override for future query calls.
 
         Args:
-            config: One of S3Config, RedshiftConfig, PostgreSQLConfig, MySQLConfig,
-                SQLServerConfig, or SnowflakeConfig
+            config: One of S3Config, GCSConfig, RedshiftConfig, PostgreSQLConfig,
+                 MySQLConfig, SQLServerConfig, or SnowflakeConfig
         """
         self._config_override = config
 
@@ -521,6 +531,7 @@ class ObjectStoreDatasource(Datasource):
 
 
 DATASOURCES = {
+    DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
@@ -735,7 +746,10 @@ class DataSourceClient:
             is_read_write: whether used for read or write
         """
         mode = LogMetricM.WRITE if is_read_write else LogMetricM.READ
-        type_map = {DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG}
+        type_map = {
+            DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
+            DatasourceDtoDataSourceType.GCSCONFIG.value: LogMetricT.GCSCONFIG,
+        }
         type_ = type_map.get(datasource_type)
         if not type_:
             return

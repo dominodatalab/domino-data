@@ -384,6 +384,18 @@ def test_sqlserver_config():
     assert sqlServer.credential() == {"username": "awsadmin", "password": "protec"}
 
 
+def test_gcp_config():
+    """GCP config serializes to expected keys."""
+
+    gcsc = ds.GCSConfig(
+        bucket="cestino",
+        private_key_json="chiave-segreta",
+    )
+
+    assert gcsc.config() == {"bucket": "cestino"}
+    assert gcsc.credential() == {"password": "chiave-segreta"}
+
+
 # Object and object datasource
 
 

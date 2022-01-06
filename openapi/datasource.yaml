@@ -93,7 +93,7 @@ paths:
           description: Datasource type
           schema:
             type: string
-            enum: [S3Config]
+            enum: [GCSConfig, S3Config]
           required: true
         - in: query
           name: b
@@ -207,6 +207,7 @@ components:
         dataSourceType:
           type: string
           enum:
+            - GCSConfig
             - MySQLConfig
             - PostgreSQLConfig
             - RedshiftConfig
