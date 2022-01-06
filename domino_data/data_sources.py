@@ -197,6 +197,7 @@ class SQLServerConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
+
 @attr.s(auto_attribs=True)
 class GCSConfig(Config):
     """GCS datasource configuration."""

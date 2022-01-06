@@ -383,6 +383,7 @@ def test_sqlserver_config():
     assert sqlServer.config() == {"database": "dev2"}
     assert sqlServer.credential() == {"username": "awsadmin", "password": "protec"}
 
+
 def test_gcp_config():
     """GCP config serializes to expected keys."""
 
