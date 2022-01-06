@@ -313,7 +313,7 @@ def test_config_returns_overrides():
     assert dum4.credential() == {}
 
 
-def test_mySQL_config():
+def test_mysql_config():
     """MySQL config serializes to expected keys."""
 
     mysql = ds.MySQLConfig(database="dev2", username="awsadmin", password="protec")
@@ -375,7 +375,7 @@ def test_s3_config():
     assert s3c.credential() == {"username": "identite", "password": "cle-secrete"}
 
 
-def test_sqlServer_config():
+def test_sqlserver_config():
     """SQL Server config serializes to expected keys."""
 
     sqlServer = ds.SQLServerConfig(database="dev2", username="awsadmin", password="protec")
