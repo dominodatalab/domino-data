@@ -199,23 +199,22 @@ class SQLServerConfig(Config):
 
 @attr.s(auto_attribs=True)
 class GCSConfig(Config):
-    """S3 datasource configuration."""
+    """GCS datasource configuration."""
 
     bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
 
-    project_id: Optional[str] = _cred(elem=CredElem.USERNAME)
-    key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    private_key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
 
 DatasourceConfig = Union[
     Config,
+    GCSConfig,
     MySQLConfig,
     PostgreSQLConfig,
     RedshiftConfig,
     SnowflakeConfig,
     S3Config,
     SQLServerConfig,
-    GCSConfig,
 ]
 
 

@@ -386,14 +386,13 @@ def test_sqlserver_config():
 def test_gcp_config():
     """GCP config serializes to expected keys."""
 
-    s3c = ds.S3Config(
+    gcsc = ds.GCSConfig(
         bucket="cestino",
-        aws_access_key_id="identita",
-        aws_secret_access_key="chiave-segreta",
+        private_key_json="chiave-segreta",
     )
 
-    assert s3c.config() == {"bucket": "cestino"}
-    assert s3c.credential() == {"username": "identita", "password": "chiave-segreta"}
+    assert gcsc.config() == {"bucket": "cestino"}
+    assert gcsc.credential() == {"password": "chiave-segreta"}
 
 
 # Object and object datasource
