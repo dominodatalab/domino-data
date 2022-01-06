@@ -745,7 +745,10 @@ class DataSourceClient:
             is_read_write: whether used for read or write
         """
         mode = LogMetricM.WRITE if is_read_write else LogMetricM.READ
-        type_map = {DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG}
+        type_map = {
+            DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
+            DatasourceDtoDataSourceType.GCSCONFIG.value: LogMetricT.GCSCONFIG,
+        }
         type_ = type_map.get(datasource_type)
         if not type_:
             return
