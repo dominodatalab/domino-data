@@ -207,10 +207,12 @@ components:
         dataSourceType:
           type: string
           enum:
+            - MySQLConfig
             - PostgreSQLConfig
             - RedshiftConfig
             - S3Config
             - SnowflakeConfig
+            - SQLServerConfig
         description:
           type: string
           nullable: true

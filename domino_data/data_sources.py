@@ -135,6 +135,16 @@ class Config:
 
 
 @attr.s(auto_attribs=True)
+class MySQLConfig(Config):
+    """MySQL datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s(auto_attribs=True)
 class PostgreSQLConfig(Config):
     """PostgreSQL datasource configuration."""
 
@@ -178,12 +188,24 @@ class S3Config(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
 
+@attr.s(auto_attribs=True)
+class SQLServerConfig(Config):
+    """SQL Server datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
 DatasourceConfig = Union[
     Config,
+    MySQLConfig,
     PostgreSQLConfig,
     RedshiftConfig,
     SnowflakeConfig,
     S3Config,
+    SQLServerConfig,
 ]
 
 
@@ -353,7 +375,8 @@ class Datasource:
         """Store configuration override for future query calls.
 
         Args:
-            config: One of S3Config, RedshiftConfig, PostgreSQLConfig or SnowflakeConfig
+            config: One of S3Config, RedshiftConfig, PostgreSQLConfig, MySQLConfig,
+                SQLServerConfig, or SnowflakeConfig
         """
         self._config_override = config
 
@@ -498,10 +521,12 @@ class ObjectStoreDatasource(Datasource):
 
 
 DATASOURCES = {
+    DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
+    DatasourceDtoDataSourceType.SQLSERVERCONFIG: QueryDatasource,
 }
 
 
