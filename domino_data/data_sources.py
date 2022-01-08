@@ -398,7 +398,6 @@ class Datasource:
         Args:
             config: One of S3Config, GCSConfig, RedshiftConfig, PostgreSQLConfig,
                  MySQLConfig, SQLServerConfig, OracleConfig or SnowflakeConfig
->>>>>>> 8ed867e (oracle support)
         """
         self._config_override = config
 
