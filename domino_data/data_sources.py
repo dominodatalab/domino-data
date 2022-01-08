@@ -178,6 +178,16 @@ class SnowflakeConfig(Config):
 
 
 @attr.s(auto_attribs=True)
+class OracleConfig(Config):
+    """Oracle datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s(auto_attribs=True)
 class S3Config(Config):
     """S3 datasource configuration."""
 
@@ -214,6 +224,7 @@ DatasourceConfig = Union[
     PostgreSQLConfig,
     RedshiftConfig,
     SnowflakeConfig,
+    OracleConfig,
     S3Config,
     SQLServerConfig,
 ]
@@ -386,7 +397,8 @@ class Datasource:
 
         Args:
             config: One of S3Config, GCSConfig, RedshiftConfig, PostgreSQLConfig,
-                 MySQLConfig, SQLServerConfig, or SnowflakeConfig
+                 MySQLConfig, SQLServerConfig, OracleConfig or SnowflakeConfig
+>>>>>>> 8ed867e (oracle support)
         """
         self._config_override = config
 
@@ -536,6 +548,7 @@ DATASOURCES = {
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.ORACLECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.SQLSERVERCONFIG: QueryDatasource,
 }
