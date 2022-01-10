@@ -85,6 +85,14 @@ Snowflake
    :undoc-members:
    :noindex:
 
+Oracle
+^^^^^^^^^
+
+.. autoclass:: OracleConfig
+  :members:
+  :undoc-members:
+  :noindex:
+
 S3
 ^^
 

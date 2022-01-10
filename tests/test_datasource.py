@@ -361,6 +361,16 @@ def test_snowflake_config():
     assert snow.credential() == {"username": "awsadmin", "password": "protec"}
 
 
+def test_oracle_config():
+    """Oracle config serializes to expected keys."""
+
+
+orcl = ds.OracleConfig(database="dev2", username="awsadmin", password="protec")
+
+assert orcl.config() == {"database": "dev2"}
+assert orcl.credential() == {"username": "awsadmin", "password": "protec"}
+
+
 def test_s3_config():
     """S3 config serializes to expected keys."""
 

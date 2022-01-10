@@ -214,6 +214,7 @@ components:
             - S3Config
             - SnowflakeConfig
             - SQLServerConfig
+            - OracleConfig
         description:
           type: string
           nullable: true
