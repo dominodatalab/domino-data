@@ -30,6 +30,7 @@ from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
+ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
 
 ELEMENT_TYPE_METADATA = "__element_type_metadata"
 ELEMENT_VALUE_METADATA = "__element_value_metadata"
@@ -135,8 +136,36 @@ class Config:
 
 
 @attr.s(auto_attribs=True)
+class ADLSConfig(Config):
+    """ADLS datasource configuration."""
+
+    container: Optional[str] = _config(elem=ConfigElem.BUCKET)
+
+    access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
+class GCSConfig(Config):
+    """GCS datasource configuration."""
+
+    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
+
+    private_key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
 class MySQLConfig(Config):
     """MySQL datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s(auto_attribs=True)
+class OracleConfig(Config):
+    """Oracle datasource configuration."""
 
     database: Optional[str] = _config(elem=ConfigElem.DATABASE)
 
@@ -178,16 +207,6 @@ class SnowflakeConfig(Config):
 
 
 @attr.s(auto_attribs=True)
-class OracleConfig(Config):
-    """Oracle datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-
-
-@attr.s(auto_attribs=True)
 class S3Config(Config):
     """S3 datasource configuration."""
 
@@ -208,25 +227,17 @@ class SQLServerConfig(Config):
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
 
-@attr.s(auto_attribs=True)
-class GCSConfig(Config):
-    """GCS datasource configuration."""
-
-    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
-
-    private_key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
-
-
 DatasourceConfig = Union[
+    ADLSConfig,
     Config,
     GCSConfig,
     MySQLConfig,
+    OracleConfig,
     PostgreSQLConfig,
     RedshiftConfig,
-    SnowflakeConfig,
-    OracleConfig,
     S3Config,
     SQLServerConfig,
+    SnowflakeConfig,
 ]
 
 
@@ -325,7 +336,7 @@ class _Object:
             content: bytes content
         """
         signed_url = self.datasource.get_key_url(self.key, True)
-        res = httpx.put(signed_url, content=content)
+        res = httpx.put(signed_url, content=content, headers=self.datasource.headers())
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -342,7 +353,7 @@ class _Object:
         """
         signed_url = self.datasource.get_key_url(self.key, True)
         with open(filename, "rb") as file:
-            res = httpx.put(signed_url, content=file)
+            res = httpx.put(signed_url, content=file, headers=self.datasource.headers())
         res.raise_for_status()
 
         content_size = os.path.getsize(filename)
@@ -359,7 +370,7 @@ class _Object:
             fileobj: bytes-like object or an iterable producing bytes.
         """
         signed_url = self.datasource.get_key_url(self.key, True)
-        res = httpx.put(signed_url, content=fileobj)
+        res = httpx.put(signed_url, content=fileobj, headers=self.datasource.headers())
         res.raise_for_status()
 
 
@@ -396,8 +407,7 @@ class Datasource:
         """Store configuration override for future query calls.
 
         Args:
-            config: One of S3Config, GCSConfig, RedshiftConfig, PostgreSQLConfig,
-                 MySQLConfig, SQLServerConfig, OracleConfig or SnowflakeConfig
+            config: specific datasource config class
         """
         self._config_override = config
 
@@ -430,6 +440,12 @@ class QueryDatasource(Datasource):
 @attr.s
 class ObjectStoreDatasource(Datasource):
     """Represents a object store type datasource."""
+
+    def headers(self) -> Dict[str, str]:
+        """Return headers for http calls to blob signed URL."""
+        if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
+            return ADLS_HEADERS
+        return {}
 
     def Object(self, key: str) -> _Object:  # pylint: disable=invalid-name
         """Return an object with given key and datasource client."""
@@ -542,13 +558,14 @@ class ObjectStoreDatasource(Datasource):
 
 
 DATASOURCES = {
+    DatasourceDtoDataSourceType.ADLSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.ORACLECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.ORACLECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
+    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.SQLSERVERCONFIG: QueryDatasource,
 }
 
@@ -759,8 +776,9 @@ class DataSourceClient:
         """
         mode = LogMetricM.WRITE if is_read_write else LogMetricM.READ
         type_map = {
-            DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
+            DatasourceDtoDataSourceType.ADLSCONFIG.value: LogMetricT.ADLSCONFIG,
             DatasourceDtoDataSourceType.GCSCONFIG.value: LogMetricT.GCSCONFIG,
+            DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
         }
         type_ = type_map.get(datasource_type)
         if not type_:
