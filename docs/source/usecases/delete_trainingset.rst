@@ -1,5 +1,9 @@
+.. _custom-delete_uctraining_set:
 Delete TrainingSets
 ===================
+
+..
+  I think this section needs more information. Are there any other issued that need to be known before performing a delete operation. 
 
 TrainingSets and TrainingSetVersions may be deleted.
 

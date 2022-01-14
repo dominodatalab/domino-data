@@ -1,3 +1,4 @@
+.. _custom-create_training_set:
 Create TrainingSets
 ===================
 

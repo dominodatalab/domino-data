@@ -1,4 +1,4 @@
-"""Datasource module."""
+"""Datasource module. Refer to :ref:`usecase-simple-query` for a Use Case example."""
 
 from typing import Any, Dict, List, Optional, Union, cast
 

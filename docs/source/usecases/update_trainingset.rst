@@ -1,7 +1,11 @@
+.. _custom-update_uctraining_set:
 Update TrainingSets
 ===================
 
 Metadata may be updated on both TrainingSet and TrainingSetVersion objects.
+
+..
+  Are there any other things to be aware of when updating the metadata? 
 
 Update TrainingSet
 ------------------

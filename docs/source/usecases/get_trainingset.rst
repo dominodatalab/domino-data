@@ -1,5 +1,10 @@
+.. _custom-get_uctraining_set:
 Retrieve TrainingSets
 =====================
+
+
+..
+  The following line and the description of the get seem similar. 
 
 Training sets may be fetched by version number or via a search.
 
@@ -30,6 +35,9 @@ Training data may also be accessed:
 
 Find TrainingSetVersions
 ------------------------
+
+..
+  Is it correnct that get get a specifici training set version by name or number whereas find seraches for training set version based on specific criteria?
 
 TrainingSetVersions for the current project my be searched by training set name, TrainingSet
 metadata, and TrainingSetVersion metadata. Results matching all search fields will be returned.
