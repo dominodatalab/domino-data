@@ -1,4 +1,4 @@
-.. _ustom-update_uctraining_set:
+.. _update_uctraining_set:
 
 Update TrainingSets
 ===================
