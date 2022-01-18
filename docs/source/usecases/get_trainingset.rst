@@ -1,4 +1,5 @@
-.. _custom-get_uctraining_set:
+.. _get_uctraining_set:
+
 Retrieve TrainingSets
 =====================
 

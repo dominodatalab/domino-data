@@ -1,4 +1,5 @@
-.. _custom-delete_uctraining_set:
+.. _delete_uctraining_set:
+
 Delete TrainingSets
 ===================
 
