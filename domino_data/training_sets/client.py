@@ -211,7 +211,7 @@ def create_training_set_version(
     Returns:
         The created TrainingSetVersion
 
-    Refer to :ref:`create_uctraining_set` for an example User Case.
+    Refer to :ref:`create_training_set` for an example User Case.
 
     """
 
