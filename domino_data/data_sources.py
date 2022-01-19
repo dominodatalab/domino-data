@@ -792,7 +792,7 @@ class DataSourceClient:
         type_map = {
             DatasourceDtoDataSourceType.ADLSCONFIG.value: LogMetricT.ADLSCONFIG,
             DatasourceDtoDataSourceType.GCSCONFIG.value: LogMetricT.GCSCONFIG,
-            DatasourceDtoDataSourceType.GENERICS3CONFIG.value: LogMetricT.GENERICS3CONFIG,
+            DatasourceDtoDataSourceType.GENERICS3CONFIG.value: LogMetricT.GENERICS3CONFIG,  # noqa
             DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
         }
         type_ = type_map.get(datasource_type)
