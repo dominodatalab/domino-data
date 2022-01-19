@@ -96,6 +96,7 @@ paths:
             enum:
               - ADLSConfig
               - GCSConfig
+              - GenericS3Config
               - S3Config
           required: true
         - in: query
@@ -212,6 +213,7 @@ components:
           enum:
             - ADLSConfig
             - GCSConfig
+            - GenericS3Config
             - MySQLConfig
             - OracleConfig
             - PostgreSQLConfig
