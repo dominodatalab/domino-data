@@ -54,7 +54,7 @@ Classes
 .. currentmodule:: domino_data.data_sources
 
 MySQL
-^^^^^^^^^^
+^^^^^
 
 .. autoclass:: MySQLConfig
   :members:
@@ -86,7 +86,7 @@ Snowflake
    :noindex:
 
 Oracle
-^^^^^^^^^
+^^^^^^
 
 .. autoclass:: OracleConfig
   :members:
@@ -102,7 +102,7 @@ S3
    :noindex:
 
 SQLServer
-^^^^^^^^^^
+^^^^^^^^^
 
 .. autoclass:: SQLServerConfig
   :members:
@@ -113,6 +113,14 @@ GCS
 ^^^
 
 .. autoclass:: GCSConfig
+   :members:
+   :undoc-members:
+   :noindex:
+
+ADLS
+^^^^
+
+.. autoclass:: ADLSConfig
    :members:
    :undoc-members:
    :noindex:

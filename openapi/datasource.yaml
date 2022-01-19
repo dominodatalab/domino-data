@@ -93,7 +93,10 @@ paths:
           description: Datasource type
           schema:
             type: string
-            enum: [GCSConfig, S3Config]
+            enum:
+              - ADLSConfig
+              - GCSConfig
+              - S3Config
           required: true
         - in: query
           name: b
@@ -207,14 +210,15 @@ components:
         dataSourceType:
           type: string
           enum:
+            - ADLSConfig
             - GCSConfig
             - MySQLConfig
+            - OracleConfig
             - PostgreSQLConfig
             - RedshiftConfig
             - S3Config
-            - SnowflakeConfig
             - SQLServerConfig
-            - OracleConfig
+            - SnowflakeConfig
         description:
           type: string
           nullable: true
