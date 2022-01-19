@@ -154,6 +154,18 @@ class GCSConfig(Config):
 
 
 @attr.s(auto_attribs=True)
+class GenericS3Config(Config):
+    """Generic S3 datasource configuration."""
+
+    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
+    host: Optional[str] = _config(elem=ConfigElem.HOST)
+    region: Optional[str] = _config(elem=ConfigElem.REGION)
+
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
 class MySQLConfig(Config):
     """MySQL datasource configuration."""
 
@@ -231,6 +243,7 @@ DatasourceConfig = Union[
     ADLSConfig,
     Config,
     GCSConfig,
+    GenericS3Config,
     MySQLConfig,
     OracleConfig,
     PostgreSQLConfig,
@@ -560,6 +573,7 @@ class ObjectStoreDatasource(Datasource):
 DATASOURCES = {
     DatasourceDtoDataSourceType.ADLSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
+    DatasourceDtoDataSourceType.GENERICS3CONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.ORACLECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
@@ -778,6 +792,7 @@ class DataSourceClient:
         type_map = {
             DatasourceDtoDataSourceType.ADLSCONFIG.value: LogMetricT.ADLSCONFIG,
             DatasourceDtoDataSourceType.GCSCONFIG.value: LogMetricT.GCSCONFIG,
+            DatasourceDtoDataSourceType.GENERICS3CONFIG.value: LogMetricT.GENERICS3CONFIG,
             DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
         }
         type_ = type_map.get(datasource_type)
