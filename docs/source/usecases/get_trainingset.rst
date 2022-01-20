@@ -63,7 +63,7 @@ You can retrieve `TrainingSets` by name.
 Find TrainingSets
 -----------------
 
-You can serach `TrainingSets` by metadata. Results matching all metadata fields are returned.
+You can search `TrainingSets` by metadata. Results matching all metadata fields are returned.
 
 .. code-block:: python
 

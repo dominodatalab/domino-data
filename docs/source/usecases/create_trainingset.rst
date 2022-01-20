@@ -1,4 +1,4 @@
-.. _create_training_set:
+.. _create_uctraining_set:
 
 Create TrainingSets
 ===================

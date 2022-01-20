@@ -135,7 +135,7 @@ def update_training_set(
     Returns:
         The updated TrainingSet from the server.
 
-    Refer to :ref:`update_uctraining_set` for an example User Case.
+    Refer to :ref:`update_uctraining_set` for an example Use Case.
 
     """
 
@@ -168,7 +168,7 @@ def delete_training_set(name: str) -> bool:
         True if TrainingSet was deleted.
        
 
-    Refer to :ref:`delete_uctraining_set` for an example User Case.
+    Refer to :ref:`delete_uctraining_set` for an example Use Case.
 
     """
 
@@ -211,7 +211,7 @@ def create_training_set_version(
     Returns:
         The created TrainingSetVersion
 
-    Refer to :ref:`create_training_set` for an example User Case.
+    Refer to :ref:`create_uctraining_set` for an example Use Case.
 
     """
 

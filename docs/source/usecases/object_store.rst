@@ -33,7 +33,7 @@ You can list objects available in the datasource. You can also specify a prefix:
 Read
 ----
 
-You can get the datasource entity content using the API directly:
+You can get object content, without having to create object entities, by using the datasource API and specifying the `Object` key name:
 
 .. code-block:: python
 
@@ -94,13 +94,13 @@ You can also write from the object entity.
    # Key object
    my_key = s3_dev.Object("key")
 
-   # Get content as binary
+   # Put content as binary
    my_key.put(b"content")
 
-   # Download content to file
+   # Upload content from file
    my_key.upload_file("./path/to/local/file")
 
-   # Download content to file-like object
+   # Upload content from file-like object
    f = io.BytesIO()
    my_key.upload_fileobj(f)
 
