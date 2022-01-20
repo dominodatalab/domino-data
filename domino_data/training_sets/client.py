@@ -166,7 +166,7 @@ def delete_training_set(name: str) -> bool:
 
     Returns:
         True if TrainingSet was deleted.
-       
+
 
     Refer to :ref:`delete_uctraining_set` for an example Use Case.
 

@@ -20,8 +20,7 @@ class AuthenticatedClient(Client):
     def __attrs_post_init__(self):
         if not (self.api_key or self.token_file):
             raise Exception(
-                "One of two authentication methods needs to be supplied "
-                "(API Key or JWT Location)"
+                "One of two authentication methods must be supplied (API Key or JWT Location)"  # noqa
             )
 
     def get_headers(self) -> Dict[str, str]:
@@ -64,8 +63,7 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     def __attrs_post_init__(self):
         if not (self.api_key or self.token_file):
             raise Exception(
-                "One of two authentication methods must be supplied "
-                "(API Key or JWT Location)"
+                "One of two authentication methods must be supplied (API Key or JWT Location)"  # noqa
             )
 
     def start_call(self, info):  # pylint: disable=unused-argument
