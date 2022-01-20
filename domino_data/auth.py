@@ -12,7 +12,7 @@ from datasource_api_client.client import Client
 
 @attr.s(auto_attribs=True)
 class AuthenticatedClient(Client):
-    """A client that authenticate all requests with either the API Key or JWT."""
+    """A client that authenticates all requests with either the API Key or JWT."""
 
     api_key: Optional[str] = attr.ib()
     token_file: Optional[str] = attr.ib()
@@ -39,7 +39,7 @@ class AuthenticatedClient(Client):
 
 @attr.s(auto_attribs=True)
 class ProxyClient(AuthenticatedClient):
-    """A client that authenticate all requests but with Proxy headers."""
+    """A client that authenticates all requests but with Proxy headers."""
 
     def get_headers(self) -> Dict[str, str]:
         if self.api_key:
@@ -64,7 +64,7 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     def __attrs_post_init__(self):
         if not (self.api_key or self.token_file):
             raise Exception(
-                "One of two authentication methods needs to be supplied "
+                "One of two authentication methods must be supplied "
                 "(API Key or JWT Location)"
             )
 

@@ -7,12 +7,12 @@ Retrieve TrainingSets
 ..
   The following line and the description of the get seem similar. 
 
-Training sets may be fetched by version number or via a search.
+You can get `TrainingSets` using their version number or using an explicit search.
 
 Get TrainingSetVersion
 ----------------------
 
-TrainingSetVersions may be retrieved by name and number.
+`TrainingSetVersions` can be retrieved by name and number.
 
 .. code-block:: python
 
@@ -21,13 +21,13 @@ TrainingSetVersions may be retrieved by name and number.
         number=2,
     )
 
-Raw data may be accessed:
+You can also access the raw data from the `TrainingSetVersion`.
 
 .. code-block:: python
 
     raw_df = tsv_by_num.load_raw_pandas()
 
-Training data may also be accessed:
+Training data can also be accessed.
 
 .. code-block:: python
 
@@ -38,10 +38,9 @@ Find TrainingSetVersions
 ------------------------
 
 ..
-  Is it correnct that get get a specifici training set version by name or number whereas find seraches for training set version based on specific criteria?
+  Is it correnct that get gets a specifici training set version by name or number whereas find seraches for training set version based on specific criteria?
 
-TrainingSetVersions for the current project my be searched by training set name, TrainingSet
-metadata, and TrainingSetVersion metadata. Results matching all search fields will be returned.
+You can search for `TrainingSetVersions` for the current project using the training set name, `TrainingSet` metadata, and `TrainingSetVersion` metadata. Results matching all search fields are returned.
 
 .. code-block:: python
 
@@ -55,7 +54,7 @@ metadata, and TrainingSetVersion metadata. Results matching all search fields wi
 Get TrainingSet
 ---------------
 
-TrainingSets may be retrieved by name.
+You can retrieve `TrainingSets` by name.
 
 .. code-block:: python
 
@@ -64,7 +63,7 @@ TrainingSets may be retrieved by name.
 Find TrainingSets
 -----------------
 
-TrainingSets may be searched for by metadata. Results matching all metadata fields will be returned.
+You can serach `TrainingSets` by metadata. Results matching all metadata fields are returned.
 
 .. code-block:: python
 

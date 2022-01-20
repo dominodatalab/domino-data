@@ -1,10 +1,12 @@
+.. If there are any caveats/gotchas that users need to know, this and the API page should contian them.
+
 Object store
 ============
 
 Datasource type
 ---------------
 
-The SDK supports object store type datasources (S3) and allows for easy retrieval and upload of objects. The following APIs are only available when using this type of datasource.
+The SDK supports object store type datasources (S3) and allows for easy retrieval and upload of objects. **Note:** The following APIs are only available when using this type of datasource.
 
 
 List
@@ -31,7 +33,7 @@ You can list objects available in the datasource. You can also specify a prefix:
 Read
 ----
 
-You can either use the API directly from the datasource entity:
+You can get the datasource entity content using the API directly:
 
 .. code-block:: python
 
@@ -46,7 +48,7 @@ You can either use the API directly from the datasource entity:
    s3_dev.download_fileobj("key", f)
 
 
-Or from an object entity:
+You can also get the datasource entity content from an object entity:
 
 .. code-block:: python
 
@@ -68,7 +70,7 @@ Write
 -----
 
 
-Similar APIs are available for writing data. From datasource:
+Similar to the read/get APIs, you can also write data to a specific object key. From the datasource:
 
 .. code-block:: python
 
@@ -83,4 +85,23 @@ Similar APIs are available for writing data. From datasource:
    s3_dev.upload_fileobj("key", f)
 
 
-As with read APIs, you can use those from the object entity.
+.. I cerated this code example for putting a file object, this NEEDS to really be checked.   
+
+You can also write from the object entity.
+
+.. code-block:: python
+
+   # Key object
+   my_key = s3_dev.Object("key")
+
+   # Get content as binary
+   my_key.put(b"content")
+
+   # Download content to file
+   my_key.upload_file("./path/to/local/file")
+
+   # Download content to file-like object
+   f = io.BytesIO()
+   my_key.upload_fileobj(f)
+
+

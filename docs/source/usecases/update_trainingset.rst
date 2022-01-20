@@ -1,15 +1,19 @@
+.. If there are any caveats/gotchas that users need to know, this and the API page should contian them.
+   
 .. _update_uctraining_set:
 
 Update TrainingSets
 ===================
 
-Metadata may be updated on both TrainingSet and TrainingSetVersion objects.
+Metadata can be updated on both `TrainingSet` and `TrainingSetVersion` objects.
 
 ..
   Are there any other things to be aware of when updating the metadata? 
 
 Update TrainingSet
 ------------------
+
+The following example shows how to update your `TrainingSet`:
 
 .. code-block:: python
 
@@ -23,6 +27,8 @@ Update TrainingSet
 
 Update TrainingSetVersion
 -------------------------
+
+The following example shows how to update your `TrainingSetVersion`:
 
 .. code-block:: python
 

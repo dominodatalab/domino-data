@@ -6,7 +6,7 @@ Delete TrainingSets
 ..
   I think this section needs more information. Are there any other issued that need to be known before performing a delete operation. 
 
-TrainingSets and TrainingSetVersions may be deleted.
+You can delete `TrainingSets` and `TrainingSetVersions`. The following examples show how to delete `TraingingSets` and `TrainingSetVersions`.
 
 Delete TrainingSetVersion
 -------------------------
@@ -18,14 +18,14 @@ Delete TrainingSetVersion
 Delete TrainingSet
 ------------------
 
-TrainingSets may only be deleted if they have no versions.
+**Note:** `TrainingSets` may only be deleted if they have no versions.
 
 .. code-block:: python
 
     TrainingSetClient.delete_training_set("my-training-set")
 
 
-To delete the TrainingSet and all versions:
+The following example shows how to delete the `TrainingSet` and all versions:
 
 .. code-block:: python
 

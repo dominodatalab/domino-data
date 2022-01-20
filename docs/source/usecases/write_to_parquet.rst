@@ -1,3 +1,5 @@
+.. If there are any caveats/gotchas that users need to know, this and the API page should contian them.
+   
 Write to local file
 ===================
 

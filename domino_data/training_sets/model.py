@@ -93,7 +93,7 @@ class TrainingSetVersion:
     def load_training_pandas(self) -> pd.DataFrame:
         """Get a pandas dataframe for training.
 
-        Dataframe will not include key_columns and exclude_columns.
+        Dataframe does not include key_columns and exclude_columns.
         """
 
         df = self.load_raw_pandas()
