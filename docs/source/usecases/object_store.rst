@@ -33,7 +33,7 @@ You can list objects available in the datasource. You can also specify a prefix:
 Read
 ----
 
-You can get object content, without having to create object entities, by using the datasource API and specifying the `Object` key name:
+You can get object content, without having to create object entities, by using the datasource API and specifying the ``Object`` key name:
 
 .. code-block:: python
 

@@ -7,12 +7,12 @@ Retrieve TrainingSets
 ..
   The following line and the description of the get seem similar. 
 
-You can get `TrainingSets` using their version number or using an explicit search.
+You can get ``TrainingSets`` using their version number or using an explicit search.
 
 Get TrainingSetVersion
 ----------------------
 
-`TrainingSetVersions` can be retrieved by name and number.
+``TrainingSetVersions`` can be retrieved by name and number.
 
 .. code-block:: python
 
@@ -21,7 +21,7 @@ Get TrainingSetVersion
         number=2,
     )
 
-You can also access the raw data from the `TrainingSetVersion`.
+You can also access the raw data from the ``TrainingSetVersion``.
 
 .. code-block:: python
 
@@ -40,7 +40,7 @@ Find TrainingSetVersions
 ..
   Is it correnct that get gets a specifici training set version by name or number whereas find seraches for training set version based on specific criteria?
 
-You can search for `TrainingSetVersions` for the current project using the training set name, `TrainingSet` metadata, and `TrainingSetVersion` metadata. Results matching all search fields are returned.
+You can search for ``TrainingSetVersions`` for the current project using the training set name, ``TrainingSet`` metadata, and ``TrainingSetVersion`` metadata. Results matching all search fields are returned.
 
 .. code-block:: python
 
@@ -54,7 +54,7 @@ You can search for `TrainingSetVersions` for the current project using the train
 Get TrainingSet
 ---------------
 
-You can retrieve `TrainingSets` by name.
+You can retrieve ``TrainingSets`` by name.
 
 .. code-block:: python
 
@@ -63,7 +63,7 @@ You can retrieve `TrainingSets` by name.
 Find TrainingSets
 -----------------
 
-You can search `TrainingSets` by metadata. Results matching all metadata fields are returned.
+You can search ``TrainingSets`` by metadata. Results matching all metadata fields are returned.
 
 .. code-block:: python
 

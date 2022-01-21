@@ -5,7 +5,7 @@
 Update TrainingSets
 ===================
 
-Metadata can be updated on both `TrainingSet` and `TrainingSetVersion` objects.
+Metadata can be updated on both ``TrainingSet`` and ``TrainingSetVersion`` objects.
 
 ..
   Are there any other things to be aware of when updating the metadata? 
@@ -13,7 +13,7 @@ Metadata can be updated on both `TrainingSet` and `TrainingSetVersion` objects.
 Update TrainingSet
 ------------------
 
-The following example shows how to update your `TrainingSet`:
+The following example shows how to update your ``TrainingSet``:
 
 .. code-block:: python
 
@@ -28,7 +28,7 @@ The following example shows how to update your `TrainingSet`:
 Update TrainingSetVersion
 -------------------------
 
-The following example shows how to update your `TrainingSetVersion`:
+The following example shows how to update your ``TrainingSetVersion``:
 
 .. code-block:: python
 
