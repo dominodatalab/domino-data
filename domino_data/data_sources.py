@@ -60,7 +60,7 @@ def _unpack_flight_error(error: str) -> str:
 class ConfigElem(Enum):
     """Enumeration of valid config elements."""
 
-    ACCOUNT = "account"
+    ACCOUNT = "accountName"
     BUCKET = "bucket"
     DATABASE = "database"
     HOST = "host"
