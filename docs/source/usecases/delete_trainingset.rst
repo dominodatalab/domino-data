@@ -6,7 +6,7 @@ Delete TrainingSets
 ..
   I think this section needs more information. Are there any other issued that need to be known before performing a delete operation. 
 
-You can delete ``TrainingSets`` and ``TrainingSetVersions``. The following examples show how to delete ``TraingingSets`` and ``TrainingSetVersions``.
+You can delete ``TrainingSets`` and ``TrainingSetVersions``. The following examples show how to delete ``TrainingSets`` and ``TrainingSetVersions``.
 
 Delete TrainingSetVersion
 -------------------------

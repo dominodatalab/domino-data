@@ -67,7 +67,7 @@ def get_training_set(name: str) -> model.TrainingSet:
     Returns:
         The TrainingSet, if found.
 
-    Refer to :ref:`get_uctraining_set` for an example User Case.
+    Refer to :ref:`get_uctraining_set` for an example Use Case.
 
     """
 
@@ -288,7 +288,7 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
     Returns:
         The requested TrainingSetVersion.
 
-    Refer to :ref:`get_uctraining_set` for an example User Case.
+    Refer to :ref:`get_uctraining_set` for an example Use Case.
 
     """
 
@@ -315,7 +315,7 @@ def update_training_set_version(version: model.TrainingSetVersion) -> model.Trai
     Returns:
         The updated TrainingSetVersion from the server.
 
-    Refer to :ref:`update_uctraining_set` for an example User Case.
+    Refer to :ref:`update_uctraining_set` for an example Use Case.
 
     """
 
@@ -356,7 +356,7 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
     Returns:
         True if TrainingSetVersion was deleted.
 
-    Refer to :ref:`delete_uctraining_set` for an example User Case.
+    Refer to :ref:`delete_uctraining_set` for an example Use Case.
 
     """
 

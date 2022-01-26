@@ -1,4 +1,4 @@
-.. If there are any caveats/gotchas that users need to know, this and the API page should contian them.
+.. If there are any caveats/gotchas that users need to know, this and the API page should contain them.
    
 Write to local file
 ===================
