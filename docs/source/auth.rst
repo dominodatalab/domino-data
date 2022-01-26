@@ -1,3 +1,5 @@
+.. If there are any caveats/gotchas that users need to know, this and the API page should contian them.
+   
 .. _auth:
 
 Authentication
@@ -6,17 +8,17 @@ Authentication
 Methods
 -------
 
-The SDK uses one of two available methods for authentication:
+Using the SDK there are two methods available for authentication:
 
-* Credential propagation: a token is periodically refreshed and stored in a file whose location is defined in the **DOMINO_TOKEN_FILE** env variable
+* **Credential propagation:** A token is periodically refreshed and stored in a file. The file location is defined in the **DOMINO_TOKEN_FILE** env variable
 
-* API Key: If enabled, the user API key is injected in the **DOMINO_USER_API_KEY** env variable
+* **API Key:** If enabled, the user API key is exported in the **DOMINO_USER_API_KEY** env variable
 
 
 Availability
 ------------
 
-Those two methods are not available in all run types. Follow the following matrix for availability:
+**Note:** Those methods are not available in all run types. The following table lists the availability for these methods. 
 
 
 +---------------+---------+-------+---------+
@@ -38,4 +40,4 @@ Those two methods are not available in all run types. Follow the following matri
 .. warning::
    As described in the matrix, Model API does not support automatic authentication.
 
-   You will have to follow the instructions in the :ref:`custom-auth` section to use the DataSourceClient or the TrainingSetClient in this type of run.
+   You must follow the instructions in the :ref:`custom-auth` section to use the `DataSourceClient` or the `TrainingSetClient` in this type of run.

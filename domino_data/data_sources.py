@@ -1,4 +1,4 @@
-"""Datasource module."""
+"""Datasource module. Refer to :ref:`usecase-simple-query` for a Use Case example."""
 
 from typing import Any, Dict, List, Optional, Union, cast
 
@@ -50,7 +50,7 @@ class UnauthenticatedError(DominoError):
 
 
 def _unpack_flight_error(error: str) -> str:
-    """Unpack a flight error message by remove extra information."""
+    """Unpack a flight error message by removing extra information."""
     try:
         return error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0]
     except ValueError:
