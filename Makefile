@@ -74,7 +74,8 @@ mypy:
 .PHONY: check-safety
 check-safety:
 	poetry check
-	poetry run safety check --full-report
+	# TODO remove numpy ignore flag when fixed
+	poetry run safety check --full-report -i 44715
 	poetry run bandit -ll --recursive domino_data tests
 
 .PHONY: lint
