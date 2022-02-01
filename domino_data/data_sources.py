@@ -1,4 +1,4 @@
-"""Datasource module."""
+"""Datasource module. Refer to :ref:`usecase-simple-query` for a Use Case example."""
 
 from typing import Any, Dict, List, Optional, Union, cast
 
@@ -30,6 +30,7 @@ from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
+ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
 
 ELEMENT_TYPE_METADATA = "__element_type_metadata"
 ELEMENT_VALUE_METADATA = "__element_value_metadata"
@@ -49,7 +50,7 @@ class UnauthenticatedError(DominoError):
 
 
 def _unpack_flight_error(error: str) -> str:
-    """Unpack a flight error message by remove extra information."""
+    """Unpack a flight error message by removing extra information."""
     try:
         return error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0]
     except ValueError:
@@ -59,7 +60,7 @@ def _unpack_flight_error(error: str) -> str:
 class ConfigElem(Enum):
     """Enumeration of valid config elements."""
 
-    ACCOUNT = "account"
+    ACCOUNT = "accountName"
     BUCKET = "bucket"
     DATABASE = "database"
     HOST = "host"
@@ -135,8 +136,48 @@ class Config:
 
 
 @attr.s(auto_attribs=True)
+class ADLSConfig(Config):
+    """ADLS datasource configuration."""
+
+    container: Optional[str] = _config(elem=ConfigElem.BUCKET)
+
+    access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
+class GCSConfig(Config):
+    """GCS datasource configuration."""
+
+    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
+
+    private_key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
+class GenericS3Config(Config):
+    """Generic S3 datasource configuration."""
+
+    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
+    host: Optional[str] = _config(elem=ConfigElem.HOST)
+    region: Optional[str] = _config(elem=ConfigElem.REGION)
+
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
 class MySQLConfig(Config):
     """MySQL datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+
+
+@attr.s(auto_attribs=True)
+class OracleConfig(Config):
+    """Oracle datasource configuration."""
 
     database: Optional[str] = _config(elem=ConfigElem.DATABASE)
 
@@ -178,16 +219,6 @@ class SnowflakeConfig(Config):
 
 
 @attr.s(auto_attribs=True)
-class OracleConfig(Config):
-    """Oracle datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-
-
-@attr.s(auto_attribs=True)
 class S3Config(Config):
     """S3 datasource configuration."""
 
@@ -208,25 +239,18 @@ class SQLServerConfig(Config):
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
 
-@attr.s(auto_attribs=True)
-class GCSConfig(Config):
-    """GCS datasource configuration."""
-
-    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
-
-    private_key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
-
-
 DatasourceConfig = Union[
+    ADLSConfig,
     Config,
     GCSConfig,
+    GenericS3Config,
     MySQLConfig,
+    OracleConfig,
     PostgreSQLConfig,
     RedshiftConfig,
-    SnowflakeConfig,
-    OracleConfig,
     S3Config,
     SQLServerConfig,
+    SnowflakeConfig,
 ]
 
 
@@ -263,10 +287,15 @@ class _Object:
     datasource: "ObjectStoreDatasource" = attr.ib(repr=False)
     key: str = attr.ib()
 
+    def http(self) -> httpx.Client:
+        """Get datasource http client."""
+        return self.datasource.http()
+
     def get(self) -> bytes:
         """Get object content as bytes."""
-        signed_url = self.datasource.get_key_url(self.key, False)
-        res = httpx.get(signed_url)
+        url = self.datasource.get_key_url(self.key, False)
+        with self.http() as client:
+            res = client.get(url)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -285,12 +314,13 @@ class _Object:
         Args:
             filename: path of file to write content to.
         """
-        signed_url = self.datasource.get_key_url(self.key, False)
+        url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with httpx.stream("GET", signed_url) as stream, open(filename, "wb") as file:
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                file.write(data)
+        with self.http() as client:
+            with client.stream("GET", url) as stream, open(filename, "wb") as file:
+                for data in stream.iter_bytes():
+                    content_size += len(data)
+                    file.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -305,12 +335,13 @@ class _Object:
             fileobj: A file-like object to download into.
                 At a minimum, it must implement the write method and must accept bytes.
         """
-        signed_url = self.datasource.get_key_url(self.key, False)
+        url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with httpx.stream("GET", signed_url) as stream:
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                fileobj.write(data)
+        with self.http() as client:
+            with client.stream("GET", url) as stream:
+                for data in stream.iter_bytes():
+                    content_size += len(data)
+                    fileobj.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -324,8 +355,9 @@ class _Object:
         Args:
             content: bytes content
         """
-        signed_url = self.datasource.get_key_url(self.key, True)
-        res = httpx.put(signed_url, content=content)
+        url = self.datasource.get_key_url(self.key, True)
+        with self.http() as client:
+            res = client.put(url, content=content)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -340,9 +372,10 @@ class _Object:
         Args:
             filename: path of file to upload.
         """
-        signed_url = self.datasource.get_key_url(self.key, True)
+        url = self.datasource.get_key_url(self.key, True)
         with open(filename, "rb") as file:
-            res = httpx.put(signed_url, content=file)
+            with self.http() as client:
+                res = client.put(url, content=file)
         res.raise_for_status()
 
         content_size = os.path.getsize(filename)
@@ -358,8 +391,9 @@ class _Object:
         Args:
             fileobj: bytes-like object or an iterable producing bytes.
         """
-        signed_url = self.datasource.get_key_url(self.key, True)
-        res = httpx.put(signed_url, content=fileobj)
+        url = self.datasource.get_key_url(self.key, True)
+        with self.http() as client:
+            res = client.put(url, content=fileobj)
         res.raise_for_status()
 
 
@@ -378,6 +412,7 @@ class Datasource:
     owner: str = attr.ib()
 
     _config_override: DatasourceConfig = attr.ib(factory=Config, init=False, repr=False)
+    _httpx: Optional[httpx.Client] = attr.ib(None, init=False, repr=False)
 
     @classmethod
     def from_dto(cls, client: "DataSourceClient", dto: DatasourceDto) -> "Datasource":
@@ -392,12 +427,26 @@ class Datasource:
             owner=dto.owner_info.owner_name,
         )
 
+    def http(self) -> httpx.Client:
+        """Singleton http client built for the datasource."""
+        if self._httpx is not None:
+            return self._httpx
+
+        context = httpx.create_ssl_context()
+
+        if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
+            self._httpx = httpx.Client(headers=ADLS_HEADERS, verify=context)
+        elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
+            self._httpx = httpx.Client(verify=False)
+        else:
+            self._httpx = httpx.Client(verify=context)
+        return self._httpx
+
     def update(self, config: DatasourceConfig) -> None:
         """Store configuration override for future query calls.
 
         Args:
-            config: One of S3Config, GCSConfig, RedshiftConfig, PostgreSQLConfig,
-                 MySQLConfig, SQLServerConfig, OracleConfig or SnowflakeConfig
+            config: specific datasource config class
         """
         self._config_override = config
 
@@ -542,13 +591,15 @@ class ObjectStoreDatasource(Datasource):
 
 
 DATASOURCES = {
+    DatasourceDtoDataSourceType.ADLSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
+    DatasourceDtoDataSourceType.GENERICS3CONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
+    DatasourceDtoDataSourceType.ORACLECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.ORACLECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
+    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.SQLSERVERCONFIG: QueryDatasource,
 }
 
@@ -759,8 +810,10 @@ class DataSourceClient:
         """
         mode = LogMetricM.WRITE if is_read_write else LogMetricM.READ
         type_map = {
-            DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
+            DatasourceDtoDataSourceType.ADLSCONFIG.value: LogMetricT.ADLSCONFIG,
             DatasourceDtoDataSourceType.GCSCONFIG.value: LogMetricT.GCSCONFIG,
+            DatasourceDtoDataSourceType.GENERICS3CONFIG.value: LogMetricT.GENERICS3CONFIG,  # noqa
+            DatasourceDtoDataSourceType.S3CONFIG.value: LogMetricT.S3CONFIG,
         }
         type_ = type_map.get(datasource_type)
         if not type_:

@@ -47,7 +47,7 @@ _trainingset_name_pat = re.compile("^[-A-Za-z0-9_]+$")
 
 
 class ServerException(Exception):
-    """Raised when TrainingSet server rejects a request"""
+    """This exception is raised when the TrainingSet server rejects a request."""
 
     def __init__(self, message: str, server_msg: str):
         self.message = message
@@ -55,17 +55,21 @@ class ServerException(Exception):
 
 
 class SchemaMismatchException(Exception):
-    """Raised when the TrainingSet data columns do not match metadata."""
+    """This exception is raised when the TrainingSet data columns do not match the metadata."""
 
 
 def get_training_set(name: str) -> model.TrainingSet:
-    """Get a TrainingSet by name
+    """Get a TrainingSet by name.
 
     Args:
         name: Name of the training set.
 
     Returns:
-        The TrainingSet, if found."""
+        The TrainingSet, if found.
+
+    Refer to :ref:`get_uctraining_set` for an example Use Case.
+
+    """
 
     _validate_trainingset_name(name)
 
@@ -130,6 +134,9 @@ def update_training_set(
 
     Returns:
         The updated TrainingSet from the server.
+
+    Refer to :ref:`update_uctraining_set` for an example Use Case.
+
     """
 
     _validate_trainingset_name(updated.name)
@@ -152,13 +159,17 @@ def update_training_set(
 def delete_training_set(name: str) -> bool:
     """Delete a TrainingSet.
 
-    Will only delete if the TrainingSet has no versions.
+    **Note:** This deletes the TrainingSet only if it has no versions.
 
     Args:
         name: Name of the TrainingSet.
 
     Returns:
         True if TrainingSet was deleted.
+
+
+    Refer to :ref:`delete_uctraining_set` for an example Use Case.
+
     """
 
     _validate_trainingset_name(name)
@@ -185,11 +196,10 @@ def create_training_set_version(
     """Create a TrainingSetVersion.
 
     Args:
-        training_set_name: Name of the TrainingSet this version belongs to.
-        df: A DataFrame holding the data.
-        training_set_name: Name of the TrainingSet this version belongs to. training_set_name must
+        training_set_name: Name of the TrainingSet this version belongs to. ``training_set_name`` must
             be a string containing only alphanumeric characters in the basic Latin alphabet
-            including dash and underscore: `[-A-Za-z_]`
+            including dash and underscore: `[-A-Za-z_]`.
+        df: A DataFrame holding the data.
         description: Description of this version.
         key_columns: Names of columns that represent IDs for retrieving features.
         target_columns: Target variables for prediction.
@@ -200,6 +210,8 @@ def create_training_set_version(
 
     Returns:
         The created TrainingSetVersion
+
+    Refer to :ref:`create_uctraining_set` for an example Use Case.
 
     """
 
@@ -275,6 +287,9 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
 
     Returns:
         The requested TrainingSetVersion.
+
+    Refer to :ref:`get_uctraining_set` for an example Use Case.
+
     """
 
     _validate_trainingset_name(training_set_name)
@@ -299,6 +314,9 @@ def update_training_set_version(version: model.TrainingSetVersion) -> model.Trai
 
     Returns:
         The updated TrainingSetVersion from the server.
+
+    Refer to :ref:`update_uctraining_set` for an example Use Case.
+
     """
 
     _validate_trainingset_name(version.training_set_name)
@@ -337,6 +355,9 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
 
     Returns:
         True if TrainingSetVersion was deleted.
+
+    Refer to :ref:`delete_uctraining_set` for an example Use Case.
+
     """
 
     _validate_trainingset_name(training_set_name)

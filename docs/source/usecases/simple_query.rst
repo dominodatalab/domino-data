@@ -1,3 +1,5 @@
+.. If there are any caveats/gotchas that users need to know, this and the API page should contain them.
+   
 .. _usecase-simple-query:
 
 Tabular store
@@ -6,11 +8,11 @@ Tabular store
 Setup
 -----
 
-First make sure the SDK is available in your workspace environment, see :ref:`install`.
+**Note:** Ensure that the SDK is available in your workspace environment, see :ref:`install` for setup information.
 
 Authentication
 --------------
-The Datasource client will use environment variables available in the workspace to automatically authenticate you.
+The Datasource client uses environment variables available in the workspace to automatically authenticate your identity.
 
 To override this behavior, see :ref:`custom-auth`.
 

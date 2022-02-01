@@ -53,10 +53,42 @@ Classes
 
 .. currentmodule:: domino_data.data_sources
 
+ADLS
+^^^^
+
+.. autoclass:: ADLSConfig
+   :members:
+   :undoc-members:
+   :noindex:
+
+GCS
+^^^
+
+.. autoclass:: GCSConfig
+   :members:
+   :undoc-members:
+   :noindex:
+
+GenericS3
+^^^^^^^^^
+
+.. autoclass:: GenericS3Config
+   :members:
+   :undoc-members:
+   :noindex:
+
 MySQL
-^^^^^^^^^^
+^^^^^
 
 .. autoclass:: MySQLConfig
+  :members:
+  :undoc-members:
+  :noindex:
+
+Oracle
+^^^^^^
+
+.. autoclass:: OracleConfig
   :members:
   :undoc-members:
   :noindex:
@@ -77,22 +109,6 @@ Redshift
    :undoc-members:
    :noindex:
 
-Snowflake
-^^^^^^^^^
-
-.. autoclass:: SnowflakeConfig
-   :members:
-   :undoc-members:
-   :noindex:
-
-Oracle
-^^^^^^^^^
-
-.. autoclass:: OracleConfig
-  :members:
-  :undoc-members:
-  :noindex:
-
 S3
 ^^
 
@@ -102,17 +118,17 @@ S3
    :noindex:
 
 SQLServer
-^^^^^^^^^^
+^^^^^^^^^
 
 .. autoclass:: SQLServerConfig
   :members:
   :undoc-members:
   :noindex:
 
-GCS
-^^^
+Snowflake
+^^^^^^^^^
 
-.. autoclass:: GCSConfig
+.. autoclass:: SnowflakeConfig
    :members:
    :undoc-members:
    :noindex:
