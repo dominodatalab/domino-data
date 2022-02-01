@@ -303,14 +303,14 @@ def test_config_returns_overrides():
     assert dum1.config() == {"database": "hello"}
     assert dum1.credential() == {"username": "newuser"}
 
-    assert dum2.config() == {}
+    assert not dum2.config()
     assert dum2.credential() == {"username": "newuser"}
 
     assert dum3.config() == {"database": "hello"}
-    assert dum3.credential() == {}
+    assert not dum3.credential()
 
-    assert dum4.config() == {}
-    assert dum4.credential() == {}
+    assert not dum4.config()
+    assert not dum4.credential()
 
 
 def test_mysql_config():
@@ -322,13 +322,17 @@ def test_mysql_config():
     assert mysql.credential() == {"username": "awsadmin", "password": "protec"}
 
 
-def test_postgreSQL_config():
+def test_postgresql_config():
     """PostgreSQL config serializes to expected keys."""
 
-    pg = ds.PostgreSQLConfig(database="dev2", username="awsadmin", password="protec")
+    postgres = ds.PostgreSQLConfig(
+        database="dev2",
+        username="awsadmin",
+        password="protec",
+    )
 
-    assert pg.config() == {"database": "dev2"}
-    assert pg.credential() == {"username": "awsadmin", "password": "protec"}
+    assert postgres.config() == {"database": "dev2"}
+    assert postgres.credential() == {"username": "awsadmin", "password": "protec"}
 
 
 def test_redshift_config():
