@@ -287,10 +287,15 @@ class _Object:
     datasource: "ObjectStoreDatasource" = attr.ib(repr=False)
     key: str = attr.ib()
 
+    def http(self) -> httpx.Client:
+        """Get datasource http client."""
+        return self.datasource.http()
+
     def get(self) -> bytes:
         """Get object content as bytes."""
-        signed_url = self.datasource.get_key_url(self.key, False)
-        res = httpx.get(signed_url)
+        url = self.datasource.get_key_url(self.key, False)
+        with self.http() as client:
+            res = client.get(url)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -309,12 +314,13 @@ class _Object:
         Args:
             filename: path of file to write content to.
         """
-        signed_url = self.datasource.get_key_url(self.key, False)
+        url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with httpx.stream("GET", signed_url) as stream, open(filename, "wb") as file:
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                file.write(data)
+        with self.http() as client:
+            with client.stream("GET", url) as stream, open(filename, "wb") as file:
+                for data in stream.iter_bytes():
+                    content_size += len(data)
+                    file.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -329,12 +335,13 @@ class _Object:
             fileobj: A file-like object to download into.
                 At a minimum, it must implement the write method and must accept bytes.
         """
-        signed_url = self.datasource.get_key_url(self.key, False)
+        url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with httpx.stream("GET", signed_url) as stream:
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                fileobj.write(data)
+        with self.http() as client:
+            with client.stream("GET", url) as stream:
+                for data in stream.iter_bytes():
+                    content_size += len(data)
+                    fileobj.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -348,8 +355,9 @@ class _Object:
         Args:
             content: bytes content
         """
-        signed_url = self.datasource.get_key_url(self.key, True)
-        res = httpx.put(signed_url, content=content, headers=self.datasource.headers())
+        url = self.datasource.get_key_url(self.key, True)
+        with self.http() as client:
+            res = client.put(url, content=content)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -364,9 +372,10 @@ class _Object:
         Args:
             filename: path of file to upload.
         """
-        signed_url = self.datasource.get_key_url(self.key, True)
+        url = self.datasource.get_key_url(self.key, True)
         with open(filename, "rb") as file:
-            res = httpx.put(signed_url, content=file, headers=self.datasource.headers())
+            with self.http() as client:
+                res = client.put(url, content=file)
         res.raise_for_status()
 
         content_size = os.path.getsize(filename)
@@ -382,8 +391,9 @@ class _Object:
         Args:
             fileobj: bytes-like object or an iterable producing bytes.
         """
-        signed_url = self.datasource.get_key_url(self.key, True)
-        res = httpx.put(signed_url, content=fileobj, headers=self.datasource.headers())
+        url = self.datasource.get_key_url(self.key, True)
+        with self.http() as client:
+            res = client.put(url, content=fileobj)
         res.raise_for_status()
 
 
@@ -402,6 +412,7 @@ class Datasource:
     owner: str = attr.ib()
 
     _config_override: DatasourceConfig = attr.ib(factory=Config, init=False, repr=False)
+    _httpx: Optional[httpx.Client] = attr.ib(None, init=False, repr=False)
 
     @classmethod
     def from_dto(cls, client: "DataSourceClient", dto: DatasourceDto) -> "Datasource":
@@ -415,6 +426,21 @@ class Datasource:
             name=dto.name,
             owner=dto.owner_info.owner_name,
         )
+
+    def http(self) -> httpx.Client:
+        """Singleton http client built for the datasource."""
+        if self._httpx is not None:
+            return self._httpx
+
+        context = httpx.create_ssl_context()
+
+        if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
+            self._httpx = httpx.Client(headers=ADLS_HEADERS, verify=context)
+        elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
+            self._httpx = httpx.Client(verify=False)
+        else:
+            self._httpx = httpx.Client(verify=context)
+        return self._httpx
 
     def update(self, config: DatasourceConfig) -> None:
         """Store configuration override for future query calls.
@@ -453,12 +479,6 @@ class QueryDatasource(Datasource):
 @attr.s
 class ObjectStoreDatasource(Datasource):
     """Represents a object store type datasource."""
-
-    def headers(self) -> Dict[str, str]:
-        """Return headers for http calls to blob signed URL."""
-        if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
-            return ADLS_HEADERS
-        return {}
 
     def Object(self, key: str) -> _Object:  # pylint: disable=invalid-name
         """Return an object with given key and datasource client."""
