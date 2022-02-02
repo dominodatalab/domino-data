@@ -2,7 +2,9 @@
 
 import io
 import json
+import os
 
+import httpx
 import pyarrow
 import pytest
 
@@ -465,3 +467,47 @@ def test_object_store_upload_fileojb():
     fileobj = io.BytesIO(b"testcontent")
 
     s3d.upload_fileobj("gabrieltest.csv", fileobj)
+
+
+@pytest.mark.usefixtures("env")
+def test_object_store_download_file(respx_mock, datafx, tmp_path):
+    """Object datasource can download a blob content into a file."""
+    mock_content = b"I am a blob"
+    mock_file = tmp_path / "file.txt"
+    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
+        return_value=httpx.Response(200, json=datafx("s3")),
+    )
+    respx_mock.post("http://proxy/objectstore/key").mock(
+        return_value=httpx.Response(200, json="http://s3/url"),
+    )
+    respx_mock.get("http://s3/url").mock(
+        return_value=httpx.Response(200, content=mock_content),
+    )
+
+    s3d = ds.DataSourceClient().get_datasource("s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+    s3d.download_file("file.png", mock_file.absolute())
+
+    assert mock_file.read_bytes() == mock_content
+
+
+@pytest.mark.usefixtures("env")
+def test_object_store_download_fileobj(respx_mock, datafx):
+    """Object datasource can download a blob content into a file."""
+    mock_content = b"I am a blob"
+    mock_fileobj = io.BytesIO()
+    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
+        return_value=httpx.Response(200, json=datafx("s3")),
+    )
+    respx_mock.post("http://proxy/objectstore/key").mock(
+        return_value=httpx.Response(200, json="http://s3/url"),
+    )
+    respx_mock.get("http://s3/url").mock(
+        return_value=httpx.Response(200, content=mock_content),
+    )
+
+    s3d = ds.DataSourceClient().get_datasource("s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+    s3d.download_fileobj("file.png", mock_fileobj)
+
+    assert mock_fileobj.getvalue() == mock_content

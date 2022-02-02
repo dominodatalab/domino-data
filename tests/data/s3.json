@@ -1,0 +1,48 @@
+{
+  "id": "61687566a71c0c05f92e9168",
+  "name": "aduser-s3",
+  "ownerId": "616874b4a71c0c05f92e915f",
+  "ownerInfo": {
+    "ownerName": "ad-user",
+    "ownerEmail": "ad-user@dominodatalab.com",
+    "isOwnerAdmin": false
+  },
+  "addedBy": {
+    "616874b6a71c0c05f92e9161": "ad-user"
+  },
+  "dataSourceType": "S3Config",
+  "config": {
+    "type": "DataSourceS3Config",
+    "dataSourceType": "S3Config",
+    "bucket": "s3regression",
+    "region": "us-west-2"
+  },
+  "credentialType": "Individual",
+  "lastUpdated": 1634250146829,
+  "lastUpdatedBy": "6167728efa49a22d0025801c",
+  "lastAccessed": {
+    "616874b6a71c0c05f92e9161": 0
+  },
+  "addedToProjectTimeMap": {
+    "616874b6a71c0c05f92e9161": 1634235750239
+  },
+  "isEveryone": false,
+  "userIds": [
+    "6167728efa49a22d0025801c"
+  ],
+  "projectIds": [
+    "616874b6a71c0c05f92e9161"
+  ],
+  "adminInfo": {
+    "projectNames": {
+      "616874b6a71c0c05f92e9161": "quick-start"
+    },
+    "projectIdOwnerUsernameMap": {
+      "616874b6a71c0c05f92e9161": "ad-user"
+    },
+    "projectLastActiveMap": {
+      "616874b6a71c0c05f92e9161": null
+    }
+  },
+  "status": "Active"
+}

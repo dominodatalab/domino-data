@@ -1,7 +1,12 @@
 """pytest fixtures and configuration."""
 
+import json
+
 import pyarrow
 import pytest
+
+# TODO This method is deprecated and should be refactored using `env`
+# and respx mocked APIs
 
 # Change the following values if you want to record new cassettes:
 
@@ -59,4 +64,27 @@ def flight_server():
 
 @pytest.fixture
 def training_set_dir(tmpdir, monkeypatch):
+    """Set the right environment variables for training sets."""
     monkeypatch.setenv("DOMINO_TRAINING_SET_PATH", str(tmpdir))
+
+
+@pytest.fixture
+def env(monkeypatch):
+    """Set basic environment variables for mocked tests."""
+    monkeypatch.setenv("DOMINO_API_HOST", "http://domino")
+    monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/domino_token")
+    monkeypatch.setenv("DOMINO_USER_API_KEY", "api-key")
+    monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_HOST", "http://proxy")
+    monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST", "grpc://proxy")
+    monkeypatch.setenv("DOMINO_PROJECT_ID", "project-id")
+
+
+@pytest.fixture
+def datafx():
+    """Load an external JSON file as data fixture."""
+
+    def _load_json_file(filename):
+        with open(f"tests/data/{filename}.json", "rb") as file:
+            return json.loads(file.read())
+
+    return _load_json_file
