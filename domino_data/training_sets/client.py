@@ -266,7 +266,7 @@ def create_training_set_version(
     )
 
     if response.status_code != 200:
-        _raise_response_exn(response, "could not create TrainingSetVersion")
+        _raise_response_exn(response, response.text)
 
     tsv = _to_TrainingSetVersion(response.parsed)
 
