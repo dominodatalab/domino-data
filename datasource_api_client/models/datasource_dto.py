@@ -4,6 +4,7 @@ import attr
 
 from ..models.datasource_config import DatasourceConfig
 from ..models.datasource_dto_added_by import DatasourceDtoAddedBy
+from ..models.datasource_dto_auth_type import DatasourceDtoAuthType
 from ..models.datasource_dto_credential_type import DatasourceDtoCredentialType
 from ..models.datasource_dto_data_source_type import DatasourceDtoDataSourceType
 from ..models.datasource_dto_status import DatasourceDtoStatus
@@ -18,6 +19,7 @@ class DatasourceDto:
     """
     Attributes:
         added_by (DatasourceDtoAddedBy):
+        auth_type (DatasourceDtoAuthType):
         config (DatasourceConfig):
         credential_type (DatasourceDtoCredentialType):
         data_source_type (DatasourceDtoDataSourceType):
@@ -35,6 +37,7 @@ class DatasourceDto:
     """
 
     added_by: DatasourceDtoAddedBy
+    auth_type: DatasourceDtoAuthType
     config: DatasourceConfig
     credential_type: DatasourceDtoCredentialType
     data_source_type: DatasourceDtoDataSourceType
@@ -53,6 +56,8 @@ class DatasourceDto:
 
     def to_dict(self) -> Dict[str, Any]:
         added_by = self.added_by.to_dict()
+
+        auth_type = self.auth_type.value
 
         config = self.config.to_dict()
 
@@ -81,6 +86,7 @@ class DatasourceDto:
         field_dict.update(
             {
                 "addedBy": added_by,
+                "authType": auth_type,
                 "config": config,
                 "credentialType": credential_type,
                 "dataSourceType": data_source_type,
@@ -105,6 +111,8 @@ class DatasourceDto:
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
         added_by = DatasourceDtoAddedBy.from_dict(d.pop("addedBy"))
+
+        auth_type = DatasourceDtoAuthType(d.pop("authType"))
 
         config = DatasourceConfig.from_dict(d.pop("config"))
 
@@ -136,6 +144,7 @@ class DatasourceDto:
 
         datasource_dto = cls(
             added_by=added_by,
+            auth_type=auth_type,
             config=config,
             credential_type=credential_type,
             data_source_type=data_source_type,

@@ -201,6 +201,15 @@ components:
           type: object
           additionalProperties:
             type: string
+        authType:
+          type: string
+          enum:
+            - AzureBasic
+            - Basic
+            - IAMBasic
+            - IAMPassthrough
+            - GCPBasic
+            - OAuthPassthrough
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         credentialType:
@@ -253,6 +262,7 @@ components:
             type: string
       required:
         - addedBy
+        - authType
         - config
         - credentialType
         - dataSourceType
