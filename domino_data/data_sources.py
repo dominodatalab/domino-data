@@ -91,7 +91,8 @@ def _cred(elem: CredElem) -> Any:
 
 def _filter_cred(att: Any, _: Any) -> Any:
     """Filter credential type attributes."""
-    return att.metadata[ELEMENT_TYPE_METADATA] == CREDENTIAL_TYPE
+    if att.metadata:
+        return att.metadata[ELEMENT_TYPE_METADATA] == CREDENTIAL_TYPE
 
 
 def _config(elem: ConfigElem) -> Any:
@@ -105,7 +106,8 @@ def _config(elem: ConfigElem) -> Any:
 
 def _filter_config(att: Any, _: Any) -> Any:
     """Filter configuration type attributes."""
-    return att.metadata[ELEMENT_TYPE_METADATA] == CONFIGURATION_TYPE
+    if att.metadata:
+        return att.metadata[ELEMENT_TYPE_METADATA] == CONFIGURATION_TYPE
 
 
 @attr.s
