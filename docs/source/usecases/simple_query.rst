@@ -8,7 +8,7 @@ Tabular store
 Setup
 -----
 
-**Note:** Ensure that the SDK is available in your workspace environment, see :ref:`install` for setup information.
+**Note:** Ensure that the API is available in your workspace environment, see :ref:`install` for setup information.
 
 Authentication
 --------------

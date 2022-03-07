@@ -6,7 +6,7 @@ Permanent vs local change
 
 Datasource configuration are set in the Data/Datasource panel of the Domino UI. You can update it there for any permanent change.
 
-Some configuration attributes can be overridden locally in the SDK. Each datasource type config is described in the section below (:ref:`configs`).
+Some configuration attributes can be overridden locally in the API. Each datasource type config is described in the section below (:ref:`configs`).
 
 Usage
 -----

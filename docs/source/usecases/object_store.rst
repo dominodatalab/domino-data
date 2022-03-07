@@ -6,7 +6,7 @@ Object store
 Datasource type
 ---------------
 
-The SDK supports object store type datasources (S3) and allows for easy retrieval and upload of objects. **Note:** The following APIs are only available when using this type of datasource.
+The API supports object store type datasources (S3) and allows for easy retrieval and upload of objects. **Note:** The following APIs are only available when using this type of datasource.
 
 
 List
@@ -103,5 +103,3 @@ You can also write from the object entity.
    # Upload content from file-like object
    f = io.BytesIO()
    my_key.upload_fileobj(f)
-
-

@@ -8,7 +8,7 @@ Authentication
 Methods
 -------
 
-Using the SDK there are two methods available for authentication:
+There are two authentication methods available when using the Domino Data API:
 
 * **Credential propagation:** A token is periodically refreshed and stored in a file. The file location is defined in the **DOMINO_TOKEN_FILE** env variable
 
