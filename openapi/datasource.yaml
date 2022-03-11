@@ -206,10 +206,10 @@ components:
           enum:
             - AzureBasic
             - Basic
-            - IAMBasic
-            - IAMPassthrough
+            - AWSIAMBasic
+            - AWSIAMRole
             - GCPBasic
-            - OAuthPassthrough
+            - OAuth
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         credentialType:

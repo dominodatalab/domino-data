@@ -91,8 +91,7 @@ def _cred(elem: CredElem) -> Any:
 
 def _filter_cred(att: Any, _: Any) -> Any:
     """Filter credential type attributes."""
-    if att.metadata:
-        return att.metadata[ELEMENT_TYPE_METADATA] == CREDENTIAL_TYPE
+    return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CREDENTIAL_TYPE
 
 
 def _config(elem: ConfigElem) -> Any:
@@ -106,8 +105,7 @@ def _config(elem: ConfigElem) -> Any:
 
 def _filter_config(att: Any, _: Any) -> Any:
     """Filter configuration type attributes."""
-    if att.metadata:
-        return att.metadata[ELEMENT_TYPE_METADATA] == CONFIGURATION_TYPE
+    return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CONFIGURATION_TYPE
 
 
 @attr.s
@@ -456,32 +454,40 @@ class Datasource:
         credentials = {}
         if (
             self.datasource_type == DatasourceDtoDataSourceType.SNOWFLAKECONFIG.value
-            and self.auth_type == DatasourceDtoAuthType.OAUTHPASSTHROUGH.value
+            and self.auth_type == DatasourceDtoAuthType.OAUTH.value
         ):
-            # TODO: grab from meta and change default
-            with open(os.getenv("DOMINO_TOKEN_FILE", "")) as token_file:
-                token = token_file.readline().rstrip()
-            credentials = SnowflakeConfig(token=token).credential()
+            # TODO: grab location from meta
+            location = "DOMINO_TOKEN_FILE"
+            credentials = self._load_snowflake_token(location).credential()
         elif (
             self.datasource_type == DatasourceDtoDataSourceType.S3CONFIG.value
-            and self.auth_type == DatasourceDtoAuthType.IAMPASSTHROUGH.value
+            and self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value
         ):
-            # TODO: grab from meta
-            aws_config = configparser.RawConfigParser()
-            aws_config.read(os.getenv("AWS_SHARED_CREDENTIALS_FILE", ""))
-            if len(aws_config.sections()) == 0:
-                raise RuntimeError("raise a better error than this")
-            profile = aws_config.sections()[0]
-            overridden_profile = cast(S3Config, self._config_override).profile
-            if overridden_profile is not None:
-                profile = overridden_profile
-            credentials = S3Config(
-                aws_access_key_id=aws_config.get(profile, "aws_access_key_id"),
-                aws_secret_access_key=aws_config.get(profile, "aws_secret_access_key"),
-            ).credential()
+            # TODO: grab location from meta
+            location = "AWS_SHARED_CREDENTIALS_FILE"
+            credentials = self._load_aws_credentials(location).credential()
 
         credentials.update(self._config_override.credential())
         return credentials
+
+    def _load_snowflake_token(self, location) -> SnowflakeConfig:
+        with open(os.getenv(location, "")) as token_file:
+            token = token_file.readline().rstrip()
+        return SnowflakeConfig(token=token)
+
+    def _load_aws_credentials(self, location) -> S3Config:
+        aws_config = configparser.RawConfigParser()
+        aws_config.read(os.getenv(location, ""))
+        if not aws_config.sections():
+            raise DominoError("File does not contain sections or roles")
+        profile = aws_config.sections().pop(0)
+        overridden_profile = cast(S3Config, self._config_override).profile
+        if overridden_profile is not None:
+            profile = overridden_profile
+        return S3Config(
+            aws_access_key_id=aws_config.get(profile, "aws_access_key_id"),
+            aws_secret_access_key=aws_config.get(profile, "aws_secret_access_key"),
+        )
 
     def update(self, config: DatasourceConfig) -> None:
         """Store configuration override for future query calls.
