@@ -414,7 +414,6 @@ class Datasource:
     auth_type: str = attr.ib()
     client: "DataSourceClient" = attr.ib(repr=False)
     config: Dict[str, Any] = attr.ib()
-    credential_type: str = attr.ib()
     datasource_type: str = attr.ib()
     identifier: str = attr.ib()
     name: str = attr.ib()
@@ -430,7 +429,6 @@ class Datasource:
             auth_type=dto.auth_type.value,
             client=client,
             config=dto.config.to_dict(),
-            credential_type=dto.credential_type.value,
             datasource_type=dto.data_source_type.value,
             identifier=dto.id,
             name=dto.name,

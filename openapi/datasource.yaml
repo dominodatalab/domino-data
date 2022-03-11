@@ -212,11 +212,6 @@ components:
             - OAuth
         config:
           $ref: '#/components/schemas/DatasourceConfig'
-        credentialType:
-          type: string
-          enum:
-            - Individual
-            - Shared
         dataSourceType:
           type: string
           enum:
@@ -235,8 +230,6 @@ components:
           nullable: true
         id:
           type: string
-        isEveryone:
-          type: boolean
         lastUpdated:
           type: integer
         lastUpdatedBy:
@@ -256,18 +249,13 @@ components:
           enum:
             - Active
             - Deleted
-        userIds:
-          type: array
-          items:
-            type: string
       required:
         - addedBy
         - authType
         - config
-        - credentialType
         - dataSourceType
+        - data
         - id
-        - isEveryone
         - lastUpdated
         - lastUpdatedBy
         - name
@@ -275,7 +263,6 @@ components:
         - ownerInfo
         - projectIds
         - status
-        - userIds
     ProxyErrorResponse:
       type: object
       properties:
