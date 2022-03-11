@@ -41,6 +41,9 @@ CONFIGURATION_TYPE = "configuration"
 
 FLIGHT_ERROR_SPLIT = ". Client context:"
 
+DOMINO_TOKEN_DEFAULT_LOCATION = "DOMINO_TOKEN_FILE"
+AWS_CREDENTIALS_DEFAULT_LOCATION = "AWS_SHARED_CREDENTIALS_FILE"
+
 
 class DominoError(Exception):
     """Base exception for known errors."""
@@ -471,13 +474,13 @@ class Datasource:
         return credentials
 
     def _load_snowflake_token(self, location) -> SnowflakeConfig:
-        with open(os.getenv(location, "")) as token_file:
+        with open(os.getenv(location, DOMINO_TOKEN_DEFAULT_LOCATION)) as token_file:
             token = token_file.readline().rstrip()
         return SnowflakeConfig(token=token)
 
     def _load_aws_credentials(self, location) -> S3Config:
         aws_config = configparser.RawConfigParser()
-        aws_config.read(os.getenv(location, ""))
+        aws_config.read(os.getenv(location, AWS_CREDENTIALS_DEFAULT_LOCATION))
         if not aws_config.sections():
             raise DominoError("File does not contain sections or roles")
         profile = aws_config.sections().pop(0)
