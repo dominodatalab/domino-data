@@ -377,7 +377,6 @@ assert orcl.credential() == {"username": "awsadmin", "password": "protec"}
 
 def test_s3_config():
     """S3 config serializes to expected keys."""
-
     s3c = ds.S3Config(
         bucket="sceau",
         region="midi-pyrenees",

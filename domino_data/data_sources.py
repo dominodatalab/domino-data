@@ -1,7 +1,7 @@
 """Datasource module. Refer to :ref:`usecase-simple-query` for a Use Case example."""
-
 from typing import Any, Dict, List, Optional, Union, cast
 
+import configparser
 import json
 import os
 from enum import Enum
@@ -17,6 +17,7 @@ from datasource_api_client.api.proxy import get_key_url, list_keys, log_metric
 from datasource_api_client.models import DatasourceConfig as APIConfig
 from datasource_api_client.models import (
     DatasourceDto,
+    DatasourceDtoAuthType,
     DatasourceDtoDataSourceType,
     ErrorResponse,
     KeyRequest,
@@ -39,6 +40,9 @@ CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
 
 FLIGHT_ERROR_SPLIT = ". Client context:"
+
+DOMINO_TOKEN_DEFAULT_LOCATION = "DOMINO_TOKEN_FILE"
+AWS_CREDENTIALS_DEFAULT_LOCATION = "AWS_SHARED_CREDENTIALS_FILE"
 
 
 class DominoError(Exception):
@@ -76,6 +80,7 @@ class CredElem(Enum):
 
     PASSWORD = "password"
     USERNAME = "username"
+    TOKEN = "token"
 
 
 def _cred(elem: CredElem) -> Any:
@@ -89,7 +94,7 @@ def _cred(elem: CredElem) -> Any:
 
 def _filter_cred(att: Any, _: Any) -> Any:
     """Filter credential type attributes."""
-    return att.metadata[ELEMENT_TYPE_METADATA] == CREDENTIAL_TYPE
+    return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CREDENTIAL_TYPE
 
 
 def _config(elem: ConfigElem) -> Any:
@@ -103,7 +108,7 @@ def _config(elem: ConfigElem) -> Any:
 
 def _filter_config(att: Any, _: Any) -> Any:
     """Filter configuration type attributes."""
-    return att.metadata[ELEMENT_TYPE_METADATA] == CONFIGURATION_TYPE
+    return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CONFIGURATION_TYPE
 
 
 @attr.s
@@ -216,6 +221,7 @@ class SnowflakeConfig(Config):
 
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
+    token: Optional[str] = _cred(elem=CredElem.TOKEN)
 
 
 @attr.s(auto_attribs=True)
@@ -227,6 +233,8 @@ class S3Config(Config):
 
     aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+    profile: Optional[str] = attr.ib(default=None)
 
 
 @attr.s(auto_attribs=True)
@@ -403,9 +411,9 @@ class Datasource:
 
     # pylint: disable=too-many-instance-attributes
 
+    auth_type: str = attr.ib()
     client: "DataSourceClient" = attr.ib(repr=False)
     config: Dict[str, Any] = attr.ib()
-    credential_type: str = attr.ib()
     datasource_type: str = attr.ib()
     identifier: str = attr.ib()
     name: str = attr.ib()
@@ -418,9 +426,9 @@ class Datasource:
     def from_dto(cls, client: "DataSourceClient", dto: DatasourceDto) -> "Datasource":
         """Build a datasource from a given DTO."""
         return cls(
+            auth_type=dto.auth_type.value,
             client=client,
             config=dto.config.to_dict(),
-            credential_type=dto.credential_type.value,
             datasource_type=dto.data_source_type.value,
             identifier=dto.id,
             name=dto.name,
@@ -441,6 +449,46 @@ class Datasource:
         else:
             self._httpx = httpx.Client(verify=context)
         return self._httpx
+
+    def _get_credential_override(self) -> Dict[str, str]:
+        """Gets credentials override by merging service overrides and user overrides"""
+        credentials = {}
+        if (
+            self.datasource_type == DatasourceDtoDataSourceType.SNOWFLAKECONFIG.value
+            and self.auth_type == DatasourceDtoAuthType.OAUTH.value
+        ):
+            # TODO: grab location from meta
+            location = "DOMINO_TOKEN_FILE"
+            credentials = self._load_snowflake_token(location).credential()
+        elif (
+            self.datasource_type == DatasourceDtoDataSourceType.S3CONFIG.value
+            and self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value
+        ):
+            # TODO: grab location from meta
+            location = "AWS_SHARED_CREDENTIALS_FILE"
+            credentials = self._load_aws_credentials(location).credential()
+
+        credentials.update(self._config_override.credential())
+        return credentials
+
+    def _load_snowflake_token(self, location) -> SnowflakeConfig:
+        with open(os.getenv(location, DOMINO_TOKEN_DEFAULT_LOCATION)) as token_file:
+            token = token_file.readline().rstrip()
+        return SnowflakeConfig(token=token)
+
+    def _load_aws_credentials(self, location) -> S3Config:
+        aws_config = configparser.RawConfigParser()
+        aws_config.read(os.getenv(location, AWS_CREDENTIALS_DEFAULT_LOCATION))
+        if not aws_config.sections():
+            raise DominoError("File does not contain sections or roles")
+        profile = aws_config.sections().pop(0)
+        overridden_profile = cast(S3Config, self._config_override).profile
+        if overridden_profile is not None:
+            profile = overridden_profile
+        return S3Config(
+            aws_access_key_id=aws_config.get(profile, "aws_access_key_id"),
+            aws_secret_access_key=aws_config.get(profile, "aws_secret_access_key"),
+        )
 
     def update(self, config: DatasourceConfig) -> None:
         """Store configuration override for future query calls.
@@ -472,7 +520,7 @@ class QueryDatasource(Datasource):
             self.identifier,
             query,
             config=self._config_override.config(),
-            credential=self._config_override.credential(),
+            credential=self._get_credential_override(),
         )
 
 

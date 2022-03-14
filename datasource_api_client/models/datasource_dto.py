@@ -4,7 +4,7 @@ import attr
 
 from ..models.datasource_config import DatasourceConfig
 from ..models.datasource_dto_added_by import DatasourceDtoAddedBy
-from ..models.datasource_dto_credential_type import DatasourceDtoCredentialType
+from ..models.datasource_dto_auth_type import DatasourceDtoAuthType
 from ..models.datasource_dto_data_source_type import DatasourceDtoDataSourceType
 from ..models.datasource_dto_status import DatasourceDtoStatus
 from ..models.datasource_owner_info import DatasourceOwnerInfo
@@ -18,11 +18,10 @@ class DatasourceDto:
     """
     Attributes:
         added_by (DatasourceDtoAddedBy):
+        auth_type (DatasourceDtoAuthType):
         config (DatasourceConfig):
-        credential_type (DatasourceDtoCredentialType):
         data_source_type (DatasourceDtoDataSourceType):
         id (str):
-        is_everyone (bool):
         last_updated (int):
         last_updated_by (str):
         name (str):
@@ -30,16 +29,14 @@ class DatasourceDto:
         owner_info (DatasourceOwnerInfo):
         project_ids (List[str]):
         status (DatasourceDtoStatus):
-        user_ids (List[str]):
         description (Union[Unset, None, str]):
     """
 
     added_by: DatasourceDtoAddedBy
+    auth_type: DatasourceDtoAuthType
     config: DatasourceConfig
-    credential_type: DatasourceDtoCredentialType
     data_source_type: DatasourceDtoDataSourceType
     id: str
-    is_everyone: bool
     last_updated: int
     last_updated_by: str
     name: str
@@ -47,21 +44,19 @@ class DatasourceDto:
     owner_info: DatasourceOwnerInfo
     project_ids: List[str]
     status: DatasourceDtoStatus
-    user_ids: List[str]
     description: Union[Unset, None, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         added_by = self.added_by.to_dict()
 
-        config = self.config.to_dict()
+        auth_type = self.auth_type.value
 
-        credential_type = self.credential_type.value
+        config = self.config.to_dict()
 
         data_source_type = self.data_source_type.value
 
         id = self.id
-        is_everyone = self.is_everyone
         last_updated = self.last_updated
         last_updated_by = self.last_updated_by
         name = self.name
@@ -72,8 +67,6 @@ class DatasourceDto:
 
         status = self.status.value
 
-        user_ids = self.user_ids
-
         description = self.description
 
         field_dict: Dict[str, Any] = {}
@@ -81,11 +74,10 @@ class DatasourceDto:
         field_dict.update(
             {
                 "addedBy": added_by,
+                "authType": auth_type,
                 "config": config,
-                "credentialType": credential_type,
                 "dataSourceType": data_source_type,
                 "id": id,
-                "isEveryone": is_everyone,
                 "lastUpdated": last_updated,
                 "lastUpdatedBy": last_updated_by,
                 "name": name,
@@ -93,7 +85,6 @@ class DatasourceDto:
                 "ownerInfo": owner_info,
                 "projectIds": project_ids,
                 "status": status,
-                "userIds": user_ids,
             }
         )
         if description is not UNSET:
@@ -106,15 +97,13 @@ class DatasourceDto:
         d = src_dict.copy()
         added_by = DatasourceDtoAddedBy.from_dict(d.pop("addedBy"))
 
-        config = DatasourceConfig.from_dict(d.pop("config"))
+        auth_type = DatasourceDtoAuthType(d.pop("authType"))
 
-        credential_type = DatasourceDtoCredentialType(d.pop("credentialType"))
+        config = DatasourceConfig.from_dict(d.pop("config"))
 
         data_source_type = DatasourceDtoDataSourceType(d.pop("dataSourceType"))
 
         id = d.pop("id")
-
-        is_everyone = d.pop("isEveryone")
 
         last_updated = d.pop("lastUpdated")
 
@@ -130,17 +119,14 @@ class DatasourceDto:
 
         status = DatasourceDtoStatus(d.pop("status"))
 
-        user_ids = cast(List[str], d.pop("userIds"))
-
         description = d.pop("description", UNSET)
 
         datasource_dto = cls(
             added_by=added_by,
+            auth_type=auth_type,
             config=config,
-            credential_type=credential_type,
             data_source_type=data_source_type,
             id=id,
-            is_everyone=is_everyone,
             last_updated=last_updated,
             last_updated_by=last_updated_by,
             name=name,
@@ -148,7 +134,6 @@ class DatasourceDto:
             owner_info=owner_info,
             project_ids=project_ids,
             status=status,
-            user_ids=user_ids,
             description=description,
         )
 
