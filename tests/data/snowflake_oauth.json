@@ -10,13 +10,8 @@
   "addedBy": {
     "616874b6a71c0c05f92e9161": "ad-user"
   },
-  "dataSourceType": "S3Config",
-  "config": {
-    "type": "DataSourceS3Config",
-    "dataSourceType": "S3Config",
-    "bucket": "s3regression",
-    "region": "us-west-2"
-  },
+  "dataSourceType": "SnowflakeConfig",
+  "config": {},
   "dataSourcePermissions": {
     "isEveryone": true,
     "userIds": [],
@@ -30,7 +25,7 @@
   "addedToProjectTimeMap": {
     "616874b6a71c0c05f92e9161": 1634235750239
   },
-  "authType": "AWSIAMBasic",
+  "authType": "OAuth",
   "projectIds": [
     "616874b6a71c0c05f92e9161"
   ],

@@ -1,6 +1,7 @@
 """pytest fixtures and configuration."""
 
 import json
+import os
 
 import pyarrow
 import pytest
@@ -41,7 +42,7 @@ def env_setup(monkeypatch):
 
 
 @pytest.fixture
-def flight_server():
+def flight_server(env):
     """Set a dummy flight server to test do_get."""
 
     class FlightServer(pyarrow.flight.FlightServerBase):
@@ -55,7 +56,7 @@ def flight_server():
             """Dummy method."""
             return self.do_get_callback(context, ticket)
 
-    server = FlightServer(location=DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
+    server = FlightServer(location="grpc://localhost:8080")
 
     yield server
 
@@ -75,7 +76,7 @@ def env(monkeypatch):
     monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/domino_token")
     monkeypatch.setenv("DOMINO_USER_API_KEY", "api-key")
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_HOST", "http://proxy")
-    monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST", "grpc://proxy")
+    monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST", "grpc://localhost:8080")
     monkeypatch.setenv("DOMINO_PROJECT_ID", "project-id")
 
 

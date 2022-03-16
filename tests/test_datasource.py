@@ -369,12 +369,10 @@ def test_snowflake_config():
 
 def test_oracle_config():
     """Oracle config serializes to expected keys."""
+    orcl = ds.OracleConfig(database="dev2", username="awsadmin", password="protec")
 
-
-orcl = ds.OracleConfig(database="dev2", username="awsadmin", password="protec")
-
-assert orcl.config() == {"database": "dev2"}
-assert orcl.credential() == {"username": "awsadmin", "password": "protec"}
+    assert orcl.config() == {"database": "dev2"}
+    assert orcl.credential() == {"username": "awsadmin", "password": "protec"}
 
 
 def test_s3_config():
@@ -511,3 +509,51 @@ def test_object_store_download_fileobj(respx_mock, datafx):
     s3d.download_fileobj("file.png", mock_fileobj)
 
     assert mock_fileobj.getvalue() == mock_content
+
+
+@pytest.mark.usefixtures("env")
+def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
+    """Object datasource can download a blob content into a file."""
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "tests/data/aws_credentials")
+    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
+        return_value=httpx.Response(200, json=datafx("s3_awsiamrole")),
+    )
+    respx_mock.post("http://proxy/objectstore/list").mock(return_value=httpx.Response(200, json=[]))
+    respx_mock.post("http://proxy/objectstore/key").mock(return_value=httpx.Response(200, json=""))
+
+    s3d = ds.DataSourceClient().get_datasource("s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+    s3d.list_objects()
+    s3d.get_key_url("")
+
+    list_request, _ = respx_mock.calls[-1]
+    get_key_url_request, _ = respx_mock.calls[-2]
+    list_creds = json.loads(list_request.content)["credentialOverwrites"]
+    get_key_url_creds = json.loads(get_key_url_request.content)["credentialOverwrites"]
+
+    # values in file
+    assert list_creds["username"] == "AKIAIOSFODNN7EXAMPLE"
+    assert list_creds["password"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    assert get_key_url_creds["username"] == "AKIAIOSFODNN7EXAMPLE"
+    assert get_key_url_creds["password"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+
+def test_credential_override_with_oauth(datafx, flight_server, monkeypatch, respx_mock):
+    """Client can execute a query."""
+    monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/data/domino_jwt")
+
+    table = pyarrow.Table.from_pydict({})
+    respx_mock.get("http://domino/v4/datasource/name/snowflake").mock(
+        return_value=httpx.Response(200, json=datafx("snowflake_oauth")),
+    )
+
+    def callback(_, ticket):
+        tkt = json.loads(ticket.ticket.decode("utf-8"))
+        print(tkt)
+        assert tkt["credentialOverwrites"] == {"token": "token, jeton, gettone"}
+        return pyarrow.flight.RecordBatchStream(table)
+
+    flight_server.do_get_callback = callback
+    snowflake_ds = ds.DataSourceClient().get_datasource("snowflake")
+    snowflake_ds = ds.cast(ds.QueryDatasource, snowflake_ds)
+    snowflake_ds.query("SELECT 1")

@@ -30,7 +30,6 @@
   "addedToProjectTimeMap": {
     "616874b6a71c0c05f92e9161": 1634235750239
   },
-  "authType": "AWSIAMBasic",
   "projectIds": [
     "616874b6a71c0c05f92e9161"
   ],
@@ -45,5 +44,6 @@
       "616874b6a71c0c05f92e9161": null
     }
   },
-  "status": "Active"
+  "status": "Active",
+  "authType": "AWSIAMRole"
 }
