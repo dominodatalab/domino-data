@@ -73,6 +73,7 @@ pytest-cov = "^3.0.0"
 grpcio = "^1.41.0"
 flake8 = "^4.0.1"
 respx = "^0.19.1"
+types-PyYAML = "^6.0.4"
 
 [tool.black]
 # https://github.com/psf/black

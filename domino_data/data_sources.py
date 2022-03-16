@@ -28,6 +28,7 @@ from datasource_api_client.models import (
 )
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
+from .configuration_gen import ConfigElem, CredElem
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
@@ -61,34 +62,6 @@ def _unpack_flight_error(error: str) -> str:
         return error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0]
     except ValueError:
         return error
-
-
-class ConfigElem(Enum):
-    """Enumeration of valid config elements."""
-
-    ACCOUNT = "accountName"
-    BUCKET = "bucket"
-    DATABASE = "database"
-    HOST = "host"
-    PORT = "port"
-    PROJECT = "project"
-    REGION = "region"
-    ROLE = "role"
-    SCHEMA = "schema"
-    WAREHOUSE = "warehouse"
-
-
-class CredElem(Enum):
-    """Enumeration of valid credential elements."""
-
-    ACCESSKEY = "accessKey"
-    ACCESSKEYID = "accessKeyID"
-    PASSWORD = "password"
-    PRIVATEKEY = "privateKey"
-    SECRETACCESSKEY = "secretAccessKey"
-    SESSIONTOKEN = "sessionToken"
-    TOKEN = "token"
-    USERNAME = "username"
 
 
 def _cred(elem: CredElem) -> Any:
