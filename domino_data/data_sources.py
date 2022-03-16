@@ -41,8 +41,8 @@ CONFIGURATION_TYPE = "configuration"
 
 FLIGHT_ERROR_SPLIT = ". Client context:"
 
-DOMINO_TOKEN_DEFAULT_LOCATION = "DOMINO_TOKEN_FILE"
-AWS_CREDENTIALS_DEFAULT_LOCATION = "AWS_SHARED_CREDENTIALS_FILE"
+DOMINO_TOKEN_DEFAULT_LOCATION = "/var/lib/domino/home/.api/token"
+AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
 
 
 class DominoError(Exception):
@@ -482,9 +482,11 @@ class Datasource:
         if not aws_config.sections():
             raise DominoError("File does not contain sections or roles")
         profile = aws_config.sections().pop(0)
-        overridden_profile = cast(S3Config, self._config_override).profile
-        if overridden_profile is not None:
-            profile = overridden_profile
+
+        if isinstance(self._config_override, S3Config):
+            overridden_profile = self._config_override.profile
+            if overridden_profile is not None:
+                profile = overridden_profile
         return S3Config(
             aws_access_key_id=aws_config.get(profile, "aws_access_key_id"),
             aws_secret_access_key=aws_config.get(profile, "aws_secret_access_key"),
@@ -545,7 +547,7 @@ class ObjectStoreDatasource(Datasource):
             self.identifier,
             prefix,
             config=self._config_override.config(),
-            credential=self._config_override.credential(),
+            credential=self._get_credential_override(),
         )
         return [
             _Object(
@@ -573,7 +575,7 @@ class ObjectStoreDatasource(Datasource):
                 object_key,
                 is_read_write,
                 config=self._config_override.config(),
-                credential=self._config_override.credential(),
+                credential=self._get_credential_override(),
             ),
         )
 
