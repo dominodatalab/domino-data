@@ -459,37 +459,42 @@ class Datasource:
         ):
             # TODO: grab location from meta
             location = "DOMINO_TOKEN_FILE"
-            credentials = self._load_snowflake_token(location).credential()
+            credentials = self._load_oauth_token(location)
         elif (
             self.datasource_type == DatasourceDtoDataSourceType.S3CONFIG.value
             and self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value
         ):
             # TODO: grab location from meta
             location = "AWS_SHARED_CREDENTIALS_FILE"
-            credentials = self._load_aws_credentials(location).credential()
+            credentials = self._load_aws_credentials(location)
 
         credentials.update(self._config_override.credential())
         return credentials
 
-    def _load_snowflake_token(self, location) -> SnowflakeConfig:
-        with open(os.getenv(location, DOMINO_TOKEN_DEFAULT_LOCATION)) as token_file:
-            token = token_file.readline().rstrip()
-        return SnowflakeConfig(token=token)
+    def _load_oauth_token(self, location: str) -> Dict[str, str]:
+        try:
+            with open(os.getenv(location, DOMINO_TOKEN_DEFAULT_LOCATION)) as token_file:
+                token = token_file.readline().rstrip()
+        except FileNotFoundError:
+            raise DominoError("Token file does not exist")
+        return dict(token=token)
 
-    def _load_aws_credentials(self, location) -> S3Config:
+    def _load_aws_credentials(self, location: str) -> Dict[str, str]:
         aws_config = configparser.RawConfigParser()
         aws_config.read(os.getenv(location, AWS_CREDENTIALS_DEFAULT_LOCATION))
-        if not aws_config.sections():
-            raise DominoError("File does not contain sections or roles")
+        if not aws_config or not aws_config.sections():
+            raise DominoError(
+                "AWS credentials file does not exist or does not contain profiles"
+            )  # noqa
         profile = aws_config.sections().pop(0)
 
-        if isinstance(self._config_override, S3Config):
-            overridden_profile = self._config_override.profile
+        if hasattr(self._config_override, "profile"):
+            overridden_profile = self._config_override.__getattribute__(profile)
             if overridden_profile is not None:
                 profile = overridden_profile
-        return S3Config(
-            aws_access_key_id=aws_config.get(profile, "aws_access_key_id"),
-            aws_secret_access_key=aws_config.get(profile, "aws_secret_access_key"),
+        return dict(
+            username=aws_config.get(profile, "aws_access_key_id"),
+            password=aws_config.get(profile, "aws_secret_access_key"),
         )
 
     def update(self, config: DatasourceConfig) -> None:
