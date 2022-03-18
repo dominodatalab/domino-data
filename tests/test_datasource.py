@@ -513,7 +513,7 @@ def test_object_store_download_fileobj(respx_mock, datafx):
 
 @pytest.mark.usefixtures("env")
 def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
-    """Object datasource can download a blob content into a file."""
+    """Object datasource can list and get key url using AWSIAMRole."""
     monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "tests/data/aws_credentials")
     respx_mock.get("http://domino/v4/datasource/name/s3").mock(
         return_value=httpx.Response(200, json=datafx("s3_awsiamrole")),
@@ -538,8 +538,27 @@ def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
     assert get_key_url_creds["password"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 
 
+@pytest.mark.usefixtures("env")
+def test_credential_override_with_awsiamrole_file_does_not_exist(respx_mock, datafx, monkeypatch):
+    """AWSIAMRole workflow should return error if credential file not present"""
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "notarealfile")
+
+    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
+        return_value=httpx.Response(200, json=datafx("s3_awsiamrole")),
+    )
+    respx_mock.post("http://proxy/objectstore/list").mock(return_value=httpx.Response(200, json=[]))
+    respx_mock.post("http://proxy/objectstore/key").mock(return_value=httpx.Response(200, json=""))
+
+    s3d = ds.DataSourceClient().get_datasource("s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+    with pytest.raises(ds.DominoError):
+        s3d.list_objects()
+    with pytest.raises(ds.DominoError):
+        s3d.get_key_url("")
+
+
 def test_credential_override_with_oauth(datafx, flight_server, monkeypatch, respx_mock):
-    """Client can execute a query."""
+    """Client can execute a Snowflake query using OAuth"""
     monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/data/domino_jwt")
 
     table = pyarrow.Table.from_pydict({})
@@ -549,7 +568,6 @@ def test_credential_override_with_oauth(datafx, flight_server, monkeypatch, resp
 
     def callback(_, ticket):
         tkt = json.loads(ticket.ticket.decode("utf-8"))
-        print(tkt)
         assert tkt["credentialOverwrites"] == {"token": "token, jeton, gettone"}
         return pyarrow.flight.RecordBatchStream(table)
 
@@ -557,3 +575,24 @@ def test_credential_override_with_oauth(datafx, flight_server, monkeypatch, resp
     snowflake_ds = ds.DataSourceClient().get_datasource("snowflake")
     snowflake_ds = ds.cast(ds.QueryDatasource, snowflake_ds)
     snowflake_ds.query("SELECT 1")
+
+
+def test_credential_override_with_oauth_file_does_not_exist(
+    datafx, flight_server, monkeypatch, respx_mock
+):
+    """Client gets an error if token not present using OAuth"""
+    monkeypatch.setenv("DOMINO_TOKEN_FILE", "notarealfile")
+
+    table = pyarrow.Table.from_pydict({})
+    respx_mock.get("http://domino/v4/datasource/name/snowflake").mock(
+        return_value=httpx.Response(200, json=datafx("snowflake_oauth")),
+    )
+
+    def callback(_):
+        return pyarrow.flight.RecordBatchStream(table)
+
+    flight_server.do_get_callback = callback
+    snowflake_ds = ds.DataSourceClient().get_datasource("snowflake")
+    snowflake_ds = ds.cast(ds.QueryDatasource, snowflake_ds)
+    with pytest.raises(ds.DominoError):
+        snowflake_ds.query("SELECT 1")
