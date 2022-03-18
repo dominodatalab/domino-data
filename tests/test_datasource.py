@@ -541,6 +541,8 @@ def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
 @pytest.mark.usefixtures("env")
 def test_credential_override_with_awsiamrole_file_does_not_exist(respx_mock, datafx, monkeypatch):
     """AWSIAMRole workflow should return error if credential file not present"""
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "notarealfile")
+
     respx_mock.get("http://domino/v4/datasource/name/s3").mock(
         return_value=httpx.Response(200, json=datafx("s3_awsiamrole")),
     )
@@ -579,6 +581,7 @@ def test_credential_override_with_oauth_file_does_not_exist(
     datafx, flight_server, monkeypatch, respx_mock
 ):
     """Client gets an error if token not present using OAuth"""
+    monkeypatch.setenv("DOMINO_TOKEN_FILE", "notarealfile")
 
     table = pyarrow.Table.from_pydict({})
     respx_mock.get("http://domino/v4/datasource/name/snowflake").mock(
