@@ -488,10 +488,9 @@ class Datasource:
             )  # noqa
         profile = aws_config.sections().pop(0)
 
-        if hasattr(self._config_override, "profile"):
-            overridden_profile = self._config_override.__getattribute__(profile)
-            if overridden_profile is not None:
-                profile = overridden_profile
+        overridden_profile = getattr(self._config_override, "profile", None)
+        if overridden_profile is not None:
+            profile = overridden_profile
         return dict(
             username=aws_config.get(profile, "aws_access_key_id"),
             password=aws_config.get(profile, "aws_secret_access_key"),
