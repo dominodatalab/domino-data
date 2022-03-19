@@ -21,6 +21,7 @@ packages = [
     { include = "domino_data" },
     { include = "datasource_api_client" },
     { include = "training_set_api_client" },
+    { include = "feature_store_api_client" },
 ]
 
 # Keywords description https://python-poetry.org/docs/pyproject/#keywords
@@ -38,6 +39,8 @@ classifiers = [  #! Update me
   "Programming Language :: Python :: 3.9",
 ]
 
+[tool.poetry.scripts]
+domino-sync = "domino_data.featurestore:domino_sync"
 
 
 [tool.poetry.dependencies]
@@ -49,6 +52,7 @@ python-dateutil = "^2.8.0"
 pyarrow = "^8.0.0"
 loguru = "^0.5.3"
 backoff = "^1.11.1"
+feast = {extras = ["aws"], version = "^0.19.3"}
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.0"
