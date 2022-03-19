@@ -1,7 +1,9 @@
+import datetime
 import uuid
 
 import click
 # from pathlib import Path
+from datetime import datetime
 from feast.feature_store import FeatureStore
 from .auth import AuthenticatedClient
 from feature_store_api_client.api.default import post_feature_store_name
@@ -43,23 +45,29 @@ def domino_sync(name):
             entities=[Entity(name=entity, value_type="", join_key="") for entity in fv.entities],
             tags=FeatureViewTags.from_dict(fv.tags),
         ) for fv in fvs]
-    # feature_store = FS(
-    #     id=uuid.UUID,
-    #     project_id=uuid.UUID,
-    #     feature_views=
-    # )
-    # fs_request = CreateFeatureStoreRequest(
-    #     name=name,
-    # )
-    # response = post_feature_store_name.sync_detailed(
-    #     name,
-    #     client=domino,
-    #     CreateFeatureStoreRequest(
-    #         name=name,
-    #         project_id="6233c82cc78b65f9181e7d45",
-    #         feature_store=
-    #     )
-    # )
+
+    # TODO - read this from the project proper
+    domino_project_id = uuid.UUID
+
+    feature_store = DominoFeatureStore(
+        id=str(uuid.UUID),
+        project_id=str(domino_project_id),
+        name=name,
+        feature_views=dfvs,
+        creation_time=datetime.now(),
+        description=f"Feast feature store: {name}",
+    )
+    fs_request = CreateFeatureStoreRequest(
+        name=name,
+        project_id=str(domino_project_id),
+        feature_store=feature_store,
+        description=f"Domino feature store: {name}"
+    )
+    response = post_feature_store_name.sync_detailed(
+        name,
+        client=domino,
+        json_body=fs_request,
+    )
     print(f"feature views = {dfvs}")
 
 
