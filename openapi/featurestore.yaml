@@ -1,0 +1,159 @@
+openapi: 3.0.0
+
+info:
+  title: FeatureStore API
+  description: Feature Store metadata service
+  version: 0.1.0
+
+paths:
+  /{featureStoreName}:
+    get:
+      summary: Get FeatureStore
+      parameters:
+        - in: path
+          name: featureStoreName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: FeatureStore name
+      responses:
+        '200':
+          description: The FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
+    post:
+      summary: Create FeatureStore
+      parameters:
+        - in: path
+          name: featureStoreName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: FeatureStore name
+      requestBody:
+        description: CreateFeatureStoreRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeatureStoreRequest'
+      responses:
+        '200':
+          description: The new FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
+
+components:
+  schemas:
+    FeatureStore:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        creationTime:
+          type: string
+          format: date-time
+        featureViews:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureView'
+      required:
+        - id
+        - projectId
+        - name
+        - creationTime
+        - featureViews
+    FeatureView:
+      type: object
+      properties:
+        name:
+          type: string
+        ttl:
+          type: integer
+          format: int64
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entity'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        batchSource:
+          $ref: '#/components/schemas/BatchSource'
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - name
+        - ttl
+        - features
+        - batchSource
+    Feature:
+      type: object
+      properties:
+        name:
+          type: string
+        dtype:
+          type: string
+      required:
+        - name
+        - dtype
+    Entity:
+      type: object
+      properties:
+        name:
+          type: string
+        joinKey:
+          type: string
+        valueType:
+          type: string
+      required:
+        - name
+        - valueType
+    BatchSource:
+      type: object
+      properties:
+        dataSourceType:
+          type: string
+        eventTimestampColumn:
+          type: string
+        createdTimestampColumn:
+          type: string
+        sourceOptions:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - dataSourceType
+        - eventTimestampColumn
+        - createdTimestampColumn
+        - sourceOptions
+    CreateFeatureStoreRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        projectId:
+          type: string
+        featureStore:
+          $ref: '#/components/schemas/FeatureStore'
+      required:
+        - name
+        - projectId
+        - featureStore

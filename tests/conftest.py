@@ -1,7 +1,6 @@
 """pytest fixtures and configuration."""
 
 import json
-import os
 
 import pyarrow
 import pytest
