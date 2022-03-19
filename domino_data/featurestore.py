@@ -23,29 +23,26 @@ def domino_sync(name):
         headers={"Accept": "application/json"},
     )
 
-
     repo = "/Users/muratcetin/github.com/real-time-credit-scoring-on-aws-tutorial/feature_repo/"
     fs = FeatureStore(repo)
     fvs = fs.list_feature_views()
-    dfvs = []
-    for fv in fvs:
-        dfv = FeatureView(
+    dfvs = [
+        FeatureView(
             name=fv.name,
             ttl=fv.ttl.microseconds,
             features=[Feature(name=feature.name, dtype=str(feature.dtype)) for feature in fv.features],
             batch_source=BatchSource(
-                            data_source_type=fv.batch_source.get_table_query_string(),
-                            event_timestamp_column=fv.batch_source.event_timestamp_column,
-                            source_options=BatchSourceSourceOptions.from_dict({
-                                'query': fv.batch_source.get_table_query_string(),
-                                'table_name': fv.batch_source.name,
-                            }),
-                            created_timestamp_column=fv.batch_source.created_timestamp_column,
+                data_source_type=fv.batch_source.get_table_query_string(),
+                event_timestamp_column=fv.batch_source.event_timestamp_column,
+                source_options=BatchSourceSourceOptions.from_dict({
+                    'query': fv.batch_source.get_table_query_string(),
+                    'table_name': fv.batch_source.name,
+                }),
+                created_timestamp_column=fv.batch_source.created_timestamp_column,
             ),
             entities=[Entity(name=entity, value_type="", join_key="") for entity in fv.entities],
             tags=FeatureViewTags.from_dict(fv.tags),
-        )
-        dfvs.append(dfv)
+        ) for fv in fvs]
     # feature_store = FS(
     #     id=uuid.UUID,
     #     project_id=uuid.UUID,
