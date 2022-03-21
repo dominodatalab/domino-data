@@ -56,6 +56,7 @@ class FeatureStore:
                 "featureViews": feature_views,
             }
         )
+        print(field_dict)
         if description is not UNSET:
             field_dict["description"] = description
 
