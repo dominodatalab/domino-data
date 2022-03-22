@@ -209,6 +209,9 @@ class RedshiftConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
 
 @attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
