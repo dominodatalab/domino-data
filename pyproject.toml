@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "dominodatalab-data"
-version = "0.2.2dev1"
+version = "0.3.0a1"
 description = "Domino Data API for interacting with Domino Data features"
 readme = "README.md"
 authors = [
@@ -40,8 +40,7 @@ classifiers = [  #! Update me
 ]
 
 [tool.poetry.scripts]
-domino-sync = "domino_data.featurestore:domino_sync"
-
+domino-featurestore = "domino_data.featurestore:cli"
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -53,6 +52,7 @@ pyarrow = "^6.0.0"
 loguru = "^0.5.3"
 backoff = "^1.11.1"
 feast = {extras = ["aws"], version = "^0.19.3"}
+bson = "^0.5.10"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.0"
