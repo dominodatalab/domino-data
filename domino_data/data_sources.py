@@ -81,6 +81,7 @@ class CredElem(Enum):
     PASSWORD = "password"
     USERNAME = "username"
     TOKEN = "token"
+    SESSION = "session"
 
 
 def _cred(elem: CredElem) -> Any:
@@ -211,7 +212,7 @@ class RedshiftConfig(Config):
 
     aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
-
+    session: Optional[str] = _cred(elem=CredElem.SESSION)
 
 @attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
@@ -464,8 +465,7 @@ class Datasource:
             location = "DOMINO_TOKEN_FILE"
             credentials = self._load_oauth_token(location)
         elif (
-            self.datasource_type == DatasourceDtoDataSourceType.S3CONFIG.value
-            and self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value
+            self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value
         ):
             # TODO: grab location from meta
             location = "AWS_SHARED_CREDENTIALS_FILE"
@@ -497,6 +497,7 @@ class Datasource:
         return dict(
             username=aws_config.get(profile, "aws_access_key_id"),
             password=aws_config.get(profile, "aws_secret_access_key"),
+            session=aws_config.get(profile, "aws_session_token")
         )
 
     def update(self, config: DatasourceConfig) -> None:
