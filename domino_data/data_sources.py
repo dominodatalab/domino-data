@@ -214,7 +214,6 @@ class RedshiftConfig(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
     session: Optional[str] = _cred(elem=CredElem.SESSION)
 
-
 @attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
     """Snowflake datasource configuration."""
@@ -496,7 +495,7 @@ class Datasource:
         return dict(
             username=aws_config.get(profile, "aws_access_key_id"),
             password=aws_config.get(profile, "aws_secret_access_key"),
-            session=aws_config.get(profile, "aws_session_token"),
+            session=aws_config.get(profile, "aws_session_token")
         )
 
     def update(self, config: DatasourceConfig) -> None:
