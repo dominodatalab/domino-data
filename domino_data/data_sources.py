@@ -214,6 +214,7 @@ class RedshiftConfig(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
     session: Optional[str] = _cred(elem=CredElem.SESSION)
 
+
 @attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
     """Snowflake datasource configuration."""
@@ -464,9 +465,7 @@ class Datasource:
             # TODO: grab location from meta
             location = "DOMINO_TOKEN_FILE"
             credentials = self._load_oauth_token(location)
-        elif (
-            self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value
-        ):
+        elif self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value:
             # TODO: grab location from meta
             location = "AWS_SHARED_CREDENTIALS_FILE"
             credentials = self._load_aws_credentials(location)
@@ -497,7 +496,7 @@ class Datasource:
         return dict(
             username=aws_config.get(profile, "aws_access_key_id"),
             password=aws_config.get(profile, "aws_secret_access_key"),
-            session=aws_config.get(profile, "aws_session_token")
+            session=aws_config.get(profile, "aws_session_token"),
         )
 
     def update(self, config: DatasourceConfig) -> None:

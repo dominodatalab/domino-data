@@ -534,6 +534,7 @@ def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
     # values in file
     assert list_creds["username"] == "AKIAIOSFODNN7EXAMPLE"
     assert list_creds["password"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    assert list_creds["session"] == "FwoGZXIvYXdzENr//////////verylongandbig"
     assert get_key_url_creds["username"] == "AKIAIOSFODNN7EXAMPLE"
     assert get_key_url_creds["password"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 
