@@ -228,7 +228,6 @@ class RedshiftConfig(Config):
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
     aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
 
-
 @attr.s(auto_attribs=True)
 class SnowflakeConfig(Config):
     """Snowflake datasource configuration."""
