@@ -532,11 +532,11 @@ def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
     get_key_url_creds = json.loads(get_key_url_request.content)["credentialOverwrites"]
 
     # values in file
-    assert list_creds["username"] == "AKIAIOSFODNN7EXAMPLE"
-    assert list_creds["password"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-    assert list_creds["session"] == "FwoGZXIvYXdzENr//////////verylongandbig"
-    assert get_key_url_creds["username"] == "AKIAIOSFODNN7EXAMPLE"
-    assert get_key_url_creds["password"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    assert list_creds["accessKeyID"] == "AKIAIOSFODNN7EXAMPLE"
+    assert list_creds["secretAccessKey"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    assert list_creds["sessionToken"] == "FwoGZXIvYXdzENr//////////verylongandbig"
+    assert get_key_url_creds["accessKeyID"] == "AKIAIOSFODNN7EXAMPLE"
+    assert get_key_url_creds["secretAccessKey"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 
 
 @pytest.mark.usefixtures("env")

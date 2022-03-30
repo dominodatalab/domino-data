@@ -41,8 +41,10 @@ CONFIGURATION_TYPE = "configuration"
 
 FLIGHT_ERROR_SPLIT = ". Client context:"
 
-DOMINO_TOKEN_DEFAULT_LOCATION = "/var/lib/domino/home/.api/token"
 AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
+AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
+DOMINO_TOKEN_DEFAULT_LOCATION = "/var/lib/domino/home/.api/token"
+DOMINO_TOKEN_FILE = "DOMINO_TOKEN_FILE"
 
 
 class DominoError(Exception):
@@ -78,10 +80,14 @@ class ConfigElem(Enum):
 class CredElem(Enum):
     """Enumeration of valid credential elements."""
 
+    ACCESSKEY = "accessKey"
+    ACCESSKEYID = "accessKeyID"
     PASSWORD = "password"
-    USERNAME = "username"
+    PRIVATEKEY = "privateKey"
+    SECRETACCESSKEY = "secretAccessKey"
+    SESSIONTOKEN = "sessionToken"
     TOKEN = "token"
-    SESSION = "session"
+    USERNAME = "username"
 
 
 def _cred(elem: CredElem) -> Any:
@@ -180,6 +186,10 @@ class MySQLConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
+
 
 @attr.s(auto_attribs=True)
 class OracleConfig(Config):
@@ -200,6 +210,10 @@ class PostgreSQLConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
+
 
 @attr.s(auto_attribs=True)
 class RedshiftConfig(Config):
@@ -210,9 +224,9 @@ class RedshiftConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    session: Optional[str] = _cred(elem=CredElem.SESSION)
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
 
 
 @attr.s(auto_attribs=True)
@@ -410,6 +424,57 @@ class _Object:
         res.raise_for_status()
 
 
+def load_oauth_credentials(location: str) -> Dict[str, str]:
+    """Load oauth token from given location.
+
+    Args:
+        location: location of file that contains token.
+
+    Returns:
+        {CredElem.TOKEN.value: `token`}
+
+    Raises:
+        DominoError: if the provided location is not a valid file
+    """
+    location = location or DOMINO_TOKEN_DEFAULT_LOCATION
+    try:
+        with open(location, encoding="ascii") as token_file:
+            return {CredElem.TOKEN.value: token_file.readline().rstrip()}
+    except FileNotFoundError as exc:
+        raise DominoError("Token file location is not a valid file.") from exc
+
+
+def load_aws_credentials(location: str, profile: str = "") -> Dict[str, str]:
+    """Load AWS credentials from given location and profile.
+
+    Args:
+        location: location of file that contains token.
+        profile: profile to load.
+
+    Returns:
+        {
+            CredElem.ACCESSKEYID.value: `access_key_id`,
+            CredElem.SECRETACCESSKEY.value: `secret_access_key`,
+            CredElem.SESSIONTOKEN.value: `session_token`,
+        }
+
+    Raises:
+        DominoError: if the provided location is not a valid file
+    """
+    location = location or AWS_CREDENTIALS_DEFAULT_LOCATION
+    aws_config = configparser.RawConfigParser()
+    aws_config.read(location)
+    if not aws_config or not aws_config.sections():
+        raise DominoError("AWS credentials file does not exist or does not contain profiles")
+
+    profile = profile or aws_config.sections()[0]
+    return {
+        CredElem.ACCESSKEYID.value: aws_config.get(profile, "aws_access_key_id"),
+        CredElem.SECRETACCESSKEY.value: aws_config.get(profile, "aws_secret_access_key"),
+        CredElem.SESSIONTOKEN.value: aws_config.get(profile, "aws_session_token"),
+    }
+
+
 @attr.s
 class Datasource:
     """Represents a Domino datasource."""
@@ -458,46 +523,18 @@ class Datasource:
     def _get_credential_override(self) -> Dict[str, str]:
         """Gets credentials override by merging service overrides and user overrides"""
         credentials = {}
-        if (
-            self.datasource_type == DatasourceDtoDataSourceType.SNOWFLAKECONFIG.value
-            and self.auth_type == DatasourceDtoAuthType.OAUTH.value
-        ):
-            # TODO: grab location from meta
-            location = "DOMINO_TOKEN_FILE"
-            credentials = self._load_oauth_token(location)
-        elif self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value:
-            # TODO: grab location from meta
-            location = "AWS_SHARED_CREDENTIALS_FILE"
-            credentials = self._load_aws_credentials(location)
+
+        if self.auth_type == DatasourceDtoAuthType.OAUTH.value:
+            credentials = load_oauth_credentials(os.getenv(DOMINO_TOKEN_FILE, ""))
+
+        if self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value:
+            credentials = load_aws_credentials(
+                os.getenv(AWS_SHARED_CREDENTIALS_FILE, ""),
+                getattr(self._config_override, "profile", None),
+            )
 
         credentials.update(self._config_override.credential())
         return credentials
-
-    def _load_oauth_token(self, location: str) -> Dict[str, str]:
-        try:
-            with open(os.getenv(location, DOMINO_TOKEN_DEFAULT_LOCATION)) as token_file:
-                token = token_file.readline().rstrip()
-        except FileNotFoundError:
-            raise DominoError("Token file does not exist")
-        return dict(token=token)
-
-    def _load_aws_credentials(self, location: str) -> Dict[str, str]:
-        aws_config = configparser.RawConfigParser()
-        aws_config.read(os.getenv(location, AWS_CREDENTIALS_DEFAULT_LOCATION))
-        if not aws_config or not aws_config.sections():
-            raise DominoError(
-                "AWS credentials file does not exist or does not contain profiles"
-            )  # noqa
-        profile = aws_config.sections().pop(0)
-
-        overridden_profile = getattr(self._config_override, "profile", None)
-        if overridden_profile is not None:
-            profile = overridden_profile
-        return dict(
-            username=aws_config.get(profile, "aws_access_key_id"),
-            password=aws_config.get(profile, "aws_secret_access_key"),
-            session=aws_config.get(profile, "aws_session_token"),
-        )
 
     def update(self, config: DatasourceConfig) -> None:
         """Store configuration override for future query calls.
