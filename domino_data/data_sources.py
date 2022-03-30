@@ -186,7 +186,7 @@ class MySQLConfig(Config):
 
     aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
-    session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
+    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
 
 
 @attr.s(auto_attribs=True)
@@ -210,7 +210,7 @@ class PostgreSQLConfig(Config):
 
     aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
-    session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
+    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
 
 
 @attr.s(auto_attribs=True)
@@ -224,7 +224,7 @@ class RedshiftConfig(Config):
 
     aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
     aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
-    session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
+    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
 
 
 @attr.s(auto_attribs=True)
