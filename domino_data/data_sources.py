@@ -505,9 +505,11 @@ class Datasource:
         overridden_profile = getattr(self._config_override, "profile", None)
         if overridden_profile is not None:
             profile = overridden_profile
+
+        secretAccessKey = CredElem.SECRETACCESSKEY.value
         return {
             CredElem.ACCESSKEYID.value: aws_config.get(profile, "aws_access_key_id"),
-            CredElem.SECRETACCESSKEY.value: aws_config.get(profile, "aws_secret_access_key"),
+            secretAccessKey: aws_config.get(profile, "aws_secret_access_key"),
             CredElem.SESSIONTOKEN.value: aws_config.get(profile, "aws_session_token"),
         }
 
