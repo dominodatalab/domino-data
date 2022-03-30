@@ -78,10 +78,14 @@ class ConfigElem(Enum):
 class CredElem(Enum):
     """Enumeration of valid credential elements."""
 
+    ACCESSKEY = "accessKey"
+    ACCESSKEYID = "accessKeyID"
     PASSWORD = "password"
-    USERNAME = "username"
+    PRIVATEKEY = "privateKey"
+    SECRETACCESSKEY = "secretAccessKey"
+    SESSIONTOKEN = "sessionToken"
     TOKEN = "token"
-    SESSION = "session"
+    USERNAME = "username"
 
 
 def _cred(elem: CredElem) -> Any:
@@ -180,6 +184,10 @@ class MySQLConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+    session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
+
 
 @attr.s(auto_attribs=True)
 class OracleConfig(Config):
@@ -200,6 +208,10 @@ class PostgreSQLConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+    session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
+
 
 @attr.s(auto_attribs=True)
 class RedshiftConfig(Config):
@@ -210,9 +222,9 @@ class RedshiftConfig(Config):
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
 
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    session: Optional[str] = _cred(elem=CredElem.SESSION)
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+    session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
 
 
 @attr.s(auto_attribs=True)
@@ -479,7 +491,7 @@ class Datasource:
                 token = token_file.readline().rstrip()
         except FileNotFoundError:
             raise DominoError("Token file does not exist")
-        return dict(token=token)
+        return {CredElem.TOKEN.value: token}
 
     def _load_aws_credentials(self, location: str) -> Dict[str, str]:
         aws_config = configparser.RawConfigParser()
@@ -493,11 +505,11 @@ class Datasource:
         overridden_profile = getattr(self._config_override, "profile", None)
         if overridden_profile is not None:
             profile = overridden_profile
-        return dict(
-            username=aws_config.get(profile, "aws_access_key_id"),
-            password=aws_config.get(profile, "aws_secret_access_key"),
-            session=aws_config.get(profile, "aws_session_token"),
-        )
+        return {
+            CredElem.ACCESSKEYID.value: aws_config.get(profile, "aws_access_key_id"),
+            CredElem.SECRETACCESSKEY.value: aws_config.get(profile, "aws_secret_access_key"),
+            CredElem.SESSIONTOKEN.value: aws_config.get(profile, "aws_session_token"),
+        }
 
     def update(self, config: DatasourceConfig) -> None:
         """Store configuration override for future query calls.
