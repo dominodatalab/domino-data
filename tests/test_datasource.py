@@ -385,7 +385,7 @@ def test_s3_config():
     )
 
     assert s3c.config() == {"bucket": "sceau", "region": "midi-pyrenees"}
-    assert s3c.credential() == {"username": "identite", "password": "cle-secrete"}
+    assert s3c.credential() == {"accessKeyID": "identite", "secretAccessKey": "cle-secrete"}
 
 
 def test_sqlserver_config():

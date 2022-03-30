@@ -250,8 +250,9 @@ class S3Config(Config):
     bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
     region: Optional[str] = _config(elem=ConfigElem.REGION)
 
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
 
     profile: Optional[str] = attr.ib(default=None)
 
