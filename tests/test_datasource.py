@@ -2,7 +2,6 @@
 
 import io
 import json
-import os
 
 import httpx
 import pyarrow

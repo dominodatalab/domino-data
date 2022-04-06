@@ -6,6 +6,7 @@ class DatasourceDtoAuthType(str, Enum):
     BASIC = "Basic"
     AWSIAMBASIC = "AWSIAMBasic"
     AWSIAMROLE = "AWSIAMRole"
+    AWSIAMROLEWITHUSERNAME = "AWSIAMRoleWithUsername"
     GCPBASIC = "GCPBasic"
     OAUTH = "OAuth"
 
