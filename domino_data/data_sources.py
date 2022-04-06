@@ -528,7 +528,7 @@ class Datasource:
         if self.auth_type == DatasourceDtoAuthType.OAUTH.value:
             credentials = load_oauth_credentials(os.getenv(DOMINO_TOKEN_FILE, ""))
 
-        if self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value:
+        if self.auth_type == DatasourceDtoAuthType.AWSIAMROLE.value or self.auth_type == DatasourceDtoAuthType.AWSIAMROLEWITHUSERNAME.value:
             credentials = load_aws_credentials(
                 os.getenv(AWS_SHARED_CREDENTIALS_FILE, ""),
                 getattr(self._config_override, "profile", None),
