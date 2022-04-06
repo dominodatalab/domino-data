@@ -208,6 +208,7 @@ components:
             - Basic
             - AWSIAMBasic
             - AWSIAMRole
+            - AWSIAMRoleWithUsername
             - GCPBasic
             - OAuth
         config:

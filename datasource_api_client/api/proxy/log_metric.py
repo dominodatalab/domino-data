@@ -15,23 +15,26 @@ def _get_kwargs(
     b: int,
     m: LogMetricM,
 ) -> Dict[str, Any]:
-    url = "{}/objectstore/metric".format(client.base_url)
+    url = f"{client.base_url}/objectstore/metric"
 
-    headers: Dict[str, Any] = client.get_headers()
+    headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
 
+    params: Dict[str, Any] = {}
     json_t = t.value
+
+    params["t"] = json_t
+
+    params["b"] = b
 
     json_m = m.value
 
-    params: Dict[str, Any] = {
-        "t": json_t,
-        "b": b,
-        "m": json_m,
-    }
+    params["m"] = json_m
+
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     return {
+        "method": "head",
         "url": url,
         "headers": headers,
         "cookies": cookies,
@@ -74,7 +77,7 @@ def sync_detailed(
         m=m,
     )
 
-    response = httpx.head(
+    response = httpx.request(
         verify=client.verify_ssl,
         **kwargs,
     )
@@ -108,6 +111,6 @@ async def asyncio_detailed(
     )
 
     async with httpx.AsyncClient(verify=client.verify_ssl) as _client:
-        response = await _client.head(**kwargs)
+        response = await _client.request(**kwargs)
 
     return _build_response(response=response)
