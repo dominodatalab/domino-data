@@ -3,6 +3,7 @@ from enum import Enum
 
 class DatasourceDtoDataSourceType(str, Enum):
     ADLSCONFIG = "ADLSConfig"
+    BIGQUERYCONFIG = "BigQueryConfig"
     GCSCONFIG = "GCSConfig"
     GENERICS3CONFIG = "GenericS3Config"
     MYSQLCONFIG = "MySQLConfig"
