@@ -698,6 +698,7 @@ class ObjectStoreDatasource(Datasource):
 
 DATASOURCES = {
     DatasourceDtoDataSourceType.ADLSCONFIG: ObjectStoreDatasource,
+    DatasourceDtoDataSourceType.BIGQUERYCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.GENERICS3CONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
