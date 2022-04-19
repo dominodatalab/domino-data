@@ -61,6 +61,14 @@ ADLS
    :undoc-members:
    :noindex:
 
+BigQuery
+^^^^^^^^
+
+.. autoclass:: BigQueryConfig
+   :members:
+   :undoc-members:
+   :noindex:
+
 GCS
 ^^^
 
