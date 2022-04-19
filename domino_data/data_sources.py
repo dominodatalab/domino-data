@@ -159,7 +159,7 @@ class ADLSConfig(Config):
 
 @attr.s(auto_attribs=True)
 class BigQueryConfig(Config):
-    """ADLS datasource configuration."""
+    """BigQuery datasource configuration."""
 
     gcp_project_id: Optional[str] = _config(elem=ConfigElem.PROJECT)
 
