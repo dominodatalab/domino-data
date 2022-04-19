@@ -68,9 +68,9 @@ def main(args):
                 datasource_fields=schemas["DatasourceFieldName"]["enum"],
             )
         )
-        gen.write(
-            Configs.render(),
-        )
+        # gen.write(
+        #     Configs.render(configs=configs),
+        # )
 
 
 if __name__ == "__main__":
@@ -78,6 +78,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--openapi",
         default="services/datasource/openapi.yaml",
+    )
+    parser.add_argument(
+        "--config",
+        default="services/datasource/config.yaml",
     )
     parser.add_argument(
         "--file",
