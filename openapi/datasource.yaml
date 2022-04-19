@@ -217,6 +217,7 @@ components:
           type: string
           enum:
             - ADLSConfig
+            - BigQueryConfig
             - GCSConfig
             - GenericS3Config
             - MySQLConfig

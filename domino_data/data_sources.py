@@ -71,6 +71,7 @@ class ConfigElem(Enum):
     DATABASE = "database"
     HOST = "host"
     PORT = "port"
+    PROJECT = "project"
     REGION = "region"
     ROLE = "role"
     SCHEMA = "schema"
@@ -154,6 +155,13 @@ class ADLSConfig(Config):
     container: Optional[str] = _config(elem=ConfigElem.BUCKET)
 
     access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
+class BigQueryConfig(Config):
+    """BigQuery datasource configuration."""
+
+    gcp_project_id: Optional[str] = _config(elem=ConfigElem.PROJECT)
 
 
 @attr.s(auto_attribs=True)
@@ -690,6 +698,7 @@ class ObjectStoreDatasource(Datasource):
 
 DATASOURCES = {
     DatasourceDtoDataSourceType.ADLSCONFIG: ObjectStoreDatasource,
+    DatasourceDtoDataSourceType.BIGQUERYCONFIG: QueryDatasource,
     DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.GENERICS3CONFIG: ObjectStoreDatasource,
     DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
