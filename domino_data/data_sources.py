@@ -1,4 +1,4 @@
-"""Datasource module. Refer to :ref:`usecase-simple-query` for a Use Case example."""
+"""Datasource module."""
 from typing import Any, Dict, List, Optional, Union, cast
 
 import configparser
@@ -440,7 +440,9 @@ def load_oauth_credentials(location: str) -> Dict[str, str]:
         location: location of file that contains token.
 
     Returns:
-        {CredElem.TOKEN.value: `token`}
+        .. code-block:: python
+
+            {CredElem.TOKEN.value: "token"}
 
     Raises:
         DominoError: if the provided location is not a valid file
@@ -461,11 +463,13 @@ def load_aws_credentials(location: str, profile: str = "") -> Dict[str, str]:
         profile: profile to load.
 
     Returns:
-        {
-            CredElem.ACCESSKEYID.value: `access_key_id`,
-            CredElem.SECRETACCESSKEY.value: `secret_access_key`,
-            CredElem.SESSIONTOKEN.value: `session_token`,
-        }
+        .. code-block:: python
+
+            {
+                CredElem.ACCESSKEYID.value: "access_key_id",
+                CredElem.SECRETACCESSKEY.value: "secret_access_key",
+                CredElem.SESSIONTOKEN.value: "session_token",
+            }
 
     Raises:
         DominoError: if the provided location is not a valid file
