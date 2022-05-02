@@ -51,6 +51,9 @@ class {{ config }}(Config):
 def snake_case(environment, strng):
     return re.sub(r'(?<!^)(?=[A-Z])', '_', strng).lower()
 
+def alias_or_name(alias, name):
+    return alias if alias else name
+
 def main(args):
     """Entrypoint for code generation."""
     with open(args.openapi, encoding="ascii") as openapi:
