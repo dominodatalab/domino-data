@@ -33,24 +33,25 @@ class CredElem(Enum):
 
 Configs = Template(
     '''
-from attrs import define, field
+{% for config in datasource_configs -%}
+@attr.s(auto_attribs=True)
+class {{ config }}(Config):
+    """{{ config }} datasource configuration."""
 
-{% for config in configs -%}
-@define
-class {{ config.name }}(Config):
-    """{{ config.name }} datasource configuration."""
+    {% for field_name in datasource_configs[config]["fields"] -%}
 
-    {% for key, value in config.fields -%}
+    {{ datasource_configs[config]["fields"][field_name].name }}: Optional[str] = _config(elem=ConfigElem.)
+
+    {% for a in auth_configs -%}
+    {% for auth_field in auth_configs[a]["fields"]-%}
+    {{ auth_configs[a]["fields"][auth_field].name }}
     {{ key }}: Optional[str] = _config(elem=ConfigElem.{{ value }})
     {% endfor %}
-
-    {% for key, value in config.credentials -%}
-    {{ key }}: Optional[str] = _cred(elem=CredElem.{{ value }})
+    {% endfor %}
     {% endfor %}
 {% endfor %}
 '''
 )
-
 
 def main(args):
     """Entrypoint for code generation."""
@@ -68,9 +69,12 @@ def main(args):
                 datasource_fields=schemas["DatasourceFieldName"]["enum"],
             )
         )
-        # gen.write(
-        #     Configs.render(configs=configs),
-        # )
+        gen.write(
+            Configs.render(
+                datasource_configs=configs["datasource_configs"],
+                auth_configs=configs["auth_configs"]
+            ),
+        )
 
 
 if __name__ == "__main__":
