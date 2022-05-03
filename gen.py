@@ -11,7 +11,7 @@ import re
 
 
 def snake_case(str):
-    return re.sub(r'(?<!^)(?=[A-Z])', '_', str).lower()
+    return re.sub(r'(?<!^)(?=[A-Z])', '_', str[:-1]).lower() + str[-1].lower()
 
 def alias_or_name(alias, name):
     return alias if alias else name
