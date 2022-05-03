@@ -67,8 +67,6 @@ def get_training_set(name: str) -> model.TrainingSet:
     Returns:
         The TrainingSet, if found.
 
-    Refer to :ref:`get_uctraining_set` for an example Use Case.
-
     """
 
     _validate_trainingset_name(name)
@@ -134,9 +132,6 @@ def update_training_set(
 
     Returns:
         The updated TrainingSet from the server.
-
-    Refer to :ref:`update_uctraining_set` for an example Use Case.
-
     """
 
     _validate_trainingset_name(updated.name)
@@ -166,10 +161,6 @@ def delete_training_set(name: str) -> bool:
 
     Returns:
         True if TrainingSet was deleted.
-
-
-    Refer to :ref:`delete_uctraining_set` for an example Use Case.
-
     """
 
     _validate_trainingset_name(name)
@@ -210,9 +201,6 @@ def create_training_set_version(
 
     Returns:
         The created TrainingSetVersion
-
-    Refer to :ref:`create_uctraining_set` for an example Use Case.
-
     """
 
     if key_columns is None:
@@ -287,9 +275,6 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
 
     Returns:
         The requested TrainingSetVersion.
-
-    Refer to :ref:`get_uctraining_set` for an example Use Case.
-
     """
 
     _validate_trainingset_name(training_set_name)
@@ -314,9 +299,6 @@ def update_training_set_version(version: model.TrainingSetVersion) -> model.Trai
 
     Returns:
         The updated TrainingSetVersion from the server.
-
-    Refer to :ref:`update_uctraining_set` for an example Use Case.
-
     """
 
     _validate_trainingset_name(version.training_set_name)
@@ -355,9 +337,6 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
 
     Returns:
         True if TrainingSetVersion was deleted.
-
-    Refer to :ref:`delete_uctraining_set` for an example Use Case.
-
     """
 
     _validate_trainingset_name(training_set_name)
