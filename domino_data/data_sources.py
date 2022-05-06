@@ -330,8 +330,7 @@ class _Object:
     def get(self) -> bytes:
         """Get object content as bytes."""
         url = self.datasource.get_key_url(self.key, False)
-        with self.http() as client:
-            res = client.get(url)
+        res = self.http().get(url)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -352,11 +351,10 @@ class _Object:
         """
         url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with self.http() as client:
-            with client.stream("GET", url) as stream, open(filename, "wb") as file:
-                for data in stream.iter_bytes():
-                    content_size += len(data)
-                    file.write(data)
+        with self.http().stream("GET", url) as stream, open(filename, "wb") as file:
+            for data in stream.iter_bytes():
+                content_size += len(data)
+                file.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -373,11 +371,10 @@ class _Object:
         """
         url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with self.http() as client:
-            with client.stream("GET", url) as stream:
-                for data in stream.iter_bytes():
-                    content_size += len(data)
-                    fileobj.write(data)
+        with self.http().stream("GET", url) as stream:
+            for data in stream.iter_bytes():
+                content_size += len(data)
+                fileobj.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -392,8 +389,7 @@ class _Object:
             content: bytes content
         """
         url = self.datasource.get_key_url(self.key, True)
-        with self.http() as client:
-            res = client.put(url, content=content)
+        res = self.http().put(url, content=content)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -410,8 +406,7 @@ class _Object:
         """
         url = self.datasource.get_key_url(self.key, True)
         with open(filename, "rb") as file:
-            with self.http() as client:
-                res = client.put(url, content=file)
+            res = self.http().put(url, content=file)
         res.raise_for_status()
 
         content_size = os.path.getsize(filename)
@@ -428,8 +423,7 @@ class _Object:
             fileobj: bytes-like object or an iterable producing bytes.
         """
         url = self.datasource.get_key_url(self.key, True)
-        with self.http() as client:
-            res = client.put(url, content=fileobj)
+        res = self.http().put(url, content=fileobj)
         res.raise_for_status()
 
 
