@@ -9,7 +9,14 @@ import yaml
 from jinja2 import BaseLoader, Environment, Template
 
 
-'''Takes in a (camel case) string and converts it into snake case. The last letter is always lowercased'''
+"""
+    Args:
+        word (str): The string to be reformatted
+
+    Returns:
+        A snake case formatted version of the inputted string.
+        The last letter is always lowercased.
+"""
 def snake_case(word: str):
     return re.sub(r"(?<!^)(?=[A-Z])", "_", word[:-1]).lower() + word[-1].lower()
 
@@ -77,8 +84,8 @@ class {{ config }}(Config):
     {% for name_map in datasource_names[config] -%}
         {{ name_map["alias"] | snake_case }}: Optional[str] = _config(elem=ConfigElem.{{ name_map["name"] | upper}})
     {% endfor %}
-    {% for names_map in auth_names[config] -%}
-        {{ names_map["alias"] | snake_case }}: Optional[str] = _cred(elem=CredElem.{{ names_map["name"] | upper }})
+    {% for name_map in auth_names[config] -%}
+        {{ name_map["alias"] | snake_case }}: Optional[str] = _cred(elem=CredElem.{{ name_map["name"] | upper }})
     {% endfor %}
 
 {% endfor %}'''
@@ -101,27 +108,31 @@ def main(args):
     auth_names = {}
 
     for config_name, config_info in datasource_configs.items():
+        entered_names = set()
         datasource_names[config_name] = []
         for field_name, field_info in config_info["fields"].items():
-            if field_info["isOverridable"]:
+            if field_info["isOverridable"] and field_info["name"] not in entered_names:
                 datasource_names[config_name].append(
                     {
                         "alias": field_info.get("alias", field_info["name"]),
                         "name": field_info["name"],
                     }
                 )
+                entered_names.add(field_info["name"])
 
     for config_name, config_info in datasource_configs.items():
+        entered_names = set()
         auth_names[config_name] = []
         for auth_type in config_info["authTypes"]:
             for field_name, field_info in auth_configs[auth_type]["fields"].items():
-                if field_info["isOverridable"]:
+                if field_info["isOverridable"] and field_info["name"] not in entered_names:
                     auth_names[config_name].append(
                         {
                             "alias": field_info.get("alias", field_info["name"]),
                             "name": field_info["name"],
                         }
                     )
+                    entered_names.add(field_info["name"])
 
     with open(args.file, "w", encoding="ascii") as gen:
         gen.write(env.get_template(GenMessage).render(timestamp=datetime.utcnow()))
