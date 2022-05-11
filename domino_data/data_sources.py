@@ -28,7 +28,7 @@ from datasource_api_client.models import (
 )
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
-from .configuration_gen import _config, _cred, Config, ConfigElem, CredElem, DatasourceConfig
+from .configuration_gen import Config, ConfigElem, CredElem, DatasourceConfig, _config, _cred
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}

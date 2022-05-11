@@ -11,12 +11,12 @@ from jinja2 import BaseLoader, Environment, Template
 
 def snake_case(word: str):
     """
-        Args:
-            word (str): The string to be reformatted
+    Args:
+        word (str): The string to be reformatted
 
-        Returns:
-            A snake case formatted version of the inputted string.
-            The last letter is always lowercased.
+    Returns:
+        A snake case formatted version of the inputted string.
+        The last letter is always lowercased.
     """
     return re.sub(r"(?<!^)(?=[A-Z])", "_", word[:-1]).lower() + word[-1].lower()
 
@@ -118,17 +118,10 @@ class {{ config }}(Config):
     {% endfor %}
 
 {% endfor %}DatasourceConfig = Union[
-    ADLSConfig,
+    {% for config in datasource_configs -%}
+        {{config}},
+    {% endfor -%}
     Config,
-    GCSConfig,
-    GenericS3Config,
-    MySQLConfig,
-    OracleConfig,
-    PostgreSQLConfig,
-    RedshiftConfig,
-    S3Config,
-    SQLServerConfig,
-    SnowflakeConfig,
 ]'''
 )
 
