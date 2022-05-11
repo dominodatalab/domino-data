@@ -28,7 +28,7 @@ from datasource_api_client.models import (
 )
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
-from .configuration_gen import ConfigElem, CredElem
+from .configuration_gen import _config, _cred, Config, ConfigElem, CredElem, DatasourceConfig
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
@@ -64,203 +64,14 @@ def _unpack_flight_error(error: str) -> str:
         return error
 
 
-def _cred(elem: CredElem) -> Any:
-    """Type helper for credentials attributes."""
-    metadata = {
-        ELEMENT_TYPE_METADATA: CREDENTIAL_TYPE,
-        ELEMENT_VALUE_METADATA: elem,
-    }
-    return attr.ib(default=None, kw_only=True, metadata=metadata)
-
-
 def _filter_cred(att: Any, _: Any) -> Any:
     """Filter credential type attributes."""
     return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CREDENTIAL_TYPE
 
 
-def _config(elem: ConfigElem) -> Any:
-    """Type helper for configuration attributes."""
-    metadata = {
-        ELEMENT_TYPE_METADATA: CONFIGURATION_TYPE,
-        ELEMENT_VALUE_METADATA: elem,
-    }
-    return attr.ib(default=None, kw_only=True, metadata=metadata)
-
-
 def _filter_config(att: Any, _: Any) -> Any:
     """Filter configuration type attributes."""
     return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CONFIGURATION_TYPE
-
-
-@attr.s
-class Config:
-    """Base datasource configuration."""
-
-    def config(self) -> Dict[str, str]:
-        """Get configuration as dict."""
-        fields = attr.fields_dict(self.__class__)
-        attrs = attr.asdict(self, filter=_filter_config)
-
-        res = {}
-        for name, val in attrs.items():
-            field = fields[name]
-            if val is not None:
-                res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
-        return res
-
-    def credential(self) -> Dict[str, str]:
-        """Get credentials as dict."""
-        fields = attr.fields_dict(self.__class__)
-        attrs = attr.asdict(self, filter=_filter_cred)
-
-        res = {}
-        for name, val in attrs.items():
-            field = fields[name]
-            if val is not None:
-                res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
-        return res
-
-
-@attr.s(auto_attribs=True)
-class ADLSConfig(Config):
-    """ADLS datasource configuration."""
-
-    container: Optional[str] = _config(elem=ConfigElem.BUCKET)
-
-    access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
-
-
-@attr.s(auto_attribs=True)
-class BigQueryConfig(Config):
-    """BigQuery datasource configuration."""
-
-    gcp_project_id: Optional[str] = _config(elem=ConfigElem.PROJECT)
-
-
-@attr.s(auto_attribs=True)
-class GCSConfig(Config):
-    """GCS datasource configuration."""
-
-    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
-
-    private_key_json: Optional[str] = _cred(elem=CredElem.PASSWORD)
-
-
-@attr.s(auto_attribs=True)
-class GenericS3Config(Config):
-    """Generic S3 datasource configuration."""
-
-    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
-    host: Optional[str] = _config(elem=ConfigElem.HOST)
-    region: Optional[str] = _config(elem=ConfigElem.REGION)
-
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.USERNAME)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.PASSWORD)
-
-
-@attr.s(auto_attribs=True)
-class MySQLConfig(Config):
-    """MySQL datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
-    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
-
-
-@attr.s(auto_attribs=True)
-class OracleConfig(Config):
-    """Oracle datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-
-
-@attr.s(auto_attribs=True)
-class PostgreSQLConfig(Config):
-    """PostgreSQL datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
-    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
-
-
-@attr.s(auto_attribs=True)
-class RedshiftConfig(Config):
-    """Redshift datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
-    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
-
-
-@attr.s(auto_attribs=True)
-class SnowflakeConfig(Config):
-    """Snowflake datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-    schema: Optional[str] = _config(elem=ConfigElem.SCHEMA)
-    warehouse: Optional[str] = _config(elem=ConfigElem.WAREHOUSE)
-    role: Optional[str] = _config(elem=ConfigElem.ROLE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-    token: Optional[str] = _cred(elem=CredElem.TOKEN)
-
-
-@attr.s(auto_attribs=True)
-class S3Config(Config):
-    """S3 datasource configuration."""
-
-    bucket: Optional[str] = _config(elem=ConfigElem.BUCKET)
-    region: Optional[str] = _config(elem=ConfigElem.REGION)
-
-    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
-    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
-    aws_session_token: Optional[str] = _cred(elem=CredElem.SESSIONTOKEN)
-
-    profile: Optional[str] = attr.ib(default=None)
-
-
-@attr.s(auto_attribs=True)
-class SQLServerConfig(Config):
-    """SQL Server datasource configuration."""
-
-    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
-
-    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
-    username: Optional[str] = _cred(elem=CredElem.USERNAME)
-
-
-DatasourceConfig = Union[
-    ADLSConfig,
-    Config,
-    GCSConfig,
-    GenericS3Config,
-    MySQLConfig,
-    OracleConfig,
-    PostgreSQLConfig,
-    RedshiftConfig,
-    S3Config,
-    SQLServerConfig,
-    SnowflakeConfig,
-]
 
 
 @attr.s

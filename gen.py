@@ -9,15 +9,15 @@ import yaml
 from jinja2 import BaseLoader, Environment, Template
 
 
-"""
-    Args:
-        word (str): The string to be reformatted
-
-    Returns:
-        A snake case formatted version of the inputted string.
-        The last letter is always lowercased.
-"""
 def snake_case(word: str):
+    """
+        Args:
+            word (str): The string to be reformatted
+
+        Returns:
+            A snake case formatted version of the inputted string.
+            The last letter is always lowercased.
+    """
     return re.sub(r"(?<!^)(?=[A-Z])", "_", word[:-1]).lower() + word[-1].lower()
 
 
@@ -40,6 +40,7 @@ import attr
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
 
+
 def _cred(elem: CredElem) -> Any:
     """Type helper for credentials attributes."""
     metadata = {
@@ -56,6 +57,34 @@ def _config(elem: ConfigElem) -> Any:
         ELEMENT_VALUE_METADATA: elem,
     }
     return attr.ib(default=None, kw_only=True, metadata=metadata)
+
+@attr.s
+class Config:
+    """Base datasource configuration."""
+
+    def config(self) -> Dict[str, str]:
+        """Get configuration as dict."""
+        fields = attr.fields_dict(self.__class__)
+        attrs = attr.asdict(self, filter=_filter_config)
+
+        res = {}
+        for name, val in attrs.items():
+            field = fields[name]
+            if val is not None:
+                res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
+        return res
+
+    def credential(self) -> Dict[str, str]:
+        """Get credentials as dict."""
+        fields = attr.fields_dict(self.__class__)
+        attrs = attr.asdict(self, filter=_filter_cred)
+
+        res = {}
+        for name, val in attrs.items():
+            field = fields[name]
+            if val is not None:
+                res[field.metadata[ELEMENT_VALUE_METADATA].value] = val
+        return res
 
 
 class ConfigElem(Enum):
@@ -88,7 +117,19 @@ class {{ config }}(Config):
         {{ name_map["alias"] | snake_case }}: Optional[str] = _cred(elem=CredElem.{{ name_map["name"] | upper }})
     {% endfor %}
 
-{% endfor %}'''
+{% endfor %}DatasourceConfig = Union[
+    ADLSConfig,
+    Config,
+    GCSConfig,
+    GenericS3Config,
+    MySQLConfig,
+    OracleConfig,
+    PostgreSQLConfig,
+    RedshiftConfig,
+    S3Config,
+    SQLServerConfig,
+    SnowflakeConfig,
+]'''
 )
 
 
