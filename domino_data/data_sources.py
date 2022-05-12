@@ -1,4 +1,4 @@
-"""Datasource module. Refer to :ref:`usecase-simple-query` for a Use Case example."""
+"""Datasource module."""
 from typing import Any, Dict, List, Optional, cast
 
 import configparser
@@ -100,8 +100,7 @@ class _Object:
     def get(self) -> bytes:
         """Get object content as bytes."""
         url = self.datasource.get_key_url(self.key, False)
-        with self.http() as client:
-            res = client.get(url)
+        res = self.http().get(url)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -122,11 +121,10 @@ class _Object:
         """
         url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with self.http() as client:
-            with client.stream("GET", url) as stream, open(filename, "wb") as file:
-                for data in stream.iter_bytes():
-                    content_size += len(data)
-                    file.write(data)
+        with self.http().stream("GET", url) as stream, open(filename, "wb") as file:
+            for data in stream.iter_bytes():
+                content_size += len(data)
+                file.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -143,11 +141,10 @@ class _Object:
         """
         url = self.datasource.get_key_url(self.key, False)
         content_size = 0
-        with self.http() as client:
-            with client.stream("GET", url) as stream:
-                for data in stream.iter_bytes():
-                    content_size += len(data)
-                    fileobj.write(data)
+        with self.http().stream("GET", url) as stream:
+            for data in stream.iter_bytes():
+                content_size += len(data)
+                fileobj.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -162,8 +159,7 @@ class _Object:
             content: bytes content
         """
         url = self.datasource.get_key_url(self.key, True)
-        with self.http() as client:
-            res = client.put(url, content=content)
+        res = self.http().put(url, content=content)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -180,8 +176,7 @@ class _Object:
         """
         url = self.datasource.get_key_url(self.key, True)
         with open(filename, "rb") as file:
-            with self.http() as client:
-                res = client.put(url, content=file)
+            res = self.http().put(url, content=file)
         res.raise_for_status()
 
         content_size = os.path.getsize(filename)
@@ -198,8 +193,7 @@ class _Object:
             fileobj: bytes-like object or an iterable producing bytes.
         """
         url = self.datasource.get_key_url(self.key, True)
-        with self.http() as client:
-            res = client.put(url, content=fileobj)
+        res = self.http().put(url, content=fileobj)
         res.raise_for_status()
 
 
@@ -210,7 +204,9 @@ def load_oauth_credentials(location: str) -> Dict[str, str]:
         location: location of file that contains token.
 
     Returns:
-        {CredElem.TOKEN.value: `token`}
+        .. code-block:: python
+
+            {CredElem.TOKEN.value: "token"}
 
     Raises:
         DominoError: if the provided location is not a valid file
@@ -231,11 +227,13 @@ def load_aws_credentials(location: str, profile: str = "") -> Dict[str, str]:
         profile: profile to load.
 
     Returns:
-        {
-            CredElem.ACCESSKEYID.value: `access_key_id`,
-            CredElem.SECRETACCESSKEY.value: `secret_access_key`,
-            CredElem.SESSIONTOKEN.value: `session_token`,
-        }
+        .. code-block:: python
+
+            {
+                CredElem.ACCESSKEYID.value: "access_key_id",
+                CredElem.SECRETACCESSKEY.value: "secret_access_key",
+                CredElem.SESSIONTOKEN.value: "session_token",
+            }
 
     Raises:
         DominoError: if the provided location is not a valid file
