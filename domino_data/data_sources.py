@@ -1,10 +1,9 @@
 """Datasource module. Refer to :ref:`usecase-simple-query` for a Use Case example."""
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, cast
 
 import configparser
 import json
 import os
-from enum import Enum
 
 import attr
 import backoff
@@ -28,14 +27,11 @@ from datasource_api_client.models import (
 )
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
-from .configuration_gen import Config, ConfigElem, CredElem, DatasourceConfig, _config, _cred
+from .configuration_gen import Config, CredElem, DatasourceConfig
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
-
-ELEMENT_TYPE_METADATA = "__element_type_metadata"
-ELEMENT_VALUE_METADATA = "__element_value_metadata"
 
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
@@ -62,16 +58,6 @@ def _unpack_flight_error(error: str) -> str:
         return error.split(FLIGHT_ERROR_SPLIT, maxsplit=1)[0]
     except ValueError:
         return error
-
-
-def _filter_cred(att: Any, _: Any) -> Any:
-    """Filter credential type attributes."""
-    return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CREDENTIAL_TYPE
-
-
-def _filter_config(att: Any, _: Any) -> Any:
-    """Filter configuration type attributes."""
-    return att.metadata.get(ELEMENT_TYPE_METADATA, "") == CONFIGURATION_TYPE
 
 
 @attr.s
