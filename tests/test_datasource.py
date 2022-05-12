@@ -406,7 +406,7 @@ def test_gcp_config():
     )
 
     assert gcsc.config() == {"bucket": "cestino"}
-    assert gcsc.credential() == {"password": "chiave-segreta"}
+    assert gcsc.credential() == {"privateKey": "chiave-segreta"}
 
 
 # Object and object datasource
