@@ -2,15 +2,15 @@
 
 <div align="center">
 
-[![Build status](https://github.com/dominodatalab/domino-data/workflows/build/badge.svg?branch=master&event=push)](https://github.com/dominodatalab/domino-data/actions?query=workflow%3Abuild)
+[![Build status](https://github.com/dominodatalab/domino-data/workflows/build/badge.svg?branch=main&event=push)](https://github.com/dominodatalab/domino-data/actions?query=workflow%3Abuild)
 [![Python Version](https://img.shields.io/pypi/pyversions/dominodatalab-data.svg)](https://pypi.org/project/dominodatalab-data/)
 [![Dependencies Status](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen.svg)](https://github.com/dominodatalab/domino-data/pulls?utf8=%E2%9C%93&q=is%3Apr%20author%3Aapp%2Fdependabot)
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Security: bandit](https://img.shields.io/badge/security-bandit-green.svg)](https://github.com/PyCQA/bandit)
-[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/dominodatalab/domino-data/blob/master/.pre-commit-config.yaml)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/dominodatalab/domino-data/blob/main/.pre-commit-config.yaml)
 [![Semantic Versions](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--versions-e10079.svg)](https://github.com/dominodatalab/domino-data/releases)
-[![License](https://img.shields.io/github/license/dominodatalab/domino-data)](https://github.com/dominodatalab/domino-data/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/dominodatalab/domino-data)](https://github.com/dominodatalab/domino-data/blob/main/LICENSE)
 
 Domino Data API for interacting with Access Data features
 
@@ -30,7 +30,7 @@ poetry add dominodatalab-data
 
 ### Makefile usage
 
-[`Makefile`](https://github.com/dominodatalab/domino-data/blob/master/Makefile) contains a lot of functions for faster development.
+[`Makefile`](https://github.com/dominodatalab/domino-data/blob/main/Makefile) contains a lot of functions for faster development.
 
 <details>
 <summary>1. Download and remove Poetry</summary>
@@ -219,15 +219,15 @@ We use [`Release Drafter`](https://github.com/marketplace/actions/release-drafte
 |            `documentation`            |    📝 Documentation     |
 |            `dependencies`             | ⬆️ Dependencies updates |
 
-You can update it in [`release-drafter.yml`](https://github.com/dominodatalab/domino-data/blob/master/.github/release-drafter.yml).
+You can update it in [`release-drafter.yml`](https://github.com/dominodatalab/domino-data/blob/main/.github/release-drafter.yml).
 
 GitHub creates the `bug`, `enhancement`, and `documentation` labels for you. Dependabot creates the `dependencies` label. Create the remaining labels on the Issues tab of your GitHub repository, when you need them.
 
 ## 🛡 License
 
-[![License](https://img.shields.io/github/license/dominodatalab/domino-data)](https://github.com/dominodatalab/domino-data/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/dominodatalab/domino-data)](https://github.com/dominodatalab/domino-data/blob/main/LICENSE)
 
-This project is licensed under the terms of the `Apache Software License 2.0` license. See [LICENSE](https://github.com/dominodatalab/domino-data/blob/master/LICENSE) for more details.
+This project is licensed under the terms of the `Apache Software License 2.0` license. See [LICENSE](https://github.com/dominodatalab/domino-data/blob/main/LICENSE) for more details.
 
 ## 📃 Citation
 
