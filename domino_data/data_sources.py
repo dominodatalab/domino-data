@@ -36,7 +36,7 @@ ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
 
-FLIGHT_ERROR_SPLIT = ". Client context:"
+FLIGHT_ERROR_SPLIT = ". gRPC client debug context:"
 
 AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
 AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"

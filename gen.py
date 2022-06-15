@@ -2,11 +2,10 @@
 
 import argparse
 import re
-from collections import defaultdict
 from datetime import datetime
 
 import yaml
-from jinja2 import BaseLoader, Environment, Template
+from jinja2 import BaseLoader, Environment
 
 
 def snake_case(word: str):

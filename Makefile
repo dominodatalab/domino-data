@@ -27,7 +27,6 @@ pre-commit-install:
 	poetry run pre-commit install
 
 #* OpenAPI clients
-
 .PHONY: install-trainingset
 install-trainingset:
 	poetry run openapi-python-client generate --meta none --path $(TRAININGSET_YAML)
@@ -94,7 +93,6 @@ build-remove:
 clean-all: pycache-remove build-remove docs-remove
 
 #* Docs
-
 .PHONY: docs
 docs:
 	cd docs; poetry run make html
@@ -106,3 +104,10 @@ open-docs:
 .PHONY: docs-remove
 docs-remove:
 	cd docs; poetry run make clean
+
+#* Submodules
+update-submodules:
+	git submodule update --recursive --remote
+
+gen-services:
+	poetry run python gen.py
