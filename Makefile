@@ -110,4 +110,4 @@ update-submodules:
 	git submodule update --recursive --remote
 
 gen-services:
-	poetry run python gen.py
+	poetry run python scripts/gen.py
