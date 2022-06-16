@@ -1,4 +1,5 @@
 """Generator for Datasource Enums and Config entities."""
+from typing import Any, Dict
 
 import argparse
 import re
@@ -8,7 +9,7 @@ import yaml
 from jinja2 import BaseLoader, Environment
 
 
-def snake_case(word: str):
+def snake_case(word: str) -> str:
     """
     Args:
         word (str): The string to be reformatted
@@ -141,7 +142,7 @@ class {{ config }}(Config):
 )
 
 
-def main(args):
+def main(args: Any) -> None:
     """Entrypoint for code generation."""
 
     with open(args.openapi, encoding="ascii") as openapi:
@@ -153,13 +154,13 @@ def main(args):
     datasource_configs = configs["datasource_configs"]
     auth_configs = configs["auth_configs"]
 
-    datasource_names = {}
-    auth_names = {}
+    datasource_names: Dict[str, Any] = {}
+    auth_names: Dict[str, Any] = {}
 
     for config_name, config_info in datasource_configs.items():
         entered_names = set()
         datasource_names[config_name] = []
-        for field_name, field_info in config_info["fields"].items():
+        for _, field_info in config_info["fields"].items():
             if field_info["isOverridable"] and field_info["name"] not in entered_names:
                 datasource_names[config_name].append(
                     {
@@ -173,7 +174,7 @@ def main(args):
         entered_names = set()
         auth_names[config_name] = []
         for auth_type in config_info["authTypes"]:
-            for field_name, field_info in auth_configs[auth_type]["fields"].items():
+            for _, field_info in auth_configs[auth_type]["fields"].items():
                 if field_info["isOverridable"] and field_info["name"] not in entered_names:
                     auth_names[config_name].append(
                         {
