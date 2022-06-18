@@ -27,7 +27,7 @@ from datasource_api_client.models import (
 )
 
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
-from .configuration_gen import Config, CredElem, DatasourceConfig
+from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
@@ -330,7 +330,7 @@ class Datasource:
 
 
 @attr.s
-class QueryDatasource(Datasource):
+class TabularDatasource(Datasource):
     """Represents a tabular type datasource."""
 
     def query(self, query: str) -> Result:
@@ -464,21 +464,6 @@ class ObjectStoreDatasource(Datasource):
         self.Object(object_key).upload_fileobj(fileobj)
 
 
-DATASOURCES = {
-    DatasourceDtoDataSourceType.ADLSCONFIG: ObjectStoreDatasource,
-    DatasourceDtoDataSourceType.BIGQUERYCONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.GCSCONFIG: ObjectStoreDatasource,
-    DatasourceDtoDataSourceType.GENERICS3CONFIG: ObjectStoreDatasource,
-    DatasourceDtoDataSourceType.MYSQLCONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.ORACLECONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.POSTGRESQLCONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.REDSHIFTCONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.S3CONFIG: ObjectStoreDatasource,
-    DatasourceDtoDataSourceType.SNOWFLAKECONFIG: QueryDatasource,
-    DatasourceDtoDataSourceType.SQLSERVERCONFIG: QueryDatasource,
-}
-
-
 @attr.s
 class BoardingPass:
     """Represent a query request to the Datasource Proxy service."""
@@ -572,8 +557,9 @@ class DataSourceClient:
         )
         if response.status_code == 200:
             datasource_dto = cast(DatasourceDto, response.parsed)
-            _datasource = DATASOURCES.get(datasource_dto.data_source_type, Datasource)
-            return _datasource.from_dto(self, datasource_dto)
+            return find_datasource_klass(datasource_dto.data_source_type).from_dto(
+                self, datasource_dto
+            )
 
         message = cast(ErrorResponse, response.parsed).message
         logger.exception(message)
