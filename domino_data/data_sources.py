@@ -557,9 +557,10 @@ class DataSourceClient:
         )
         if response.status_code == 200:
             datasource_dto = cast(DatasourceDto, response.parsed)
-            return find_datasource_klass(datasource_dto.data_source_type).from_dto(
-                self, datasource_dto
+            datasource_klass = cast(
+                Datasource, find_datasource_klass(datasource_dto.data_source_type)
             )
+            return datasource_klass.from_dto(self, datasource_dto)
 
         message = cast(ErrorResponse, response.parsed).message
         logger.exception(message)
