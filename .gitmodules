@@ -1,3 +1,4 @@
 [submodule "services"]
 	path = services
 	url = git@github.com:cerebrotech/data-services.git
+  branch = ddl-giuliocapolino.DOM-36084.teradata-support

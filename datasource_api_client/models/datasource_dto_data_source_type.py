@@ -14,6 +14,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     SQLSERVERCONFIG = "SQLServerConfig"
     SNOWFLAKECONFIG = "SnowflakeConfig"
     TABULARS3GLUECONFIG = "TabularS3GlueConfig"
+    TERADATACONFIG = "TeradataConfig"
     TRINOCONFIG = "TrinoConfig"
 
     def __str__(self) -> str:
