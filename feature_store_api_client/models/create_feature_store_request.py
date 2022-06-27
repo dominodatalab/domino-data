@@ -25,7 +25,13 @@ class CreateFeatureStoreRequest:
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
         project_id = self.project_id
-        feature_views = fv.to_dict() for fv in self.feature_views
+
+        feature_views = []
+        _feature_views = d.pop("featureViews")
+        for fv in _feature_views:
+            f = FeatureView.to_dict(fv)
+
+            feature_views.append(f)
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -47,12 +53,11 @@ class CreateFeatureStoreRequest:
         project_id = d.pop("projectId")
 
         feature_Views = []
-            _feature_views = d.pop("featureViews")
-            for fv in _feature_views:
-                f = FeatureView.from_dict(fv)
+        _feature_views = d.pop("featureViews")
+        for fv in _feature_views:
+            f = FeatureView.from_dict(fv)
 
-                feature_views.append(f)
-
+            feature_views.append(f)
 
         create_feature_store_request = cls(
             name=name,

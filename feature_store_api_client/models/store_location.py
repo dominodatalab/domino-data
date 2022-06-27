@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-
 T = TypeVar("T", bound="StoreLocation")
 
 
@@ -39,7 +38,6 @@ class StoreLocation:
         bucket = d.pop("bucket")
 
         region = d.pop("region")
-
 
         store_location = cls(
             bucket=bucket,

@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-
 T = TypeVar("T", bound="BatchSource")
 
 
@@ -52,7 +51,7 @@ class BatchSource:
 
         created_timestamp_column = d.pop("createdTimestampColumn")
 
-        date_partition_column = BatchSourceSourceOptions.from_dict(d.pop("datePartitionColumn"))
+        date_partition_column = d.pop("datePartitionColumn")
 
         batch_source = cls(
             data_source=data_source,

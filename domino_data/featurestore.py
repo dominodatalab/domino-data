@@ -2,15 +2,12 @@
 from typing import List, Optional, cast
 
 import os
-from datetime import datetime
 from pathlib import Path
 
-import bson
 import click
-import pytz
 from attrs import define, field
 
-from feature_store_api_client.api.default import get_feature_store_name, post_feature_store_name
+from feature_store_api_client.api.default import post_feature_store_name
 from feature_store_api_client.client import Client
 from feature_store_api_client.models import (
     BatchSource,
@@ -20,6 +17,7 @@ from feature_store_api_client.models import (
     FeatureStore,
     FeatureView,
     FeatureViewTags,
+    StoreLocation,
 )
 
 from .auth import AuthenticatedClient
@@ -59,19 +57,16 @@ class FeatureStoreClient:
             ),
         )
 
-
     def post_feature_store(
-        self,
-        name: str,
-        feature_views: List[feast.FeatureView],
-        bucket: str,
-        region: str
+        self, name: str, feature_views: List[feast.FeatureView], bucket: str, region: str
     ) -> FeatureStore:
         """Create a feature store in Domino.
 
         Args:
             name: name of the feature store to create
             feature_views: list of feature views to create store with
+            bucket: bucket to store registry file
+            region: region of bucket
 
         Returns:
             Domino Feature Store entity
@@ -98,7 +93,10 @@ class FeatureStoreClient:
                     created_timestamp_column=fv.batch_source.created_timestamp_column,
                     date_partition_column=fv.batch_source.date_partition_column,
                 ),
-                entities=[Entity(name=entity.name, join_key=entity.join_key, value_type=entity.value_type) for entity in fv.entities],
+                entities=[
+                    Entity(name=entity.name, join_key=entity.join_key, value_type=entity.value_type)
+                    for entity in fv.entities
+                ],
                 store_location=StoreLocation(bucket=bucket, region=region),
                 tags=FeatureViewTags.from_dict(fv.tags),
             )
@@ -121,7 +119,6 @@ class FeatureStoreClient:
         raise Exception(response.content)
 
 
-@cli.command()
 @click.option(
     "--chdir",
     "-c",
@@ -139,6 +136,7 @@ def sync(name: str, chdir: Optional[str]) -> None:
     client = FeatureStoreClient()
     client.post_feature_store(name, feature_views)
     print(f"Feature store '{name}' successfully synced with Domino.")
+
 
 def _get_project_id() -> Optional[str]:
     return os.getenv("DOMINO_PROJECT_ID")
