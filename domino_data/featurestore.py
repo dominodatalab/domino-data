@@ -14,7 +14,6 @@ from feature_store_api_client.api.default import get_feature_store_name, post_fe
 from feature_store_api_client.client import Client
 from feature_store_api_client.models import (
     BatchSource,
-    BatchSourceSourceOptions,
     CreateFeatureStoreRequest,
     Entity,
     Feature,
@@ -60,28 +59,13 @@ class FeatureStoreClient:
             ),
         )
 
-    def get_feature_store(self, name: str) -> FeatureStore:
-        """Get a feature store by name.
-
-        Args:
-            name: name of the feature store to create
-
-        Returns:
-            Domino Feature Store entity
-
-        Raises:
-            Exception: if the response from Domino is not successful
-        """
-        response = get_feature_store_name.sync_detailed(name, client=self.client)
-        if response.status_code == 200:
-            return cast(FeatureStore, response.parsed)
-
-        raise Exception(response.content)
 
     def post_feature_store(
         self,
         name: str,
         feature_views: List[feast.FeatureView],
+        bucket: str,
+        region: str
     ) -> FeatureStore:
         """Create a feature store in Domino.
 
@@ -95,47 +79,35 @@ class FeatureStoreClient:
         Raises:
             Exception: if the response from Domino is not successful
         """
+        # change it into the defined entities
         domino_feature_views = [
             FeatureView(
                 name=fv.name,
-                ttl=fv.ttl.microseconds,
+                ttl=fv.ttl,
                 features=[
                     Feature(
                         name=feature.name,
-                        dtype=str(feature.dtype),
+                        value_type=str(feature.dtype),
                     )
                     for feature in fv.features
                 ],
                 batch_source=BatchSource(
-                    data_source_type=fv.batch_source.get_table_query_string(),
+                    name=fv.batch_source.name,
+                    data_source=fv.batch_source.get_table_query_string(),
                     event_timestamp_column=fv.batch_source.event_timestamp_column,
-                    source_options=BatchSourceSourceOptions.from_dict(
-                        {
-                            "query": fv.batch_source.get_table_query_string(),
-                            "table_name": fv.batch_source.name,
-                        }
-                    ),
                     created_timestamp_column=fv.batch_source.created_timestamp_column,
+                    date_partition_column=fv.batch_source.date_partition_column,
                 ),
-                entities=[Entity(name=entity, value_type="") for entity in fv.entities],
+                entities=[Entity(name=entity.name, join_key=entity.join_key, value_type=entity.value_type) for entity in fv.entities],
+                store_location=StoreLocation(bucket=bucket, region=region),
                 tags=FeatureViewTags.from_dict(fv.tags),
             )
             for fv in feature_views
         ]
-        domino_run_id = os.getenv("DOMINO_RUN_ID", "6238f45cf6d751a45f6d0539")
-        feature_store = FeatureStore(
-            id=str(bson.ObjectId()),
-            project_id=domino_run_id,
-            name=name,
-            feature_views=domino_feature_views,
-            creation_time=datetime.now(pytz.utc),
-            description=f"Feast feature store: {name}",
-        )
         request = CreateFeatureStoreRequest(
             name=name,
-            project_id=domino_run_id,
-            feature_store=feature_store,
-            description=f"Domino feature store: {name}",
+            project_id=_get_project_id(),
+            feature_views=domino_feature_views,
         )
         response = post_feature_store_name.sync_detailed(
             name,
@@ -147,12 +119,6 @@ class FeatureStoreClient:
             return cast(FeatureStore, response.parsed)
 
         raise Exception(response.content)
-
-
-@click.group()
-def cli():
-    """Click group for feature store commands."""
-    click.echo("⭐ Domino FeatureStore CLI tool ⭐")
 
 
 @cli.command()
@@ -172,4 +138,7 @@ def sync(name: str, chdir: Optional[str]) -> None:
 
     client = FeatureStoreClient()
     client.post_feature_store(name, feature_views)
-    print(f"store '{name}' sucessfully synced.")
+    print(f"Feature store '{name}' successfully synced with Domino.")
+
+def _get_project_id() -> Optional[str]:
+    return os.getenv("DOMINO_PROJECT_ID")

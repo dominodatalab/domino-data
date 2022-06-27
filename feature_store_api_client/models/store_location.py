@@ -2,31 +2,32 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-T = TypeVar("T", bound="Feature")
+
+T = TypeVar("T", bound="StoreLocation")
 
 
 @attr.s(auto_attribs=True)
-class Feature:
+class StoreLocation:
     """
     Attributes:
-        name (str):
-        value_type (str):
+        bucket (str):
+        region (str):
     """
 
-    name: str
-    value_type: str
+    bucket: str
+    region: str
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        name = self.name
-        value_type = self.value_type
+        bucket = self.bucket
+        region = self.region
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "name": name,
-                "valueType": value_type,
+                "bucket": bucket,
+                "region": region,
             }
         )
 
@@ -35,17 +36,18 @@ class Feature:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        name = d.pop("name")
+        bucket = d.pop("bucket")
 
-        value_type = d.pop("valueType")
+        region = d.pop("region")
 
-        feature = cls(
-            name=name,
-            value_type=value_type,
+
+        store_location = cls(
+            bucket=bucket,
+            region=region,
         )
 
-        feature.additional_properties = d
-        return feature
+        store_location.additional_properties = d
+        return store_location
 
     @property
     def additional_keys(self) -> List[str]:

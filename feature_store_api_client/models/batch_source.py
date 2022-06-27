@@ -2,7 +2,6 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-from ..models.batch_source_source_options import BatchSourceSourceOptions
 
 T = TypeVar("T", bound="BatchSource")
 
@@ -11,32 +10,34 @@ T = TypeVar("T", bound="BatchSource")
 class BatchSource:
     """
     Attributes:
-        data_source_type (str):
+        name (str):
+        data_source (str):
         event_timestamp_column (str):
         created_timestamp_column (str):
-        source_options (BatchSourceSourceOptions):
+        date_partition_column (str):
     """
 
-    data_source_type: str
+    name: str
+    data_source: str
     event_timestamp_column: str
     created_timestamp_column: str
-    source_options: BatchSourceSourceOptions
+    date_partition_column: str
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        data_source_type = self.data_source_type
+        data_source = self.data_source
         event_timestamp_column = self.event_timestamp_column
         created_timestamp_column = self.created_timestamp_column
-        source_options = self.source_options.to_dict()
+        date_partition_column = self.date_partition_column
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "dataSourceType": data_source_type,
+                "dataSource": data_source,
                 "eventTimestampColumn": event_timestamp_column,
                 "createdTimestampColumn": created_timestamp_column,
-                "sourceOptions": source_options,
+                "datePartitionColumn": date_partition_column,
             }
         )
 
@@ -45,19 +46,19 @@ class BatchSource:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        data_source_type = d.pop("dataSourceType")
+        data_source = d.pop("dataSource")
 
         event_timestamp_column = d.pop("eventTimestampColumn")
 
         created_timestamp_column = d.pop("createdTimestampColumn")
 
-        source_options = BatchSourceSourceOptions.from_dict(d.pop("sourceOptions"))
+        date_partition_column = BatchSourceSourceOptions.from_dict(d.pop("datePartitionColumn"))
 
         batch_source = cls(
-            data_source_type=data_source_type,
+            data_source=data_source,
             event_timestamp_column=event_timestamp_column,
             created_timestamp_column=created_timestamp_column,
-            source_options=source_options,
+            date_partition_column=date_partition_column,
         )
 
         batch_source.additional_properties = d

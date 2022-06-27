@@ -14,22 +14,18 @@ class CreateFeatureStoreRequest:
     Attributes:
         name (str):
         project_id (str):
-        feature_store (FeatureStore):
-        description (Union[Unset, str]):
+        feature_views (List[FeatureView]):
     """
 
     name: str
     project_id: str
-    feature_store: FeatureStore
-    description: Union[Unset, str] = UNSET
+    feature_views: List[FeatureView]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
         project_id = self.project_id
-        feature_store = self.feature_store.to_dict()
-
-        description = self.description
+        feature_views = fv.to_dict() for fv in self.feature_views
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -37,11 +33,9 @@ class CreateFeatureStoreRequest:
             {
                 "name": name,
                 "projectId": project_id,
-                "featureStore": feature_store,
+                "featureViews": feature_views,
             }
         )
-        if description is not UNSET:
-            field_dict["description"] = description
 
         return field_dict
 
@@ -52,15 +46,18 @@ class CreateFeatureStoreRequest:
 
         project_id = d.pop("projectId")
 
-        feature_store = FeatureStore.from_dict(d.pop("featureStore"))
+        feature_Views = []
+            _feature_views = d.pop("featureViews")
+            for fv in _feature_views:
+                f = FeatureView.from_dict(fv)
 
-        description = d.pop("description", UNSET)
+                feature_views.append(f)
+
 
         create_feature_store_request = cls(
             name=name,
             project_id=project_id,
-            feature_store=feature_store,
-            description=description,
+            feature_views=feature_views,
         )
 
         create_feature_store_request.additional_properties = d
