@@ -62,8 +62,8 @@ components:
         name:
           type: string
         ttl:
-          type: integer
-          format: int64
+          type: string
+          format: date-time
         entities:
           type: array
           items:
