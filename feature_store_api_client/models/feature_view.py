@@ -19,6 +19,7 @@ class FeatureView:
         ttl (int):
         features (List[Feature]):
         batch_source (BatchSource):
+        store_location (StoreLocation):
         entities (Union[Unset, List[Entity]]):
         tags (Union[Unset, FeatureViewTags]):
     """
@@ -27,6 +28,7 @@ class FeatureView:
     ttl: int
     features: List[Feature]
     batch_source: BatchSource
+    store_location: StoreLocation
     entities: Union[Unset, List[Entity]] = UNSET
     tags: Union[Unset, FeatureViewTags] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
@@ -35,12 +37,13 @@ class FeatureView:
         name = self.name
         ttl = self.ttl
         features = []
-        for features_item_data in self.features:
-            features_item = features_item_data.to_dict()
+        for feature in self.features:
+            feature_dict = feature.to_dict()
 
-            features.append(features_item)
+            features.append(feature_dict)
 
         batch_source = self.batch_source.to_dict()
+        store_location = self.store_location.to_dict()
 
         entities: Union[Unset, List[Dict[str, Any]]] = UNSET
         if not isinstance(self.entities, Unset):
@@ -62,6 +65,7 @@ class FeatureView:
                 "ttl": ttl,
                 "features": features,
                 "batchSource": batch_source,
+                "storeLocation": store_location,
             }
         )
         if entities is not UNSET:
@@ -86,6 +90,7 @@ class FeatureView:
             features.append(features_item)
 
         batch_source = BatchSource.from_dict(d.pop("batchSource"))
+        store_location = StoreLocation.from_dict(d.pop("storeLocation"))
 
         entities = []
         _entities = d.pop("entities", UNSET)
@@ -106,6 +111,7 @@ class FeatureView:
             ttl=ttl,
             features=features,
             batch_source=batch_source,
+            store_location=store_location,
             entities=entities,
             tags=tags,
         )

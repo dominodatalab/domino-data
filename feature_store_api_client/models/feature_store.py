@@ -19,16 +19,14 @@ class FeatureStore:
         project_id (str):
         name (str):
         creation_time (datetime.datetime):
-        feature_views (List[FeatureView]):
-        description (Union[Unset, str]):
+        feature_views (List[str]):
     """
 
     id: str
     project_id: str
     name: str
     creation_time: datetime.datetime
-    feature_views: List[FeatureView]
-    description: Union[Unset, str] = UNSET
+    feature_views: List[str]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -36,14 +34,8 @@ class FeatureStore:
         project_id = self.project_id
         name = self.name
         creation_time = self.creation_time.isoformat()
+        feature_views = self.feature_views
 
-        feature_views = []
-        for feature_views_item_data in self.feature_views:
-            feature_views_item = feature_views_item_data.to_dict()
-
-            feature_views.append(feature_views_item)
-
-        description = self.description
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -57,8 +49,6 @@ class FeatureStore:
             }
         )
         print(field_dict)
-        if description is not UNSET:
-            field_dict["description"] = description
 
         return field_dict
 
@@ -73,22 +63,15 @@ class FeatureStore:
 
         creation_time = isoparse(d.pop("creationTime"))
 
-        feature_views = []
-        _feature_views = d.pop("featureViews")
-        for feature_views_item_data in _feature_views:
-            feature_views_item = FeatureView.from_dict(feature_views_item_data)
+        feature_view_ids = d.pop("featureViews")
 
-            feature_views.append(feature_views_item)
-
-        description = d.pop("description", UNSET)
 
         feature_store = cls(
             id=id,
             project_id=project_id,
             name=name,
             creation_time=creation_time,
-            feature_views=feature_views,
-            description=description,
+            feature_views=feature_view_ids,
         )
 
         feature_store.additional_properties = d
