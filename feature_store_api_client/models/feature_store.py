@@ -36,7 +36,6 @@ class FeatureStore:
         creation_time = self.creation_time.isoformat()
         feature_views = self.feature_views
 
-
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
@@ -64,7 +63,6 @@ class FeatureStore:
         creation_time = isoparse(d.pop("creationTime"))
 
         feature_view_ids = d.pop("featureViews")
-
 
         feature_store = cls(
             id=id,
