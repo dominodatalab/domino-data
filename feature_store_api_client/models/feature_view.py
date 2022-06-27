@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
+import datetime
 
 from ..models.batch_source import BatchSource
 from ..models.entity import Entity
@@ -25,7 +26,7 @@ class FeatureView:
     """
 
     name: str
-    ttl: int
+    ttl: datetime.timedelta
     features: List[Feature]
     batch_source: BatchSource
     store_location: StoreLocation
