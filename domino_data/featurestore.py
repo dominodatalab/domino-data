@@ -1,10 +1,14 @@
 """Feature Store module."""
-from typing import List, Optional, cast
+from typing import Dict, List, Optional, cast
 
+import configparser
 import os
 from pathlib import Path
 
+import boto3
 import click
+import feast
+import uuid
 from attrs import define, field
 
 from feature_store_api_client.api.default import post_feature_store_name
@@ -22,27 +26,34 @@ from feature_store_api_client.models import (
 
 from .auth import AuthenticatedClient
 
-IMPORT_ERROR_MESSAGE = (
-    "`feast` is not installed.\n\n"
-    "Please install feast via pip or your preferred package manager:\n\n"
-    "    python -m pip install feast"
-)
 
+AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
+AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
 
-try:
-    import feast
-except ImportError as e:
-    raise ImportError(IMPORT_ERROR_MESSAGE) from e
+class DominoError(Exception):
+    """Base exception for known errors."""
 
 
 @define
 class FeatureStoreClient:
     """API client and bindings."""
 
+#     IMPORT_ERROR_MESSAGE = (
+#         "`feast` is not installed.\n\n"
+#         "Please install feast via pip or your preferred package manager:\n\n"
+#         "    python -m pip install feast"
+#     )
+#
+#     try:
+#         import feast
+#     except ImportError as e:
+#         raise ImportError(IMPORT_ERROR_MESSAGE) from e
+
     client: Client = field(init=False, repr=False)
 
     api_key: Optional[str] = field(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = field(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
+
 
     def __attrs_post_init__(self):
         domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
@@ -74,7 +85,20 @@ class FeatureStoreClient:
         Raises:
             Exception: if the response from Domino is not successful
         """
-        # change it into the defined entities
+
+        aws_cred_dict = _get_aws_credentials(AWS_SHARED_CREDENTIALS_FILE)
+        s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=aws_cred_dict["aws_access_key_id"],
+            aws_secret_access_key=aws_cred_dict["aws_secret_access_key"]
+        )
+        resource_id = str(uuid.uuid4())
+        feature_store_folder = Path('/' + name).joinpath(resource_id)
+        # upload yaml file
+        s3_client.upload_file(Filename=str(Path.cwd().joinpath("feature_store.yaml")), Bucket=bucket, Key=feature_store_folder)
+        # upload registry file
+        s3_client.upload_file(Filename=str(Path.cwd().joinpath("registry.db")), Bucket=bucket, Key=feature_store_folder)
+
         domino_feature_views = [
             FeatureView(
                 name=fv.name,
@@ -82,7 +106,7 @@ class FeatureStoreClient:
                 features=[
                     Feature(
                         name=feature.name,
-                        value_type=str(feature.dtype),
+                        dtype=str(feature.dtype),
                     )
                     for feature in fv.features
                 ],
@@ -97,7 +121,7 @@ class FeatureStoreClient:
                     Entity(name=entity.name, join_key=entity.join_key, value_type=entity.value_type)
                     for entity in fv.entities
                 ],
-                store_location=StoreLocation(bucket=bucket, region=region),
+                store_location=StoreLocation(bucket=bucket, region=region, resource_id=resource_id),
                 tags=FeatureViewTags.from_dict(fv.tags),
             )
             for fv in feature_views
@@ -140,3 +164,17 @@ def sync(name: str, chdir: Optional[str]) -> None:
 
 def _get_project_id() -> Optional[str]:
     return os.getenv("DOMINO_PROJECT_ID")
+
+def _get_aws_credentials(location: str) -> Dict[str, str]:
+        aws_config = configparser.RawConfigParser()
+        aws_config.read(os.getenv(location, AWS_CREDENTIALS_DEFAULT_LOCATION))
+        if not aws_config or not aws_config.sections():
+            raise DominoError(
+                "AWS credentials file does not exist or does not contain profiles"
+            )
+        profile = aws_config.sections().pop(0)
+
+        return dict(
+            aws_access_key_id=aws_config.get(profile, "aws_access_key_id"),
+            aws_secret_access_key=aws_config.get(profile, "aws_secret_access_key"),
+        )

@@ -131,9 +131,12 @@ components:
           type: string
         region:
           type: string
+        resourceId:
+          type: string
       required:
         - bucket
         - region
+        - resourceId
     CreateFeatureStoreRequest:
       type: object
       properties:

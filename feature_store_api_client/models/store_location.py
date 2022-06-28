@@ -11,15 +11,18 @@ class StoreLocation:
     Attributes:
         bucket (str):
         region (str):
+        resource_id (str):
     """
 
     bucket: str
     region: str
+    resource_id: str
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         bucket = self.bucket
         region = self.region
+        resource_id = self.resource_id
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -27,6 +30,7 @@ class StoreLocation:
             {
                 "bucket": bucket,
                 "region": region,
+                "resourceId": resource_id
             }
         )
 
@@ -39,9 +43,12 @@ class StoreLocation:
 
         region = d.pop("region")
 
+        resource_id = d.pop("resourceId")
+
         store_location = cls(
             bucket=bucket,
             region=region,
+            resource_id=resourceId
         )
 
         store_location.additional_properties = d

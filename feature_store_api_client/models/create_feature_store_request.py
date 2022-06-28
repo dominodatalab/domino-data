@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 import attr
 
 from ..models.feature_store import FeatureStore
+from ..models.feature_view import FeatureView
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CreateFeatureStoreRequest")
