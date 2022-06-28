@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Type, TypeVar, Union
 
-import attr
 import datetime
+
+import attr
 
 from ..models.batch_source import BatchSource
 from ..models.entity import Entity
