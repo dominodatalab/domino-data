@@ -1,30 +1,25 @@
 """TrainingSet tests."""
 
+import datetime
+import httpx
 import numpy as np
 import pandas as pd
 import pytest
 
-from feature_store_api_client.api.default import post_feature_store_name
-from feature_store_api_client.client import Client
-from feature_store_api_client.models import (
-    BatchSource,
-    CreateFeatureStoreRequest,
-    Entity,
-    Feature,
-    FeatureStore,
-    FeatureView,
-    FeatureViewTags,
-    StoreLocation,
-)
-
+from domino_data import featurestore as fs
 
 @pytest.mark.vcr
-def test_create_feature_store():
+def test_create_feature_store(monkeypatch, respx_mock):
     """Client can create a FeatureStore."""
 
-    features = [Feature(name = "total_trips_by_all_drivers", value_type = "Int64")]
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "tests/data/aws_credentials")
+    mock_content = b"I am a blob"
+    respx_mock.get("http://s3/url").mock(
+        return_value=httpx.Response(200, content=mock_content),
+    )
+    features = [fs.Feature(name = "total_trips_by_all_drivers", dtype = "Int64")]
 
-    batch_source = BatchSource(
+    batch_source = fs.BatchSource(
         name = "driver_stats",
         data_source = "SELECT * from driver_trips",
         event_timestamp_column = "driver_column",
@@ -32,17 +27,21 @@ def test_create_feature_store():
         date_partition_column = "driver_column",
     )
 
-    store_location = StoreLocation(
-        bucket = "bucket-name",
-        region = "us-west-2"
+    bucket = "bucket-name"
+    region = "us-west-2"
+
+    store_location = fs.StoreLocation(
+        bucket = bucket,
+        region = region,
+        resource_id = "1234-id"
     )
 
     project_id = "1234"
     feature_store_name = "driver_analysis"
-    ttl = timedelta(seconds=86400 * 1)
+    ttl = datetime.timedelta(seconds=86400 * 1)
 
     feature_views = [
-        FeatureView(
+        fs.FeatureView(
             name = "driver_info",
             ttl = ttl,
             features = features,
@@ -51,19 +50,15 @@ def test_create_feature_store():
         )
     ]
 
-    request = CreateFeatureStoreRequest(
+    client = fs.FeatureStoreClient()
+    fs_response = client.post_feature_store(
         name = feature_store_name,
-        project_id = project_id,
-        feature_views = feature_views
+        feature_views = feature_views,
+        bucket = bucket,
+        region = region
     )
 
-    fs = Client.post_feature_store_name(
-        feature_store_name,
-        self.client,
-        request
-    )
-
-    assert fs.name == feature_store_name
-    assert fs.project_id == project_id
-    assert not fs.pending
+    assert fs_response.name == feature_store_name
+    assert fs_response.project_id == project_id
+    assert not fs_response.pending
 

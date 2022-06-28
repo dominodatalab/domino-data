@@ -1,8 +1,8 @@
 """ Contains all the data models used in inputs/outputs """
 
 from .batch_source import BatchSource
-from .batch_source_source_options import BatchSourceSourceOptions
 from .create_feature_store_request import CreateFeatureStoreRequest
+from .store_location import StoreLocation
 from .entity import Entity
 from .feature import Feature
 from .feature_store import FeatureStore

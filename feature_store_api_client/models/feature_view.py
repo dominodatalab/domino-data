@@ -7,6 +7,7 @@ from ..models.batch_source import BatchSource
 from ..models.entity import Entity
 from ..models.feature import Feature
 from ..models.feature_view_tags import FeatureViewTags
+from ..models.store_location import StoreLocation
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="FeatureView")
