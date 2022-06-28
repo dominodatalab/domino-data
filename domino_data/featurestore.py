@@ -90,7 +90,7 @@ class FeatureStoreClient:
         )
         # upload registry file
         s3_client.upload_file(
-            Filename=str(Path.cwd().joinpath("registry.db")),
+            Filename=str(Path.cwd().joinpath("data/registry.db")),
             Bucket=bucket,
             Key=feature_store_folder,
         )
@@ -137,6 +137,28 @@ class FeatureStoreClient:
             return cast(FeatureStore, response.parsed)
 
         raise Exception(response.content)
+
+@click.option(
+    "--quickstart_yaml", prompt="Enter your feature store project name", help="Initialize a feature store YAML."
+)
+def quickstart_yaml(feature_store_name) -> None:
+    # currently supporting only local provider
+    valid_online_stores = ["sqlite", "redis", "datastore"]
+    provider = click.prompt('Please enter your provider', type=str)
+    online_store_type = ""
+    while online_store_type not in valid_online_stores:
+        online_store_type = click.prompt('Please enter your online store type', type=str).lower()
+
+    match online_store_type:
+        case "sqlite":
+            return "Bad request"
+        case "redis":
+            return "Not found"
+        case "datastore":
+            return "I'm a teapot"
+        case _:
+            return "Something's wrong with the internet"
+    if (online_store_type)
 
 
 @click.option(
