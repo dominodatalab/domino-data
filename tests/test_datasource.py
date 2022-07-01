@@ -20,7 +20,7 @@ def test_get_datasource():
     redshift_test = client.get_datasource("redshift_sdk_test")
     s3_test = client.get_datasource("aduser-s3")
 
-    assert isinstance(redshift_test, ds.QueryDatasource)
+    assert isinstance(redshift_test, ds.TabularDatasource)
     assert isinstance(s3_test, ds.ObjectStoreDatasource)
 
 
@@ -574,7 +574,7 @@ def test_credential_override_with_oauth(datafx, flight_server, monkeypatch, resp
 
     flight_server.do_get_callback = callback
     snowflake_ds = ds.DataSourceClient().get_datasource("snowflake")
-    snowflake_ds = ds.cast(ds.QueryDatasource, snowflake_ds)
+    snowflake_ds = ds.cast(ds.TabularDatasource, snowflake_ds)
     snowflake_ds.query("SELECT 1")
 
 
@@ -594,6 +594,6 @@ def test_credential_override_with_oauth_file_does_not_exist(
 
     flight_server.do_get_callback = callback
     snowflake_ds = ds.DataSourceClient().get_datasource("snowflake")
-    snowflake_ds = ds.cast(ds.QueryDatasource, snowflake_ds)
+    snowflake_ds = ds.cast(ds.TabularDatasource, snowflake_ds)
     with pytest.raises(ds.DominoError):
         snowflake_ds.query("SELECT 1")

@@ -36,8 +36,11 @@ Enums = env.from_string(
 from typing import Any, Dict, Optional, Union
 
 from enum import Enum
+from importlib import import_module
 
 import attr
+
+from datasource_api_client.models import DatasourceDtoDataSourceType
 
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
@@ -87,17 +90,17 @@ class Config:
 
 class ConfigElem(Enum):
     """Enumeration of valid config elements."""
-
-    {% for value in datasource_fields -%}
+{% for value in datasource_fields %}
     {{ value | upper }} = "{{ value }}"
-    {% endfor %}
+{%- endfor %}
+
 
 class CredElem(Enum):
     """Enumeration of valid credential elements."""
-
-    {% for value in auth_fields -%}
+{% for value in auth_fields %}
     {{ value | upper }} = "{{ value }}"
-    {% endfor %}
+{%- endfor %}
+
 
 def _cred(elem: CredElem) -> Any:
     """Type helper for credentials attributes."""
@@ -115,7 +118,9 @@ def _config(elem: ConfigElem) -> Any:
         ELEMENT_VALUE_METADATA: elem,
     }
     return attr.ib(default=None, kw_only=True, metadata=metadata)
-    '''
+
+
+'''
 )
 
 
@@ -125,20 +130,41 @@ Configs = env.from_string(
 @attr.s(auto_attribs=True)
 class {{ config }}(Config):
     """{{ config }} datasource configuration."""
+{% for name_map in datasource_names[config] %}
+    {{ name_map["alias"] | snake_case }}: Optional[str] = _config(elem=ConfigElem.{{ name_map["name"] | upper}})
+{%- endfor %}
+{% for name_map in auth_names[config] %}
+    {{ name_map["alias"] | snake_case }}: Optional[str] = _cred(elem=CredElem.{{ name_map["name"] | upper }})
+{%- endfor %}
 
-    {% for name_map in datasource_names[config] -%}
-        {{ name_map["alias"] | snake_case }}: Optional[str] = _config(elem=ConfigElem.{{ name_map["name"] | upper}})
-    {% endfor %}
-    {% for name_map in auth_names[config] -%}
-        {{ name_map["alias"] | snake_case }}: Optional[str] = _cred(elem=CredElem.{{ name_map["name"] | upper }})
-    {% endfor %}
 
-{% endfor %}DatasourceConfig = Union[
-    {% for config in datasource_configs -%}
-        {{config}},
-    {% endfor -%}
+{% endfor -%}
+DatasourceConfig = Union[
+{%- for config in datasource_configs %}
+    {{config}},
+{%- endfor %}
     Config,
-]'''
+]
+
+'''
+)
+
+
+Storages = env.from_string(
+    '''
+DATASOURCES = {
+{%- for ds in datasources.values() %}
+    DatasourceDtoDataSourceType.{{ ds["datasourceType"] | upper }}: "{{ ds["storageType"] }}Datasource",
+{%- endfor %}
+}
+
+
+def find_datasource_klass(datasource_type: DatasourceDtoDataSourceType) -> Any:
+    """Find according datasource class."""
+    mod = import_module("domino_data.data_sources")
+    return getattr(mod, DATASOURCES[datasource_type])
+
+'''
 )
 
 
@@ -199,6 +225,7 @@ def main(args: Any) -> None:
                 auth_names=auth_names,
             ),
         )
+        gen.write(env.get_template(Storages).render(datasources=configs["datasource_configs"]))
 
 
 if __name__ == "__main__":
