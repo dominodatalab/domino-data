@@ -227,6 +227,7 @@ components:
             - S3Config
             - SQLServerConfig
             - SnowflakeConfig
+            - TabularS3GlueConfig
             - TrinoConfig
         description:
           type: string
