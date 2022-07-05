@@ -60,6 +60,7 @@ class ConfigElem(Enum):
     """Enumeration of valid config elements."""
 
     ACCOUNTNAME = "accountName"
+    ACCOUNTID = "accountID"
     BUCKET = "bucket"
     CATALOG = "catalog"
     CLUSTER = "cluster"
@@ -232,6 +233,17 @@ class SnowflakeConfig(Config):
 
 
 @attr.s(auto_attribs=True)
+class TabularS3GlueConfig(Config):
+    """TabularS3GlueConfig datasource configuration."""
+
+    database: Optional[str] = _config(elem=ConfigElem.DATABASE)
+    region: Optional[str] = _config(elem=ConfigElem.REGION)
+
+    aws_access_key_id: Optional[str] = _cred(elem=CredElem.ACCESSKEYID)
+    aws_secret_access_key: Optional[str] = _cred(elem=CredElem.SECRETACCESSKEY)
+
+
+@attr.s(auto_attribs=True)
 class TrinoConfig(Config):
     """TrinoConfig datasource configuration."""
 
@@ -254,6 +266,7 @@ DatasourceConfig = Union[
     S3Config,
     SQLServerConfig,
     SnowflakeConfig,
+    TabularS3GlueConfig,
     TrinoConfig,
     Config,
 ]
