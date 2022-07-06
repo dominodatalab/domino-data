@@ -247,7 +247,6 @@ class TabularS3GlueConfig(Config):
 class TeradataConfig(Config):
     """TeradataConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
