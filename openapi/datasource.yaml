@@ -228,6 +228,7 @@ components:
             - SQLServerConfig
             - SnowflakeConfig
             - TabularS3GlueConfig
+            - TeradataConfig
             - TrinoConfig
         description:
           type: string
