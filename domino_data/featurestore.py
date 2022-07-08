@@ -1,30 +1,20 @@
 """Feature Store module."""
-from typing import Dict, List, Optional, cast
+from typing import Optional, cast
 
-import configparser
 import os
-import uuid
 from pathlib import Path
 
-import boto3
 import click
+import data_sources as ds
 import feast
 import yaml
 from attrs import define, field
-from feast.repo_operations import init_repo
 
+from datasource_api_client.api import post_datasource
+from datasource_api_client.models import CreateDatasourceRequest, DatasourceDto
 from feature_store_api_client.api.default import post_feature_store_name
 from feature_store_api_client.client import Client
-from feature_store_api_client.models import (
-    BatchSource,
-    CreateFeatureStoreRequest,
-    Entity,
-    Feature,
-    FeatureStore,
-    FeatureView,
-    FeatureViewTags,
-    StoreLocation,
-)
+from feature_store_api_client.models import CreateFeatureStoreRequest, FeatureStore
 
 from .auth import AuthenticatedClient
 
@@ -58,6 +48,24 @@ class FeatureStoreClient:
             ),
         )
 
+    def post_feature_store(self, name, datasource_id):
+        request = CreateFeatureStoreRequest(
+            name=name,
+            project_id=_get_project_id(),
+            datasource_id=datasource_id,
+            feature_views=[],
+        )
+        response = post_feature_store_name.sync_detailed(
+            name,
+            client=self.client,
+            json_body=request,
+        )
+
+        if response.status_code == 200:
+            return cast(FeatureStore, response.parsed)
+
+        raise Exception(response.content)
+
 
 @click.group()
 def cli():
@@ -79,7 +87,7 @@ def cli():
     default="local",
 )
 def init(project_directory, minimal: bool, template: str) -> None:
-    """Set up a Feast feature store repository and save the location info for the feature store metadata storage"""
+    """Set up a Feast repository and persist info for feature store metadata storage"""
     project_directory_name = __run__feast__init(project_directory, minimal, template)
 
     # remove initial yaml file
@@ -93,22 +101,9 @@ def init(project_directory, minimal: bool, template: str) -> None:
     datasource = __create_datasource(project_directory_name)
 
     # feature store creation
-    request = CreateFeatureStoreRequest(
-        name=name,
-        project_id=_get_project_id(),
-        datasource_id=datasource.id,
-        feature_views=domino_feature_views,
-    )
-    response = post_feature_store_name.sync_detailed(
-        name,
-        client=self.client,
-        json_body=request,
-    )
-
-    if response.status_code == 200:
-        return cast(FeatureStore, response.parsed)
-
-    raise Exception(response.content)
+    client = FeatureStoreClient()
+    client.post_feature_store(project_directory_name, project_directory_name, datasource.id)
+    print(f"Feature store '{project_directory_name}' successfully synced with Domino.")
 
 
 def __run__feast__init(project_directory, minimal: bool, template: str):
@@ -144,7 +139,7 @@ def __create_datasource(feature_store_name):
         user_ids=[],
     )
     response = post_datasource.sync_detailed(
-        client=self.client,
+        client=ds.DatasourceClient(),
         json_body=request,
     )
 
@@ -215,47 +210,8 @@ def __generate_yaml(path, project_directory_name):
         final_dict = initial_dict
 
     with open(path, "w") as file:
-        documents = yaml.dump(final_dict, file, default_flow_style=False, sort_keys=False)
-
-
-# run feast init
-# take the inputted parameters to fill in the yaml -> this will be click prompts
-# save the data source information - take in bucket, region, creds? maybe can take from the environment
-# create a data source with the information and then take the ID and persist a feature store entity with the ID saved on init
-
-
-@cli.command()
-@click.option(
-    "--chdir",
-    "-c",
-    help="Switch to a different feature repository directory before syncing.",
-)
-@click.option(
-    "--name", prompt="Name of your Feature Store", help="Unique name for your feature store"
-)
-def sync(name: str, chdir: Optional[str]) -> None:
-    """Sync information in registry.db with Domino"""
-    repo = Path.cwd() if chdir is None else Path(chdir).absolute()
-    feature_store = feast.FeatureStore(repo)
-    feature_views = feature_store.list_feature_views()
-
-    client = FeatureStoreClient()
-    client.post_feature_store(name, feature_views)
-    print(f"Feature store '{name}' successfully synced with Domino.")
+        yaml.dump(final_dict, file, default_flow_style=False, sort_keys=False)
 
 
 def _get_project_id() -> Optional[str]:
     return os.getenv("DOMINO_PROJECT_ID")
-
-
-def _get_aws_credentials(location: str) -> Dict[str, str]:
-    aws_config = configparser.RawConfigParser()
-    aws_config.read(os.getenv(location, AWS_CREDENTIALS_DEFAULT_LOCATION))
-    if not aws_config or not aws_config.sections():
-        raise DominoError("AWS credentials file does not exist or does not contain profiles")
-    profile = aws_config.sections().pop(0)
-
-    return dict(
-        aws_access_key_id=aws_config.get(profile, "aws_access_key_id"),
-        aws_secret_access_key=aws_config.get(profile, "aws_secret_access_key"),
-    )

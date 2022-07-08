@@ -26,18 +26,23 @@ class CreateDatasourceRequest:
         bucket (Union[Unset, str]):
         region (Union[Unset, str]):
         project (Union[Unset, str]):
-        credentialType (str):
+        credential_type (str):
         auth_type (str):
         engine_type (str):
         engine_catalog_entry_name (Union[Unset, str]):
         visible_credential (Union[Unset, str]):
         secret_credential (Union[Unset, str]):
-        is_everyone (boolean):
+        is_everyone (bool):
         user_ids (List[str])
     """
 
     name: str
     datasource_type: str
+    credential_type: str
+    auth_type: str
+    engine_type: str
+    is_everyone: bool
+    user_ids: List[str]
     description: Union[Unset, str] = UNSET
     project_id: Union[Unset, str] = UNSET
     account_name: Union[Unset, str] = UNSET
@@ -50,14 +55,9 @@ class CreateDatasourceRequest:
     bucket: Union[Unset, str] = UNSET
     region: Union[Unset, str] = UNSET
     project: Union[Unset, str] = UNSET
-    credential_type: str
-    auth_type: str
-    engine_type: str
     engine_catalog_entry_name: Union[Unset, str] = UNSET
     visible_credential: Union[Unset, str] = UNSET
     secret_credential: Union[Unset, str] = UNSET
-    is_everyone: boolean
-    user_ids: List[str]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:

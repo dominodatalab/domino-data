@@ -11,7 +11,7 @@ from ...types import Response
 def _get_kwargs(
     *,
     client: Client,
-    json_body: CreateTrainingSetVersionRequest,
+    json_body: CreateDatasourceRequest,
 ) -> Dict[str, Any]:
     url = "{}/".format(client.base_url)
 

@@ -539,6 +539,11 @@ class DataSourceClient:
         self,
         name: str,
         datasource_type: str,
+        credential_type: str,
+        auth_type: str,
+        engine_type: str,
+        is_everyone: bool,
+        user_ids: List[str],
         description: Optional[str] = None,
         project_id: Optional[str] = None,
         account_name: Optional[str] = None,
@@ -551,14 +556,9 @@ class DataSourceClient:
         bucket: Optional[str] = None,
         region: Optional[str] = None,
         project: Optional[str] = None,
-        credential_type: str,
-        auth_type: str,
-        engine_type: str,
         engine_catalog_entry_name: Optional[str] = None,
         visible_credential: Optional[str] = None,
         secret_credential: Optional[str] = None,
-        is_everyone: boolean,
-        user_ids: List[str]
     ) -> Datasource:
         """Create a datasource.
 
@@ -601,8 +601,10 @@ class DataSourceClient:
         )
         if response.status_code == 200:
             datasource_dto = cast(DatasourceDto, response.parsed)
-            _datasource = DATASOURCES.get(datasource_dto.data_source_type, Datasource)
-            return _datasource.from_dto(self, datasource_dto)
+            datasource_klass = cast(
+                Datasource, find_datasource_klass(datasource_dto.data_source_type)
+            )
+            return datasource_klass.from_dto(self, datasource_dto)
 
         message = cast(ErrorResponse, response.parsed).message
         logger.exception(message)
