@@ -11,7 +11,7 @@ import httpx
 import pandas
 from pyarrow import ArrowException, flight, parquet
 
-from datasource_api_client.api.datasource import get_datasource_by_name
+from datasource_api_client.api.datasource import get_datasource_by_name, post_datasource
 from datasource_api_client.api.proxy import get_key_url, list_keys, log_metric
 from datasource_api_client.models import DatasourceConfig as APIConfig
 from datasource_api_client.models import (
@@ -534,6 +534,79 @@ class DataSourceClient:
                 )
             ],
         )
+
+    def create_datasource(
+        self,
+        name: str,
+        datasource_type: str,
+        description: Optional[str] = None,
+        project_id: Optional[str] = None,
+        account_name: Optional[str] = None,
+        database: Optional[str] = None,
+        schema: Optional[str] = None,
+        warehouse: Optional[str] = None,
+        role: Optional[str] = None,
+        host: Optional[str] = None,
+        port: Optional[str] = None,
+        bucket: Optional[str] = None,
+        region: Optional[str] = None,
+        project: Optional[str] = None,
+        credential_type: str,
+        auth_type: str,
+        engine_type: str,
+        engine_catalog_entry_name: Optional[str] = None,
+        visible_credential: Optional[str] = None,
+        secret_credential: Optional[str] = None,
+        is_everyone: boolean,
+        user_ids: List[str]
+    ) -> Datasource:
+        """Create a datasource.
+
+        Args:
+            name: name of datasource
+            datasource_type: type of datasource
+            description: description
+            project_id: project ID associated with datasource
+            account_name: account name
+            database: database
+            schema: schema
+            warehouse: warehouse
+            role: role
+            host: host
+            port: port
+            bucket: bucket
+            region: region
+            project: project
+            credential_type: credential type of datasource
+            auth_type: auth type of datasource
+            engine_type: type of underlying driver system to use
+            engine_catalog_entry_name: engine catalog entry name
+            visible_credential: visible credential
+            secret_credential: secret credential
+            is_everyone: privacy setting
+            user_ids: users added to datasource
+
+        Returns:
+            Created datasource entity
+
+        Raises:
+            Exception: If the response from Domino is not 200
+        """
+        logger.info("create_datasource", datasource_name=name)
+
+        run_id = os.getenv("DOMINO_RUN_ID")
+        response = post_datasource.sync_detailed(
+            client=self.domino,
+            run_id=run_id,
+        )
+        if response.status_code == 200:
+            datasource_dto = cast(DatasourceDto, response.parsed)
+            _datasource = DATASOURCES.get(datasource_dto.data_source_type, Datasource)
+            return _datasource.from_dto(self, datasource_dto)
+
+        message = cast(ErrorResponse, response.parsed).message
+        logger.exception(message)
+        raise Exception(message)
 
     def get_datasource(self, name: str) -> Datasource:
         """Fetch a datasource by name.

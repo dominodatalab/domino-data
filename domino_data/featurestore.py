@@ -9,7 +9,9 @@ from pathlib import Path
 import boto3
 import click
 import feast
+import yaml
 from attrs import define, field
+from feast.repo_operations import init_repo
 
 from feature_store_api_client.api.default import post_feature_store_name
 from feature_store_api_client.client import Client
@@ -56,111 +58,173 @@ class FeatureStoreClient:
             ),
         )
 
-    def post_feature_store(
-        self, name: str, feature_views: List[feast.FeatureView], bucket: str, region: str
-    ) -> FeatureStore:
-        """Create a feature store in Domino.
 
-        Args:
-            name: name of the feature store to create
-            feature_views: list of feature views to create store with
-            bucket: bucket to store registry file
-            region: region of bucket
+@click.group()
+def cli():
+    """Click group for feature store commands."""
+    click.echo("⭐ Domino FeatureStore CLI tool ⭐")
 
-        Returns:
-            Domino Feature Store entity
 
-        Raises:
-            Exception: if the response from Domino is not successful
-        """
-
-        aws_cred_dict = _get_aws_credentials(AWS_SHARED_CREDENTIALS_FILE)
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=aws_cred_dict["aws_access_key_id"],
-            aws_secret_access_key=aws_cred_dict["aws_secret_access_key"],
-        )
-        resource_id = str(uuid.uuid4())
-        feature_store_folder = Path("/" + name).joinpath(resource_id)
-        # upload yaml file
-        s3_client.upload_file(
-            Filename=str(Path.cwd().joinpath("feature_store.yaml")),
-            Bucket=bucket,
-            Key=feature_store_folder,
-        )
-        # upload registry file
-        s3_client.upload_file(
-            Filename=str(Path.cwd().joinpath("data/registry.db")),
-            Bucket=bucket,
-            Key=feature_store_folder,
-        )
-
-        domino_feature_views = [
-            FeatureView(
-                name=fv.name,
-                ttl=fv.ttl,
-                features=[
-                    Feature(
-                        name=feature.name,
-                        dtype=str(feature.dtype),
-                    )
-                    for feature in fv.features
-                ],
-                batch_source=BatchSource(
-                    name=fv.batch_source.name,
-                    data_source=fv.batch_source.get_table_query_string(),
-                    event_timestamp_column=fv.batch_source.event_timestamp_column,
-                    created_timestamp_column=fv.batch_source.created_timestamp_column,
-                    date_partition_column=fv.batch_source.date_partition_column,
-                ),
-                entities=[
-                    Entity(name=entity.name, join_key=entity.join_key, value_type=entity.value_type)
-                    for entity in fv.entities
-                ],
-                store_location=StoreLocation(bucket=bucket, region=region, resource_id=resource_id),
-                tags=FeatureViewTags.from_dict(fv.tags),
-            )
-            for fv in feature_views
-        ]
-        request = CreateFeatureStoreRequest(
-            name=name,
-            project_id=_get_project_id(),
-            feature_views=domino_feature_views,
-        )
-        response = post_feature_store_name.sync_detailed(
-            name,
-            client=self.client,
-            json_body=request,
-        )
-
-        if response.status_code == 200:
-            return cast(FeatureStore, response.parsed)
-
-        raise Exception(response.content)
-
+@cli.command()
+@click.argument("PROJECT_DIRECTORY", required=False)
+@click.option("--minimal", "-m", is_flag=True, help="Create an empty project repository")
 @click.option(
-    "--quickstart_yaml", prompt="Enter your feature store project name", help="Initialize a feature store YAML."
+    "--template",
+    "-t",
+    type=click.Choice(
+        ["local", "gcp", "aws", "snowflake", "spark", "postgres", "hbase"],
+        case_sensitive=False,
+    ),
+    help="Specify a template for the created project",
+    default="local",
 )
-def quickstart_yaml(feature_store_name) -> None:
-    # currently supporting only local provider
-    valid_online_stores = ["sqlite", "redis", "datastore"]
-    provider = click.prompt('Please enter your provider', type=str)
-    online_store_type = ""
-    while online_store_type not in valid_online_stores:
-        online_store_type = click.prompt('Please enter your online store type', type=str).lower()
+def init(project_directory, minimal: bool, template: str) -> None:
+    """Set up a Feast feature store repository and save the location info for the feature store metadata storage"""
+    project_directory_name = __run__feast__init(project_directory, minimal, template)
 
-    match online_store_type:
-        case "sqlite":
-            return "Bad request"
-        case "redis":
-            return "Not found"
-        case "datastore":
-            return "I'm a teapot"
-        case _:
-            return "Something's wrong with the internet"
-    if (online_store_type)
+    # remove initial yaml file
+    path_to_yaml = Path.cwd() / project_directory_name / "feature_store.yaml"
+    os.remove((path_to_yaml))
+
+    # generate yaml file
+    __generate_yaml(path_to_yaml, project_directory_name)
+
+    # datasource creation
+    datasource = __create_datasource(project_directory_name)
+
+    # feature store creation
+    request = CreateFeatureStoreRequest(
+        name=name,
+        project_id=_get_project_id(),
+        datasource_id=datasource.id,
+        feature_views=domino_feature_views,
+    )
+    response = post_feature_store_name.sync_detailed(
+        name,
+        client=self.client,
+        json_body=request,
+    )
+
+    if response.status_code == 200:
+        return cast(FeatureStore, response.parsed)
+
+    raise Exception(response.content)
 
 
+def __run__feast__init(project_directory, minimal: bool, template: str):
+    if not project_directory:
+        project_directory = feast.repo_operations.generate_project_name()
+
+    if minimal:
+        template = "minimal"
+
+    feast.repo_operations.init_repo(project_directory, template)
+
+    return project_directory
+
+
+def __create_datasource(feature_store_name):
+    bucket = click.prompt("Input the S3 bucket to store your feature store metadata")
+    region = click.prompt("Input the region associated with your S3 bucket")
+    access_key = click.prompt("Input the access key associated with your S3 bucket")
+    secret_key = click.prompt("Input the secret key associated with your S3 bucket")
+    datasource_name = feature_store_name + "-metadata"
+    # TODO: figure out how to deal with permissioning....
+    request = CreateDatasourceRequest(
+        name=datasource_name,
+        datasource_type="S3",
+        bucket=bucket,
+        region=region,
+        credential_type="Individual",
+        auth_type="AWSIAMBasic",
+        engine_type="Domino",
+        visible_credential=access_key,
+        secret_credential=secret_key,
+        is_everyone=True,
+        user_ids=[],
+    )
+    response = post_datasource.sync_detailed(
+        client=self.client,
+        json_body=request,
+    )
+
+    if response.status_code == 200:
+        return cast(DatasourceDto, response.parsed)
+
+    raise Exception(response.content)
+
+
+def __generate_yaml(path, project_directory_name):
+    meta_fields = {
+        "Enter your online store type (SQLite, Redis, Datastore)": "online_store",
+        "Enter your offline store type (File, BigQuery)": "offline_store",
+    }
+    fields = {
+        "Enter your online store type (SQLite, Redis, Datastore)": "type",
+        "Enter your offline store type (File, BigQuery)": "type",
+        "Enter your SQLite path": "path",
+        "Enter your Redis type (skip if SSL not enabled)": "redis_type",
+        "Enter your Redis connection string": "connection_string",
+        "Enter your Datastore project ID": "project_id",
+        "Enter your Datastore namespace": "namespace",
+        "Enter your BigQuery dataset name": "dataset",
+    }
+    optional_prompts = {"Enter your Redis type (skip if SSL not enabled)"}
+    question_bank = {
+        "Enter your online store type (SQLite, Redis, Datastore)": {
+            "sqlite": ["Enter your SQLite path"],
+            "redis": [
+                "Enter your Redis type (skip if SSL not enabled)",
+                "Enter your Redis connection string",
+            ],
+            "datastore": ["Enter your Datastore project ID", "Enter your Datastore namespace"],
+        },
+        "Enter your offline store type (File, BigQuery)": {
+            "file": [],
+            "bigquery": ["Enter your BigQuery dataset name"],
+        },
+    }
+
+    initial_dict = {
+        "project": project_directory_name,
+        "registry": "data/registry.db",
+        "provider": "local",
+    }
+    for type_question, types_dict in question_bank.items():
+        vessel = {}
+        type_result = click.prompt(type_question)
+        store_dict = {fields[type_question]: type_result}
+        store_dict.update(vessel)
+        vessel = store_dict
+
+        for online_store_type, online_store_type_questions in types_dict.items():
+            if type_result.lower() != online_store_type:
+                continue
+
+            for question in online_store_type_questions:
+                if question in optional_prompts:
+                    sub_question_result = click.prompt(question, default="")
+                else:
+                    sub_question_result = click.prompt(question)
+
+                if sub_question_result:
+                    result_dict = {fields[question]: sub_question_result}
+                    vessel.update(result_dict)
+        final_dict = {meta_fields[type_question]: vessel}
+        initial_dict.update(final_dict)
+        final_dict = initial_dict
+
+    with open(path, "w") as file:
+        documents = yaml.dump(final_dict, file, default_flow_style=False, sort_keys=False)
+
+
+# run feast init
+# take the inputted parameters to fill in the yaml -> this will be click prompts
+# save the data source information - take in bucket, region, creds? maybe can take from the environment
+# create a data source with the information and then take the ID and persist a feature store entity with the ID saved on init
+
+
+@cli.command()
 @click.option(
     "--chdir",
     "-c",

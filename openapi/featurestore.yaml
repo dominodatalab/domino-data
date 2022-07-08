@@ -144,9 +144,12 @@ components:
           type: string
         projectId:
           type: string
+        datasourceId:
+          type: string
         featureViews:
           $ref: '#/components/schemas/FeatureView'
       required:
         - name
         - projectId
+        - datasourceId
         - featureViews

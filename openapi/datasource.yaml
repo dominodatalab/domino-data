@@ -115,6 +115,56 @@ paths:
       responses:
         '200':
           description: success
+  /datasource:
+    post:
+      operationId: createDatasource
+      tags:
+        - Datasource
+      summary: Create datasource
+      requestBody:
+        description: Request body for creating datasource
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDatasourceRequest'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasourceDto'
+        '400':
+          description: The server could not understand the request due to malformed syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: The current user cannot perform this operation because they are not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The current user is not authorized to perform this operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: The server could not find the requested resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: An internal error prevented the server from performing this action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /datasource/name/{name}:
     get:
       operationId: getDatasourceByName
@@ -169,6 +219,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
 
 components:
   schemas:
@@ -277,6 +328,87 @@ components:
           type: string
         rawError:
           type: string
+    CreateDatasourceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        datasourceType:
+          type: string
+          enum:
+            - ADLSConfig
+            - BigQueryConfig
+            - GCSConfig
+            - GenericS3Config
+            - MySQLConfig
+            - OracleConfig
+            - PostgreSQLConfig
+            - RedshiftConfig
+            - S3Config
+            - SQLServerConfig
+            - SnowflakeConfig
+            - TrinoConfig
+        description:
+          type: string
+        projectId:
+          type: string
+        accountName:
+          type: string
+        database:
+          type: string
+        schema:
+          type: string
+        warehouse:
+          type: string
+        role:
+          type: string
+        host:
+          type: string
+        port:
+          type: string
+        bucket:
+          type: string
+        region:
+          type: string
+        project:
+          type: string
+        credentialType:
+          type: string
+        authType:
+          type: string
+          enum:
+            - AzureBasic
+            - Basic
+            - AWSIAMBasic
+            - AWSIAMRole
+            - AWSIAMRoleWithUsername
+            - GCPBasic
+            - OAuth
+        engineType:
+          type: string
+          enum:
+            - Domino
+            - Presto
+        engineCatalogEntryName:
+          type: string
+        visibleCredential:
+          type: string
+        secretCredential:
+          type: string
+        isEveryone:
+          type: boolean
+        userIds:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - datasourceType
+        - credentialType
+        - authType
+        - engineType
+        - isEveryone
+        - userIds
     KeyRequest:
       type: object
       properties:

@@ -15,17 +15,20 @@ class CreateFeatureStoreRequest:
     Attributes:
         name (str):
         project_id (str):
+        datasource_id (str):
         feature_views (List[FeatureView]):
     """
 
     name: str
     project_id: str
+    datasource_id: str
     feature_views: List[FeatureView]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
         project_id = self.project_id
+        datasource_id = self.datasource_id
 
         feature_views = []
         _feature_views = d.pop("featureViews")
@@ -40,6 +43,7 @@ class CreateFeatureStoreRequest:
             {
                 "name": name,
                 "projectId": project_id,
+                "datasourceId": datasource_id,
                 "featureViews": feature_views,
             }
         )
@@ -52,6 +56,7 @@ class CreateFeatureStoreRequest:
         name = d.pop("name")
 
         project_id = d.pop("projectId")
+        datasource_id = d.pop("datasourceId")
 
         feature_Views = []
         _feature_views = d.pop("featureViews")
