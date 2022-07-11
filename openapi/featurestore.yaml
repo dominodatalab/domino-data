@@ -46,16 +46,14 @@ components:
         creationTime:
           type: string
           format: date-time
-        featureViews:
-          type: array
-          items:
-            type: string
+        dataSourceId:
+          type: string
       required:
         - id
         - projectId
         - name
         - creationTime
-        - featureViews
+        - dataSourceId
     FeatureView:
       type: object
       properties:

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type, TypeVar, cast
+from typing import Any, Dict, List, Type, TypeVar
 
 import datetime
 
@@ -16,14 +16,14 @@ class FeatureStore:
         project_id (str):
         name (str):
         creation_time (datetime.datetime):
-        feature_views (List[str]):
+        data_source_id (str):
     """
 
     id: str
     project_id: str
     name: str
     creation_time: datetime.datetime
-    feature_views: List[str]
+    data_source_id: str
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -32,7 +32,7 @@ class FeatureStore:
         name = self.name
         creation_time = self.creation_time.isoformat()
 
-        feature_views = self.feature_views
+        data_source_id = self.data_source_id
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -42,7 +42,7 @@ class FeatureStore:
                 "projectId": project_id,
                 "name": name,
                 "creationTime": creation_time,
-                "featureViews": feature_views,
+                "dataSourceId": data_source_id,
             }
         )
 
@@ -59,14 +59,14 @@ class FeatureStore:
 
         creation_time = isoparse(d.pop("creationTime"))
 
-        feature_views = cast(List[str], d.pop("featureViews"))
+        data_source_id = d.pop("dataSourceId")
 
         feature_store = cls(
             id=id,
             project_id=project_id,
             name=name,
             creation_time=creation_time,
-            feature_views=feature_views,
+            data_source_id=data_source_id,
         )
 
         feature_store.additional_properties = d
