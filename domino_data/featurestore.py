@@ -5,13 +5,12 @@ import os
 from pathlib import Path
 
 import click
-import data_sources as ds
 import feast
 import yaml
 from attrs import define, field
+from feast.repo_operations import init_repo
 
-from datasource_api_client.api import post_datasource
-from datasource_api_client.models import CreateDatasourceRequest, DatasourceDto
+# from datasource_api_client.api.datasource import post_datasource
 from feature_store_api_client.api.default import post_feature_store_name
 from feature_store_api_client.client import Client
 from feature_store_api_client.models import CreateFeatureStoreRequest, FeatureStore
@@ -48,12 +47,14 @@ class FeatureStoreClient:
             ),
         )
 
-    def post_feature_store(self, name, datasource_id):
+    def post_feature_store(self, name, bucket, region, access_key, secret_key):
         request = CreateFeatureStoreRequest(
             name=name,
             project_id=_get_project_id(),
-            datasource_id=datasource_id,
-            feature_views=[],
+            bucket=bucket,
+            region=region,
+            visible_credential=access_key,
+            secret_credential=secret_key,
         )
         response = post_feature_store_name.sync_detailed(
             name,
@@ -97,13 +98,15 @@ def init(project_directory, minimal: bool, template: str) -> None:
     # generate yaml file
     __generate_yaml(path_to_yaml, project_directory_name)
 
-    # datasource creation
-    datasource = __create_datasource(project_directory_name)
-
     # feature store creation
+    bucket = click.prompt("Input the S3 bucket to store your feature store metadata")
+    region = click.prompt("Input the region associated with your S3 bucket")
+    access_key = click.prompt("Input the access key associated with your S3 bucket")
+    secret_key = click.prompt("Input the secret key associated with your S3 bucket")
+
     client = FeatureStoreClient()
-    client.post_feature_store(project_directory_name, project_directory_name, datasource.id)
-    print(f"Feature store '{project_directory_name}' successfully synced with Domino.")
+    client.post_feature_store(project_directory_name, bucket, region, access_key, secret_key)
+    print(f"Feature store '{project_directory_name}' successfully initialized with Domino.")
 
 
 def __run__feast__init(project_directory, minimal: bool, template: str):
@@ -113,101 +116,56 @@ def __run__feast__init(project_directory, minimal: bool, template: str):
     if minimal:
         template = "minimal"
 
-    feast.repo_operations.init_repo(project_directory, template)
+    init_repo(project_directory, template)
 
     return project_directory
 
 
-def __create_datasource(feature_store_name):
-    bucket = click.prompt("Input the S3 bucket to store your feature store metadata")
-    region = click.prompt("Input the region associated with your S3 bucket")
-    access_key = click.prompt("Input the access key associated with your S3 bucket")
-    secret_key = click.prompt("Input the secret key associated with your S3 bucket")
-    datasource_name = feature_store_name + "-metadata"
-    # TODO: figure out how to deal with permissioning....
-    request = CreateDatasourceRequest(
-        name=datasource_name,
-        datasource_type="S3",
-        bucket=bucket,
-        region=region,
-        credential_type="Individual",
-        auth_type="AWSIAMBasic",
-        engine_type="Domino",
-        visible_credential=access_key,
-        secret_credential=secret_key,
-        is_everyone=True,
-        user_ids=[],
-    )
-    response = post_datasource.sync_detailed(
-        client=ds.DatasourceClient(),
-        json_body=request,
-    )
-
-    if response.status_code == 200:
-        return cast(DatasourceDto, response.parsed)
-
-    raise Exception(response.content)
-
-
 def __generate_yaml(path, project_directory_name):
-    meta_fields = {
-        "Enter your online store type (SQLite, Redis, Datastore)": "online_store",
-        "Enter your offline store type (File, BigQuery)": "offline_store",
-    }
     fields = {
-        "Enter your online store type (SQLite, Redis, Datastore)": "type",
-        "Enter your offline store type (File, BigQuery)": "type",
-        "Enter your SQLite path": "path",
-        "Enter your Redis type (skip if SSL not enabled)": "redis_type",
-        "Enter your Redis connection string": "connection_string",
-        "Enter your Datastore project ID": "project_id",
-        "Enter your Datastore namespace": "namespace",
-        "Enter your BigQuery dataset name": "dataset",
-    }
-    optional_prompts = {"Enter your Redis type (skip if SSL not enabled)"}
-    question_bank = {
-        "Enter your online store type (SQLite, Redis, Datastore)": {
-            "sqlite": ["Enter your SQLite path"],
-            "redis": [
-                "Enter your Redis type (skip if SSL not enabled)",
-                "Enter your Redis connection string",
-            ],
-            "datastore": ["Enter your Datastore project ID", "Enter your Datastore namespace"],
-        },
-        "Enter your offline store type (File, BigQuery)": {
-            "file": [],
-            "bigquery": ["Enter your BigQuery dataset name"],
-        },
+        "Enter your DynamoDB region": "region",
+        "Enter your Redshift cluster ID": "cluster_id",
+        "Enter your Redshift region": "region",
+        "Enter your Redshift user": "user",
+        "Enter your Redshift database": "database",
+        "Enter your S3 staging location": "s3_staging_location",
+        "Enter your IAM role": "iam_role",
     }
 
-    initial_dict = {
+    online_store_prompts = ["Enter your DynamoDB region"]
+    offline_store_prompts = [
+        "Enter your Redshift cluster ID",
+        "Enter your Redshift region",
+        "Enter your Redshift user",
+        "Enter your Redshift database",
+        "Enter your S3 staging location",
+        "Enter your IAM role",
+    ]
+
+    final_dict = {
         "project": project_directory_name,
         "registry": "data/registry.db",
-        "provider": "local",
+        "provider": "aws",
     }
-    for type_question, types_dict in question_bank.items():
-        vessel = {}
-        type_result = click.prompt(type_question)
-        store_dict = {fields[type_question]: type_result}
-        store_dict.update(vessel)
-        vessel = store_dict
 
-        for online_store_type, online_store_type_questions in types_dict.items():
-            if type_result.lower() != online_store_type:
-                continue
+    online_store_vessel = {"type": "dynamodb"}
+    for question in online_store_prompts:
+        answer = click.prompt(question)
+        store_dict = {fields[question]: answer}
+        online_store_vessel.update(store_dict)
 
-            for question in online_store_type_questions:
-                if question in optional_prompts:
-                    sub_question_result = click.prompt(question, default="")
-                else:
-                    sub_question_result = click.prompt(question)
+    online_store_section = {"online_store": online_store_vessel}
 
-                if sub_question_result:
-                    result_dict = {fields[question]: sub_question_result}
-                    vessel.update(result_dict)
-        final_dict = {meta_fields[type_question]: vessel}
-        initial_dict.update(final_dict)
-        final_dict = initial_dict
+    offline_store_vessel = {"type": "redshift"}
+    for question in offline_store_prompts:
+        answer = click.prompt(question)
+        store_dict = {fields[question]: answer}
+        offline_store_vessel.update(store_dict)
+
+    offline_store_section = {"offline_store": offline_store_vessel}
+
+    final_dict.update(online_store_section)
+    final_dict.update(offline_store_section)
 
     with open(path, "w") as file:
         yaml.dump(final_dict, file, default_flow_style=False, sort_keys=False)

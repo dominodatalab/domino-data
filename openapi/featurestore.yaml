@@ -144,12 +144,18 @@ components:
           type: string
         projectId:
           type: string
-        datasourceId:
+        bucket:
           type: string
-        featureViews:
-          $ref: '#/components/schemas/FeatureView'
+        region:
+          type: string
+        visibleCredential:
+          type: string
+        secretCredential:
+          type: string
       required:
         - name
         - projectId
-        - datasourceId
-        - featureViews
+        - bucket
+        - region
+        - visibleCredential
+        - secretCredential

@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Type, TypeVar, Union
 import datetime
 
 import attr
+from dateutil.parser import isoparse
 
 from ..models.batch_source import BatchSource
 from ..models.entity import Entity
@@ -19,7 +20,7 @@ class FeatureView:
     """
     Attributes:
         name (str):
-        ttl (int):
+        ttl (datetime.datetime):
         features (List[Feature]):
         batch_source (BatchSource):
         store_location (StoreLocation):
@@ -28,7 +29,7 @@ class FeatureView:
     """
 
     name: str
-    ttl: datetime.timedelta
+    ttl: datetime.datetime
     features: List[Feature]
     batch_source: BatchSource
     store_location: StoreLocation
@@ -38,14 +39,16 @@ class FeatureView:
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
-        ttl = self.ttl
-        features = []
-        for feature in self.features:
-            feature_dict = feature.to_dict()
+        ttl = self.ttl.isoformat()
 
-            features.append(feature_dict)
+        features = []
+        for features_item_data in self.features:
+            features_item = features_item_data.to_dict()
+
+            features.append(features_item)
 
         batch_source = self.batch_source.to_dict()
+
         store_location = self.store_location.to_dict()
 
         entities: Union[Unset, List[Dict[str, Any]]] = UNSET
@@ -83,7 +86,7 @@ class FeatureView:
         d = src_dict.copy()
         name = d.pop("name")
 
-        ttl = d.pop("ttl")
+        ttl = isoparse(d.pop("ttl"))
 
         features = []
         _features = d.pop("features")
@@ -93,6 +96,7 @@ class FeatureView:
             features.append(features_item)
 
         batch_source = BatchSource.from_dict(d.pop("batchSource"))
+
         store_location = StoreLocation.from_dict(d.pop("storeLocation"))
 
         entities = []

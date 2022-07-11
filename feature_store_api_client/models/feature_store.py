@@ -1,12 +1,9 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar, cast
 
 import datetime
 
 import attr
 from dateutil.parser import isoparse
-
-from ..models.feature_view import FeatureView
-from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="FeatureStore")
 
@@ -34,6 +31,7 @@ class FeatureStore:
         project_id = self.project_id
         name = self.name
         creation_time = self.creation_time.isoformat()
+
         feature_views = self.feature_views
 
         field_dict: Dict[str, Any] = {}
@@ -47,7 +45,6 @@ class FeatureStore:
                 "featureViews": feature_views,
             }
         )
-        print(field_dict)
 
         return field_dict
 
@@ -62,14 +59,14 @@ class FeatureStore:
 
         creation_time = isoparse(d.pop("creationTime"))
 
-        feature_view_ids = d.pop("featureViews")
+        feature_views = cast(List[str], d.pop("featureViews"))
 
         feature_store = cls(
             id=id,
             project_id=project_id,
             name=name,
             creation_time=creation_time,
-            feature_views=feature_view_ids,
+            feature_views=feature_views,
         )
 
         feature_store.additional_properties = d

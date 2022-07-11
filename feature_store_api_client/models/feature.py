@@ -10,23 +10,23 @@ class Feature:
     """
     Attributes:
         name (str):
-        dtype (str):
+        value_type (str):
     """
 
     name: str
-    dtype: str
+    value_type: str
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
-        dtype = self.dtype
+        value_type = self.value_type
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "name": name,
-                "valueType": dtype,
+                "valueType": value_type,
             }
         )
 
@@ -37,11 +37,11 @@ class Feature:
         d = src_dict.copy()
         name = d.pop("name")
 
-        dtype = d.pop("dtype")
+        value_type = d.pop("valueType")
 
         feature = cls(
             name=name,
-            dtype=dtype,
+            value_type=value_type,
         )
 
         feature.additional_properties = d

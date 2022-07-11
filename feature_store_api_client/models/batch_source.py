@@ -9,14 +9,12 @@ T = TypeVar("T", bound="BatchSource")
 class BatchSource:
     """
     Attributes:
-        name (str):
         data_source (str):
         event_timestamp_column (str):
         created_timestamp_column (str):
         date_partition_column (str):
     """
 
-    name: str
     data_source: str
     event_timestamp_column: str
     created_timestamp_column: str

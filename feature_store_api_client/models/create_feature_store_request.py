@@ -1,10 +1,6 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Type, TypeVar
 
 import attr
-
-from ..models.feature_store import FeatureStore
-from ..models.feature_view import FeatureView
-from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="CreateFeatureStoreRequest")
 
@@ -15,27 +11,27 @@ class CreateFeatureStoreRequest:
     Attributes:
         name (str):
         project_id (str):
-        datasource_id (str):
-        feature_views (List[FeatureView]):
+        bucket (str):
+        region (str):
+        visible_credential (str):
+        secret_credential (str):
     """
 
     name: str
     project_id: str
-    datasource_id: str
-    feature_views: List[FeatureView]
+    bucket: str
+    region: str
+    visible_credential: str
+    secret_credential: str
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
         project_id = self.project_id
-        datasource_id = self.datasource_id
-
-        feature_views = []
-        _feature_views = d.pop("featureViews")
-        for fv in _feature_views:
-            f = FeatureView.to_dict(fv)
-
-            feature_views.append(f)
+        bucket = self.bucket
+        region = self.region
+        visible_credential = self.visible_credential
+        secret_credential = self.secret_credential
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -43,8 +39,10 @@ class CreateFeatureStoreRequest:
             {
                 "name": name,
                 "projectId": project_id,
-                "datasourceId": datasource_id,
-                "featureViews": feature_views,
+                "bucket": bucket,
+                "region": region,
+                "visibleCredential": visible_credential,
+                "secretCredential": secret_credential,
             }
         )
 
@@ -56,19 +54,22 @@ class CreateFeatureStoreRequest:
         name = d.pop("name")
 
         project_id = d.pop("projectId")
-        datasource_id = d.pop("datasourceId")
 
-        feature_Views = []
-        _feature_views = d.pop("featureViews")
-        for fv in _feature_views:
-            f = FeatureView.from_dict(fv)
+        bucket = d.pop("bucket")
 
-            feature_views.append(f)
+        region = d.pop("region")
+
+        visible_credential = d.pop("visibleCredential")
+
+        secret_credential = d.pop("secretCredential")
 
         create_feature_store_request = cls(
             name=name,
             project_id=project_id,
-            feature_views=feature_views,
+            bucket=bucket,
+            region=region,
+            visible_credential=visible_credential,
+            secret_credential=secret_credential,
         )
 
         create_feature_store_request.additional_properties = d

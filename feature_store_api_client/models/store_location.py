@@ -26,7 +26,13 @@ class StoreLocation:
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update({"bucket": bucket, "region": region, "resourceId": resource_id})
+        field_dict.update(
+            {
+                "bucket": bucket,
+                "region": region,
+                "resourceId": resource_id,
+            }
+        )
 
         return field_dict
 
@@ -39,7 +45,11 @@ class StoreLocation:
 
         resource_id = d.pop("resourceId")
 
-        store_location = cls(bucket=bucket, region=region, resource_id=resourceId)
+        store_location = cls(
+            bucket=bucket,
+            region=region,
+            resource_id=resource_id,
+        )
 
         store_location.additional_properties = d
         return store_location
