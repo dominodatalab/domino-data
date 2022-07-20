@@ -1,19 +1,20 @@
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, Optional
 
 import httpx
 
 from ...client import Client
-from ...models.list_request import ListRequest
-from ...models.proxy_error_response import ProxyErrorResponse
+from ...models.create_feature_store_request import CreateFeatureStoreRequest
+from ...models.feature_store import FeatureStore
 from ...types import Response
 
 
 def _get_kwargs(
+    feature_store_name: str,
     *,
     client: Client,
-    json_body: ListRequest,
+    json_body: CreateFeatureStoreRequest,
 ) -> Dict[str, Any]:
-    url = "{}/objectstore/list".format(client.base_url)
+    url = "{}/{featureStoreName}".format(client.base_url, featureStoreName=feature_store_name)
 
     headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -30,23 +31,15 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[Union[List[str], ProxyErrorResponse]]:
+def _parse_response(*, response: httpx.Response) -> Optional[FeatureStore]:
     if response.status_code == 200:
-        response_200 = cast(List[str], response.json())
+        response_200 = FeatureStore.from_dict(response.json())
 
         return response_200
-    if response.status_code == 400:
-        response_400 = ProxyErrorResponse.from_dict(response.json())
-
-        return response_400
-    if response.status_code == 500:
-        response_500 = ProxyErrorResponse.from_dict(response.json())
-
-        return response_500
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[Union[List[str], ProxyErrorResponse]]:
+def _build_response(*, response: httpx.Response) -> Response[FeatureStore]:
     return Response(
         status_code=response.status_code,
         content=response.content,
@@ -56,20 +49,23 @@ def _build_response(*, response: httpx.Response) -> Response[Union[List[str], Pr
 
 
 def sync_detailed(
+    feature_store_name: str,
     *,
     client: Client,
-    json_body: ListRequest,
-) -> Response[Union[List[str], ProxyErrorResponse]]:
-    """Request a new signed URL for a blob datasource
+    json_body: CreateFeatureStoreRequest,
+) -> Response[FeatureStore]:
+    """Create FeatureStore
 
     Args:
-        json_body (ListRequest):
+        feature_store_name (str):
+        json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[Union[List[str], ProxyErrorResponse]]
+        Response[FeatureStore]
     """
 
     kwargs = _get_kwargs(
+        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     )
@@ -83,40 +79,46 @@ def sync_detailed(
 
 
 def sync(
+    feature_store_name: str,
     *,
     client: Client,
-    json_body: ListRequest,
-) -> Optional[Union[List[str], ProxyErrorResponse]]:
-    """Request a new signed URL for a blob datasource
+    json_body: CreateFeatureStoreRequest,
+) -> Optional[FeatureStore]:
+    """Create FeatureStore
 
     Args:
-        json_body (ListRequest):
+        feature_store_name (str):
+        json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[Union[List[str], ProxyErrorResponse]]
+        Response[FeatureStore]
     """
 
     return sync_detailed(
+        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     ).parsed
 
 
 async def asyncio_detailed(
+    feature_store_name: str,
     *,
     client: Client,
-    json_body: ListRequest,
-) -> Response[Union[List[str], ProxyErrorResponse]]:
-    """Request a new signed URL for a blob datasource
+    json_body: CreateFeatureStoreRequest,
+) -> Response[FeatureStore]:
+    """Create FeatureStore
 
     Args:
-        json_body (ListRequest):
+        feature_store_name (str):
+        json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[Union[List[str], ProxyErrorResponse]]
+        Response[FeatureStore]
     """
 
     kwargs = _get_kwargs(
+        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     )
@@ -128,21 +130,24 @@ async def asyncio_detailed(
 
 
 async def asyncio(
+    feature_store_name: str,
     *,
     client: Client,
-    json_body: ListRequest,
-) -> Optional[Union[List[str], ProxyErrorResponse]]:
-    """Request a new signed URL for a blob datasource
+    json_body: CreateFeatureStoreRequest,
+) -> Optional[FeatureStore]:
+    """Create FeatureStore
 
     Args:
-        json_body (ListRequest):
+        feature_store_name (str):
+        json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[Union[List[str], ProxyErrorResponse]]
+        Response[FeatureStore]
     """
 
     return (
         await asyncio_detailed(
+            feature_store_name=feature_store_name,
             client=client,
             json_body=json_body,
         )
