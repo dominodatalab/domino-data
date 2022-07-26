@@ -8,14 +8,14 @@ from dateutil.parser import isoparse
 from ..models.batch_source import BatchSource
 from ..models.entity import Entity
 from ..models.feature import Feature
-from ..models.feature_view_tags import FeatureViewTags
+from ..models.feature_view_dto_tags import FeatureViewDtoTags
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="FeatureView")
+T = TypeVar("T", bound="FeatureViewDto")
 
 
 @attr.s(auto_attribs=True)
-class FeatureView:
+class FeatureViewDto:
     """
     Attributes:
         name (str):
@@ -24,7 +24,7 @@ class FeatureView:
         batch_source (BatchSource):
         ttl (Union[Unset, datetime.datetime]):
         online (Union[Unset, bool]):
-        tags (Union[Unset, FeatureViewTags]):
+        tags (Union[Unset, FeatureViewDtoTags]):
     """
 
     name: str
@@ -33,7 +33,7 @@ class FeatureView:
     batch_source: BatchSource
     ttl: Union[Unset, datetime.datetime] = UNSET
     online: Union[Unset, bool] = UNSET
-    tags: Union[Unset, FeatureViewTags] = UNSET
+    tags: Union[Unset, FeatureViewDtoTags] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -111,13 +111,13 @@ class FeatureView:
         online = d.pop("online", UNSET)
 
         _tags = d.pop("tags", UNSET)
-        tags: Union[Unset, FeatureViewTags]
+        tags: Union[Unset, FeatureViewDtoTags]
         if isinstance(_tags, Unset):
             tags = UNSET
         else:
-            tags = FeatureViewTags.from_dict(_tags)
+            tags = FeatureViewDtoTags.from_dict(_tags)
 
-        feature_view = cls(
+        feature_view_dto = cls(
             name=name,
             entities=entities,
             features=features,
@@ -127,8 +127,8 @@ class FeatureView:
             tags=tags,
         )
 
-        feature_view.additional_properties = d
-        return feature_view
+        feature_view_dto.additional_properties = d
+        return feature_view_dto
 
     @property
     def additional_keys(self) -> List[str]:

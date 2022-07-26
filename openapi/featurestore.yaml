@@ -31,6 +31,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeatureStore'
+    get:
+      summary: Get Feature Store
+      parameters:
+        - in: path
+          name: featureStoreName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: FeatureStore name
+      responses:
+        '200':
+          description: The FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
+  /{featureStoreName}/featureview:
+    post:
+      summary: Create FeatureViews
+      parameters:
+        - in: path
+          name: featureStoreName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: FeatureStore name
+      requestBody:
+        description: CreateFeatureViewsRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeatureViewsRequest'
+      responses:
+        '200':
+          description: The created feature views
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeatureViewDto'
+
 
 components:
   schemas:
@@ -46,14 +91,14 @@ components:
         creationTime:
           type: string
           format: date-time
-        dataSourceId:
+        dataSourceName:
           type: string
       required:
         - id
         - projectId
         - name
         - creationTime
-        - dataSourceId
+        - dataSourceName
     FeatureView:
       type: object
       properties:
@@ -72,18 +117,46 @@ components:
             $ref: '#/components/schemas/Feature'
         batchSource:
           $ref: '#/components/schemas/BatchSource'
-        storeLocation:
-          $ref: '#/components/schemas/StoreLocation'
+        online:
+          type: boolean
         tags:
           type: object
           additionalProperties:
             type: string
       required:
         - name
-        - ttl
         - features
+        - entities
         - batchSource
-        - storeLocation
+    FeatureViewDto:
+      type: object
+      properties:
+        name:
+          type: string
+        ttl:
+          type: string
+          format: date-time
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entity'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        batchSource:
+          $ref: '#/components/schemas/BatchSource'
+        online:
+          type: boolean
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - name
+        - features
+        - entities
+        - batchSource
     Feature:
       type: object
       properties:
@@ -109,32 +182,18 @@ components:
     BatchSource:
       type: object
       properties:
-        dataSource:
-          type: string
         eventTimestampColumn:
           type: string
         createdTimestampColumn:
           type: string
         datePartitionColumn:
           type: string
-      required:
-        - dataSource
-        - eventTimestampColumn
-        - createdTimestampColumn
-        - datePartitionColumn
-    StoreLocation:
-      type: object
-      properties:
-        bucket:
+        database:
           type: string
-        region:
+        query:
           type: string
-        resourceId:
+        table:
           type: string
-      required:
-        - bucket
-        - region
-        - resourceId
     CreateFeatureStoreRequest:
       type: object
       properties:
@@ -157,3 +216,15 @@ components:
         - region
         - visibleCredential
         - secretCredential
+    CreateFeatureViewsRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        featureViews:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureView'
+      required:
+        - name
+        - featureViews

@@ -1,5 +1,5 @@
 """Feature Store module."""
-from typing import Optional, cast
+from typing import List, Optional, cast
 
 import os
 from pathlib import Path
@@ -10,10 +10,19 @@ import yaml
 from attrs import define, field
 from feast.repo_operations import init_repo
 
-# from datasource_api_client.api.datasource import post_datasource
-from feature_store_api_client.api.default import post_feature_store_name
+from domino_data import data_sources
+from feature_store_api_client.api.default import (
+    get_feature_store_name,
+    post_feature_store_name,
+    post_feature_store_name_featureview,
+)
 from feature_store_api_client.client import Client
-from feature_store_api_client.models import CreateFeatureStoreRequest, FeatureStore
+from feature_store_api_client.models import (
+    CreateFeatureStoreRequest,
+    CreateFeatureViewsRequest,
+    FeatureStore,
+    FeatureViewDto,
+)
 
 from .auth import AuthenticatedClient
 
@@ -67,6 +76,30 @@ class FeatureStoreClient:
 
         raise Exception(response.content)
 
+    def get_feature_store(self, name):
+        response = get_feature_store_name.sync_detailed(
+            name,
+            client=self.client,
+        )
+
+        if response.status_code == 200:
+            return cast(FeatureStore, response.parsed)
+
+        raise Exception(response.content)
+
+    def post_feature_views(self, name, feature_views):
+        request = CreateFeatureViewsRequest(name=name, feature_views=feature_views)
+        response = post_feature_store_name_featureview.sync_detailed(
+            name,
+            client=self.client,
+            json_body=request,
+        )
+
+        if response.status_code == 200:
+            return cast(List[FeatureViewDto], response.parsed)
+
+        raise Exception(response.content)
+
 
 @click.group()
 def cli():
@@ -107,6 +140,46 @@ def init(project_directory, minimal: bool, template: str) -> None:
     client = FeatureStoreClient()
     client.post_feature_store(project_directory_name, bucket, region, access_key, secret_key)
     print(f"Feature store '{project_directory_name}' successfully initialized with Domino.")
+
+
+@cli.command()
+@click.option(
+    "--chdir",
+    "-c",
+    help="Switch to a different feature repository directory before syncing.",
+)
+@click.option(
+    "--name", prompt="Name of the Feature Store", help="Name of the feature store to be synced"
+)
+def sync(name: str, chdir: Optional[str]) -> None:
+    """Sync information in registry.db with Domino"""
+    # name of feature store so you can add the feature views onto feature store
+    # if you need to sync multiple times.... okay
+    # eventually, maybe need to update the s3 idk
+
+    # upload registry.db and config YAML file to S3
+    client = FeatureStoreClient()
+    repo = Path.cwd() if chdir is None else Path(chdir).absolute()
+    feature_store, data_source_name = None, None
+
+    feature_store = client.get_feature_store(name)
+    data_source_dto = data_sources.DataSourceClient().get_datasource(feature_store.data_source_name)
+    s3_data_source = data_sources.cast(data_sources.ObjectStoreDatasource, data_source_dto)
+
+    s3_data_source.upload_file(
+        os.path.join(feature_store.name, "registry.db"), os.path.join(repo, "data/registry.db")
+    )
+    s3_data_source.upload_file(
+        os.path.join(feature_store.name, "feature_store.yaml"),
+        os.path.join(repo, "feature_store.yaml"),
+    )
+
+    # create feature views
+    feature_store = feast.FeatureStore(repo)
+    feature_views = feature_store.list_feature_views()
+
+    client.post_feature_views(name, feature_views)
+    print(f"Feature Store '{name}' successfully synced.")
 
 
 def __run__feast__init(project_directory, minimal: bool, template: str):
