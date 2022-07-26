@@ -126,7 +126,7 @@ def init(project_directory, minimal: bool, template: str) -> None:
 
     # remove initial yaml file
     path_to_yaml = Path.cwd() / project_directory_name / "feature_store.yaml"
-    os.remove((path_to_yaml))
+    os.remove(path_to_yaml)
 
     # generate yaml file
     __generate_yaml(path_to_yaml, project_directory_name)
@@ -153,14 +153,10 @@ def init(project_directory, minimal: bool, template: str) -> None:
 )
 def sync(name: str, chdir: Optional[str]) -> None:
     """Sync information in registry.db with Domino"""
-    # name of feature store so you can add the feature views onto feature store
-    # if you need to sync multiple times.... okay
-    # eventually, maybe need to update the s3 idk
 
     # upload registry.db and config YAML file to S3
     client = FeatureStoreClient()
     repo = Path.cwd() if chdir is None else Path(chdir).absolute()
-    feature_store, data_source_name = None, None
 
     feature_store = client.get_feature_store(name)
     data_source_dto = data_sources.DataSourceClient().get_datasource(feature_store.data_source_name)
