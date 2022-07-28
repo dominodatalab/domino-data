@@ -68,13 +68,7 @@ paths:
               $ref: '#/components/schemas/CreateFeatureViewsRequest'
       responses:
         '200':
-          description: The created feature views
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FeatureViewDto'
+          description: Success
 
 
 components:
@@ -106,15 +100,14 @@ components:
           type: string
         ttl:
           type: string
-          format: date-time
         entities:
           type: array
           items:
-            $ref: '#/components/schemas/Entity'
+            type: string
         features:
           type: array
           items:
-            $ref: '#/components/schemas/Feature'
+            type: string
         batchSource:
           $ref: '#/components/schemas/BatchSource'
         online:
@@ -131,19 +124,22 @@ components:
     FeatureViewDto:
       type: object
       properties:
+        id:
+          type: string
         name:
+          type: string
+        featureStoreId:
           type: string
         ttl:
           type: string
-          format: date-time
         entities:
           type: array
           items:
-            $ref: '#/components/schemas/Entity'
+            type: string
         features:
           type: array
           items:
-            $ref: '#/components/schemas/Feature'
+            type: string
         batchSource:
           $ref: '#/components/schemas/BatchSource'
         online:
@@ -153,7 +149,9 @@ components:
           additionalProperties:
             type: string
       required:
+        - id
         - name
+        - featureStoreId
         - features
         - entities
         - batchSource

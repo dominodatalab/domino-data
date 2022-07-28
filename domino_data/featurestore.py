@@ -1,11 +1,12 @@
 """Feature Store module."""
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 import os
 from pathlib import Path
 
 import click
 import feast
+import json
 import yaml
 from attrs import define, field
 from feast.repo_operations import init_repo
@@ -18,11 +19,13 @@ from feature_store_api_client.api.default import (
 )
 from feature_store_api_client.client import Client
 from feature_store_api_client.models import (
+    BatchSource,
     CreateFeatureStoreRequest,
     CreateFeatureViewsRequest,
     FeatureStore,
-    FeatureViewDto,
+    FeatureView,
 )
+from feature_store_api_client.types import Response
 
 from .auth import AuthenticatedClient
 
@@ -32,6 +35,14 @@ AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
 
 class DominoError(Exception):
     """Base exception for known errors."""
+
+
+class ServerException(Exception):
+    """This exception is raised when the FeatureStore server rejects a request."""
+
+    def __init__(self, message: str, server_msg: str):
+        self.message = message
+        self.server_msg = server_msg
 
 
 @define
@@ -95,10 +106,10 @@ class FeatureStoreClient:
             json_body=request,
         )
 
-        if response.status_code == 200:
-            return cast(List[FeatureViewDto], response.parsed)
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not create Feature Views")
 
-        raise Exception(response.content)
+        return True
 
 
 @click.group()
@@ -174,7 +185,20 @@ def sync(name: str, chdir: Optional[str]) -> None:
     feature_store = feast.FeatureStore(repo)
     feature_views = feature_store.list_feature_views()
 
-    client.post_feature_views(name, feature_views)
+    request_input = []
+    for fv in feature_views:
+        feature_v = FeatureView(
+            name=str(fv.name),
+            entities=[str(e) for e in fv.entities],
+            features=[str(f) for f in fv.features],
+            batch_source=BatchSource(
+                created_timestamp_column=str(fv.batch_source.created_timestamp_column),
+                query=str(fv.batch_source.query),
+            ),
+        )
+        request_input.append(feature_v)
+
+    client.post_feature_views(name, request_input)
     print(f"Feature Store '{name}' successfully synced.")
 
 
@@ -242,3 +266,13 @@ def __generate_yaml(path, project_directory_name):
 
 def _get_project_id() -> Optional[str]:
     return os.getenv("DOMINO_PROJECT_ID")
+
+
+def _raise_response_exn(response: Response, msg: str):
+    try:
+        response_json = json.loads(response.content.decode("utf8"))
+        server_msg = response_json.get("message")
+    except Exception:
+        server_msg = None
+
+    raise ServerException(msg, server_msg)

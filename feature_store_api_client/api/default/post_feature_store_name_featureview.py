@@ -1,10 +1,9 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import httpx
 
 from ...client import Client
 from ...models.create_feature_views_request import CreateFeatureViewsRequest
-from ...models.feature_view_dto import FeatureViewDto
 from ...types import Response
 
 
@@ -33,25 +32,12 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[List[FeatureViewDto]]:
-    if response.status_code == 200:
-        response_200 = []
-        _response_200 = response.json()
-        for response_200_item_data in _response_200:
-            response_200_item = FeatureViewDto.from_dict(response_200_item_data)
-
-            response_200.append(response_200_item)
-
-        return response_200
-    return None
-
-
-def _build_response(*, response: httpx.Response) -> Response[List[FeatureViewDto]]:
+def _build_response(*, response: httpx.Response) -> Response[Any]:
     return Response(
         status_code=response.status_code,
         content=response.content,
         headers=response.headers,
-        parsed=_parse_response(response=response),
+        parsed=None,
     )
 
 
@@ -60,7 +46,7 @@ def sync_detailed(
     *,
     client: Client,
     json_body: CreateFeatureViewsRequest,
-) -> Response[List[FeatureViewDto]]:
+) -> Response[Any]:
     """Create FeatureViews
 
     Args:
@@ -68,7 +54,7 @@ def sync_detailed(
         json_body (CreateFeatureViewsRequest):
 
     Returns:
-        Response[List[FeatureViewDto]]
+        Response[Any]
     """
 
     kwargs = _get_kwargs(
@@ -85,35 +71,12 @@ def sync_detailed(
     return _build_response(response=response)
 
 
-def sync(
-    feature_store_name: str,
-    *,
-    client: Client,
-    json_body: CreateFeatureViewsRequest,
-) -> Optional[List[FeatureViewDto]]:
-    """Create FeatureViews
-
-    Args:
-        feature_store_name (str):
-        json_body (CreateFeatureViewsRequest):
-
-    Returns:
-        Response[List[FeatureViewDto]]
-    """
-
-    return sync_detailed(
-        feature_store_name=feature_store_name,
-        client=client,
-        json_body=json_body,
-    ).parsed
-
-
 async def asyncio_detailed(
     feature_store_name: str,
     *,
     client: Client,
     json_body: CreateFeatureViewsRequest,
-) -> Response[List[FeatureViewDto]]:
+) -> Response[Any]:
     """Create FeatureViews
 
     Args:
@@ -121,7 +84,7 @@ async def asyncio_detailed(
         json_body (CreateFeatureViewsRequest):
 
     Returns:
-        Response[List[FeatureViewDto]]
+        Response[Any]
     """
 
     kwargs = _get_kwargs(
@@ -134,28 +97,3 @@ async def asyncio_detailed(
         response = await _client.request(**kwargs)
 
     return _build_response(response=response)
-
-
-async def asyncio(
-    feature_store_name: str,
-    *,
-    client: Client,
-    json_body: CreateFeatureViewsRequest,
-) -> Optional[List[FeatureViewDto]]:
-    """Create FeatureViews
-
-    Args:
-        feature_store_name (str):
-        json_body (CreateFeatureViewsRequest):
-
-    Returns:
-        Response[List[FeatureViewDto]]
-    """
-
-    return (
-        await asyncio_detailed(
-            feature_store_name=feature_store_name,
-            client=client,
-            json_body=json_body,
-        )
-    ).parsed

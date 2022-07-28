@@ -1,13 +1,8 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
-
-import datetime
+from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
-from dateutil.parser import isoparse
 
 from ..models.batch_source import BatchSource
-from ..models.entity import Entity
-from ..models.feature import Feature
 from ..models.feature_view_tags import FeatureViewTags
 from ..types import UNSET, Unset
 
@@ -19,43 +14,32 @@ class FeatureView:
     """
     Attributes:
         name (str):
-        entities (List[Entity]):
-        features (List[Feature]):
+        entities (List[str]):
+        features (List[str]):
         batch_source (BatchSource):
-        ttl (Union[Unset, datetime.datetime]):
+        ttl (Union[Unset, str]):
         online (Union[Unset, bool]):
         tags (Union[Unset, FeatureViewTags]):
     """
 
     name: str
-    entities: List[Entity]
-    features: List[Feature]
+    entities: List[str]
+    features: List[str]
     batch_source: BatchSource
-    ttl: Union[Unset, datetime.datetime] = UNSET
+    ttl: Union[Unset, str] = UNSET
     online: Union[Unset, bool] = UNSET
     tags: Union[Unset, FeatureViewTags] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
-        entities = []
-        for entities_item_data in self.entities:
-            entities_item = entities_item_data.to_dict()
+        entities = self.entities
 
-            entities.append(entities_item)
-
-        features = []
-        for features_item_data in self.features:
-            features_item = features_item_data.to_dict()
-
-            features.append(features_item)
+        features = self.features
 
         batch_source = self.batch_source.to_dict()
 
-        ttl: Union[Unset, str] = UNSET
-        if not isinstance(self.ttl, Unset):
-            ttl = self.ttl.isoformat()
-
+        ttl = self.ttl
         online = self.online
         tags: Union[Unset, Dict[str, Any]] = UNSET
         if not isinstance(self.tags, Unset):
@@ -85,28 +69,13 @@ class FeatureView:
         d = src_dict.copy()
         name = d.pop("name")
 
-        entities = []
-        _entities = d.pop("entities")
-        for entities_item_data in _entities:
-            entities_item = Entity.from_dict(entities_item_data)
+        entities = cast(List[str], d.pop("entities"))
 
-            entities.append(entities_item)
-
-        features = []
-        _features = d.pop("features")
-        for features_item_data in _features:
-            features_item = Feature.from_dict(features_item_data)
-
-            features.append(features_item)
+        features = cast(List[str], d.pop("features"))
 
         batch_source = BatchSource.from_dict(d.pop("batchSource"))
 
-        _ttl = d.pop("ttl", UNSET)
-        ttl: Union[Unset, datetime.datetime]
-        if isinstance(_ttl, Unset):
-            ttl = UNSET
-        else:
-            ttl = isoparse(_ttl)
+        ttl = d.pop("ttl", UNSET)
 
         online = d.pop("online", UNSET)
 

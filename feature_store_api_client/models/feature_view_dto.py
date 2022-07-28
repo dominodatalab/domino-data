@@ -1,13 +1,8 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
-
-import datetime
+from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
-from dateutil.parser import isoparse
 
 from ..models.batch_source import BatchSource
-from ..models.entity import Entity
-from ..models.feature import Feature
 from ..models.feature_view_dto_tags import FeatureViewDtoTags
 from ..types import UNSET, Unset
 
@@ -18,44 +13,39 @@ T = TypeVar("T", bound="FeatureViewDto")
 class FeatureViewDto:
     """
     Attributes:
+        id (str):
         name (str):
-        entities (List[Entity]):
-        features (List[Feature]):
+        feature_store_id (str):
+        entities (List[str]):
+        features (List[str]):
         batch_source (BatchSource):
-        ttl (Union[Unset, datetime.datetime]):
+        ttl (Union[Unset, str]):
         online (Union[Unset, bool]):
         tags (Union[Unset, FeatureViewDtoTags]):
     """
 
+    id: str
     name: str
-    entities: List[Entity]
-    features: List[Feature]
+    feature_store_id: str
+    entities: List[str]
+    features: List[str]
     batch_source: BatchSource
-    ttl: Union[Unset, datetime.datetime] = UNSET
+    ttl: Union[Unset, str] = UNSET
     online: Union[Unset, bool] = UNSET
     tags: Union[Unset, FeatureViewDtoTags] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        id = self.id
         name = self.name
-        entities = []
-        for entities_item_data in self.entities:
-            entities_item = entities_item_data.to_dict()
+        feature_store_id = self.feature_store_id
+        entities = self.entities
 
-            entities.append(entities_item)
-
-        features = []
-        for features_item_data in self.features:
-            features_item = features_item_data.to_dict()
-
-            features.append(features_item)
+        features = self.features
 
         batch_source = self.batch_source.to_dict()
 
-        ttl: Union[Unset, str] = UNSET
-        if not isinstance(self.ttl, Unset):
-            ttl = self.ttl.isoformat()
-
+        ttl = self.ttl
         online = self.online
         tags: Union[Unset, Dict[str, Any]] = UNSET
         if not isinstance(self.tags, Unset):
@@ -65,7 +55,9 @@ class FeatureViewDto:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "id": id,
                 "name": name,
+                "featureStoreId": feature_store_id,
                 "entities": entities,
                 "features": features,
                 "batchSource": batch_source,
@@ -83,30 +75,19 @@ class FeatureViewDto:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
+        id = d.pop("id")
+
         name = d.pop("name")
 
-        entities = []
-        _entities = d.pop("entities")
-        for entities_item_data in _entities:
-            entities_item = Entity.from_dict(entities_item_data)
+        feature_store_id = d.pop("featureStoreId")
 
-            entities.append(entities_item)
+        entities = cast(List[str], d.pop("entities"))
 
-        features = []
-        _features = d.pop("features")
-        for features_item_data in _features:
-            features_item = Feature.from_dict(features_item_data)
-
-            features.append(features_item)
+        features = cast(List[str], d.pop("features"))
 
         batch_source = BatchSource.from_dict(d.pop("batchSource"))
 
-        _ttl = d.pop("ttl", UNSET)
-        ttl: Union[Unset, datetime.datetime]
-        if isinstance(_ttl, Unset):
-            ttl = UNSET
-        else:
-            ttl = isoparse(_ttl)
+        ttl = d.pop("ttl", UNSET)
 
         online = d.pop("online", UNSET)
 
@@ -118,7 +99,9 @@ class FeatureViewDto:
             tags = FeatureViewDtoTags.from_dict(_tags)
 
         feature_view_dto = cls(
+            id=id,
             name=name,
+            feature_store_id=feature_store_id,
             entities=entities,
             features=features,
             batch_source=batch_source,
