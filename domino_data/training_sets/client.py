@@ -254,7 +254,7 @@ def create_training_set_version(
     )
 
     if response.status_code != 200:
-        _raise_response_exn(response, "could not create TrainingSetVersion")
+        _raise_response_exn(response, "A training set with the same name exists in a different project.")
 
     tsv = _to_TrainingSetVersion(response.parsed)
 
