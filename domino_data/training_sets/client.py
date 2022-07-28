@@ -253,8 +253,8 @@ def create_training_set_version(
         ),
     )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "A training set with the same name exists in a different project.")
+    if response != 200:
+        _raise_response_exn(response, "could not create Training Set version")
 
     tsv = _to_TrainingSetVersion(response.parsed)
 
@@ -453,11 +453,8 @@ def _to_TrainingSetVersion(tsv: TrainingSetVersion) -> model.TrainingSetVersion:
 
 
 def _raise_response_exn(response: Response, msg: str):
-    try:
-        response_json = json.loads(response.content.decode("utf8"))
-        server_msg = response_json.get("message")
-    except Exception:
-        server_msg = None
+    response_json = json.loads(response.content.decode("utf8"))
+    server_msg = response_json.get("errors")
 
     raise ServerException(msg, server_msg)
 
