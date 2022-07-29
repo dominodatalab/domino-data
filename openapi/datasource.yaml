@@ -207,6 +207,7 @@ components:
             - AzureBasic
             - Basic
             - AWSIAMBasic
+            - AWSIAMBasicNoOverride
             - AWSIAMRole
             - AWSIAMRoleWithUsername
             - GCPBasic
