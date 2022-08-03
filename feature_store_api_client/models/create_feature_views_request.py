@@ -1,48 +1,38 @@
 from typing import Any, Dict, List, Type, TypeVar
 
-import datetime
-
 import attr
-from dateutil.parser import isoparse
 
-T = TypeVar("T", bound="FeatureStore")
+from ..models.feature_view import FeatureView
+
+T = TypeVar("T", bound="CreateFeatureViewsRequest")
 
 
 @attr.s(auto_attribs=True)
-class FeatureStore:
+class CreateFeatureViewsRequest:
     """
     Attributes:
-        id (str):
-        project_id (str):
         name (str):
-        creation_time (datetime.datetime):
-        data_source_name (str):
+        feature_views (List[FeatureView]):
     """
 
-    id: str
-    project_id: str
     name: str
-    creation_time: datetime.datetime
-    data_source_name: str
+    feature_views: List[FeatureView]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        id = self.id
-        project_id = self.project_id
         name = self.name
-        creation_time = self.creation_time.isoformat()
+        feature_views = []
+        for feature_views_item_data in self.feature_views:
+            feature_views_item = feature_views_item_data.to_dict()
 
-        data_source_name = self.data_source_name
+            feature_views.append(feature_views_item)
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "id": id,
-                "projectId": project_id,
                 "name": name,
-                "creationTime": creation_time,
-                "dataSourceName": data_source_name,
+                "featureViews": feature_views,
             }
         )
 
@@ -51,26 +41,22 @@ class FeatureStore:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        id = d.pop("id")
-
-        project_id = d.pop("projectId")
-
         name = d.pop("name")
 
-        creation_time = isoparse(d.pop("creationTime"))
+        feature_views = []
+        _feature_views = d.pop("featureViews")
+        for feature_views_item_data in _feature_views:
+            feature_views_item = FeatureView.from_dict(feature_views_item_data)
 
-        data_source_name = d.pop("dataSourceName")
+            feature_views.append(feature_views_item)
 
-        feature_store = cls(
-            id=id,
-            project_id=project_id,
+        create_feature_views_request = cls(
             name=name,
-            creation_time=creation_time,
-            data_source_name=data_source_name,
+            feature_views=feature_views,
         )
 
-        feature_store.additional_properties = d
-        return feature_store
+        create_feature_views_request.additional_properties = d
+        return create_feature_views_request
 
     @property
     def additional_keys(self) -> List[str]:

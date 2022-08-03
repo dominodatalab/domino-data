@@ -3,36 +3,42 @@ from typing import Any, Dict, List, Type, TypeVar, Union, cast
 import attr
 
 from ..models.batch_source import BatchSource
-from ..models.feature_view_tags import FeatureViewTags
+from ..models.feature_view_dto_tags import FeatureViewDtoTags
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="FeatureView")
+T = TypeVar("T", bound="FeatureViewDto")
 
 
 @attr.s(auto_attribs=True)
-class FeatureView:
+class FeatureViewDto:
     """
     Attributes:
+        id (str):
         name (str):
+        feature_store_id (str):
         entities (List[str]):
         features (List[str]):
         batch_source (BatchSource):
         ttl (Union[Unset, str]):
         online (Union[Unset, bool]):
-        tags (Union[Unset, FeatureViewTags]):
+        tags (Union[Unset, FeatureViewDtoTags]):
     """
 
+    id: str
     name: str
+    feature_store_id: str
     entities: List[str]
     features: List[str]
     batch_source: BatchSource
     ttl: Union[Unset, str] = UNSET
     online: Union[Unset, bool] = UNSET
-    tags: Union[Unset, FeatureViewTags] = UNSET
+    tags: Union[Unset, FeatureViewDtoTags] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        id = self.id
         name = self.name
+        feature_store_id = self.feature_store_id
         entities = self.entities
 
         features = self.features
@@ -49,7 +55,9 @@ class FeatureView:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "id": id,
                 "name": name,
+                "featureStoreId": feature_store_id,
                 "entities": entities,
                 "features": features,
                 "batchSource": batch_source,
@@ -67,7 +75,11 @@ class FeatureView:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
+        id = d.pop("id")
+
         name = d.pop("name")
+
+        feature_store_id = d.pop("featureStoreId")
 
         entities = cast(List[str], d.pop("entities"))
 
@@ -80,14 +92,16 @@ class FeatureView:
         online = d.pop("online", UNSET)
 
         _tags = d.pop("tags", UNSET)
-        tags: Union[Unset, FeatureViewTags]
+        tags: Union[Unset, FeatureViewDtoTags]
         if isinstance(_tags, Unset):
             tags = UNSET
         else:
-            tags = FeatureViewTags.from_dict(_tags)
+            tags = FeatureViewDtoTags.from_dict(_tags)
 
-        feature_view = cls(
+        feature_view_dto = cls(
+            id=id,
             name=name,
+            feature_store_id=feature_store_id,
             entities=entities,
             features=features,
             batch_source=batch_source,
@@ -96,8 +110,8 @@ class FeatureView:
             tags=tags,
         )
 
-        feature_view.additional_properties = d
-        return feature_view
+        feature_view_dto.additional_properties = d
+        return feature_view_dto
 
     @property
     def additional_keys(self) -> List[str]:

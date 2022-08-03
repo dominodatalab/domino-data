@@ -1,6 +1,7 @@
 """Feature Store module."""
 from typing import Optional, cast
 
+import json
 import os
 from pathlib import Path
 
@@ -10,10 +11,21 @@ import yaml
 from attrs import define, field
 from feast.repo_operations import init_repo
 
-# from datasource_api_client.api.datasource import post_datasource
-from feature_store_api_client.api.default import post_feature_store_name
+from domino_data import data_sources
+from feature_store_api_client.api.default import (
+    get_feature_store_name,
+    post_feature_store_name,
+    post_feature_store_name_featureview,
+)
 from feature_store_api_client.client import Client
-from feature_store_api_client.models import CreateFeatureStoreRequest, FeatureStore
+from feature_store_api_client.models import (
+    BatchSource,
+    CreateFeatureStoreRequest,
+    CreateFeatureViewsRequest,
+    FeatureStore,
+    FeatureView,
+)
+from feature_store_api_client.types import Response
 
 from .auth import AuthenticatedClient
 
@@ -23,6 +35,14 @@ AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
 
 class DominoError(Exception):
     """Base exception for known errors."""
+
+
+class ServerException(Exception):
+    """This exception is raised when the FeatureStore server rejects a request."""
+
+    def __init__(self, message: str, server_msg: str):
+        self.message = message
+        self.server_msg = server_msg
 
 
 @define
@@ -67,6 +87,30 @@ class FeatureStoreClient:
 
         raise Exception(response.content)
 
+    def get_feature_store(self, name):
+        response = get_feature_store_name.sync_detailed(
+            name,
+            client=self.client,
+        )
+
+        if response.status_code == 200:
+            return cast(FeatureStore, response.parsed)
+
+        raise Exception(response.content)
+
+    def post_feature_views(self, name, feature_views):
+        request = CreateFeatureViewsRequest(name=name, feature_views=feature_views)
+        response = post_feature_store_name_featureview.sync_detailed(
+            name,
+            client=self.client,
+            json_body=request,
+        )
+
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not create Feature Views")
+
+        return True
+
 
 @click.group()
 def cli():
@@ -93,7 +137,7 @@ def init(project_directory, minimal: bool, template: str) -> None:
 
     # remove initial yaml file
     path_to_yaml = Path.cwd() / project_directory_name / "feature_store.yaml"
-    os.remove((path_to_yaml))
+    os.remove(path_to_yaml)
 
     # generate yaml file
     __generate_yaml(path_to_yaml, project_directory_name)
@@ -107,6 +151,55 @@ def init(project_directory, minimal: bool, template: str) -> None:
     client = FeatureStoreClient()
     client.post_feature_store(project_directory_name, bucket, region, access_key, secret_key)
     print(f"Feature store '{project_directory_name}' successfully initialized with Domino.")
+
+
+@cli.command()
+@click.option(
+    "--chdir",
+    "-c",
+    help="Switch to a different feature repository directory before syncing.",
+)
+@click.option(
+    "--name", prompt="Name of the Feature Store", help="Name of the feature store to be synced"
+)
+def sync(name: str, chdir: Optional[str]) -> None:
+    """Sync information in registry.db with Domino"""
+
+    # upload registry.db and config YAML file to S3
+    client = FeatureStoreClient()
+    repo = Path.cwd() if chdir is None else Path(chdir).absolute()
+
+    feature_store = client.get_feature_store(name)
+    data_source_dto = data_sources.DataSourceClient().get_datasource(feature_store.data_source_name)
+    s3_data_source = data_sources.cast(data_sources.ObjectStoreDatasource, data_source_dto)
+
+    s3_data_source.upload_file(
+        os.path.join(feature_store.name, "registry.db"), os.path.join(repo, "data/registry.db")
+    )
+    s3_data_source.upload_file(
+        os.path.join(feature_store.name, "feature_store.yaml"),
+        os.path.join(repo, "feature_store.yaml"),
+    )
+
+    # create feature views
+    feature_store = feast.FeatureStore(repo)
+    feature_views = feature_store.list_feature_views()
+
+    request_input = []
+    for fv in feature_views:
+        feature_v = FeatureView(
+            name=str(fv.name),
+            entities=[str(e) for e in fv.entities],
+            features=[str(f) for f in fv.features],
+            batch_source=BatchSource(
+                created_timestamp_column=str(fv.batch_source.created_timestamp_column),
+                query=str(fv.batch_source.query),
+            ),
+        )
+        request_input.append(feature_v)
+
+    client.post_feature_views(name, request_input)
+    print(f"Feature Store '{name}' successfully synced.")
 
 
 def __run__feast__init(project_directory, minimal: bool, template: str):
@@ -173,3 +266,13 @@ def __generate_yaml(path, project_directory_name):
 
 def _get_project_id() -> Optional[str]:
     return os.getenv("DOMINO_PROJECT_ID")
+
+
+def _raise_response_exn(response: Response, msg: str):
+    try:
+        response_json = json.loads(response.content.decode("utf8"))
+        server_msg = response_json.get("message")
+    except Exception:
+        server_msg = None
+
+    raise ServerException(msg, server_msg)

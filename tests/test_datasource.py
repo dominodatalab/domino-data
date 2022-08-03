@@ -258,7 +258,7 @@ def test_client_execute_unpack_exceptions(flight_server):
 
     flight_server.do_get_callback = callback
 
-    with pytest.raises(Exception, match="^is bad. Detail: Internal$"):
+    with pytest.raises(Exception, match="is bad. Detail: Internal"):
         ds.DataSourceClient().execute("id", "SELECT 1", {}, {})
 
 
