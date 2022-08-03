@@ -1,12 +1,12 @@
 """Feature Store module."""
 from typing import Optional, cast
 
+import json
 import os
 from pathlib import Path
 
 import click
 import feast
-import json
 import yaml
 from attrs import define, field
 from feast.repo_operations import init_repo
