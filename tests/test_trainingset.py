@@ -79,6 +79,7 @@ def test_create_bad_name_error(training_set_dir):
 
     assert f"bad TrainingSet name '{training_set_name}'" in str(execinfo.value)
 
+
 @pytest.mark.vcr
 def test_create_duplicate_name_error(training_set_dir):
     """Client raises ServerException when given a trainingset name that already exists."""
@@ -88,7 +89,7 @@ def test_create_duplicate_name_error(training_set_dir):
         columns=["a", "b", "c", "d", "e", "f"],
     )
 
-    training_set_name="foo1"
+    training_set_name = "foo1"
 
     orig = client.create_training_set_version(
         training_set_name=training_set_name,
