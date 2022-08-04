@@ -81,6 +81,30 @@ def test_create_bad_name_error(training_set_dir):
 
 
 @pytest.mark.vcr
+def test_create_duplicate_name_error(training_set_dir):
+    """Client raises ServerException when given a trainingset name that already exists."""
+
+    df = pd.DataFrame(
+        np.random.randint(0, 100, size=(15, 6)),
+        columns=["a", "b", "c", "d", "e", "f"],
+    )
+
+    training_set_name = "foo1"
+
+    orig = client.create_training_set_version(
+        training_set_name=training_set_name,
+        df=df,
+        key_columns=["c", "d"],
+    )
+
+    with pytest.raises(client.ServerException):
+        client.create_training_set_version(
+            training_set_name=training_set_name,
+            df=df,
+        )
+
+
+@pytest.mark.vcr
 def test_get_version(training_set_dir):
     """Client can get a TrainingSetVersion."""
 
