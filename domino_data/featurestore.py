@@ -14,6 +14,7 @@ from feast.repo_operations import init_repo
 from domino_data import data_sources
 from feature_store_api_client.api.default import (
     get_feature_store_name,
+    get_feature_view_name_store,
     post_feature_store_name,
     post_feature_store_name_featureview,
 )
@@ -90,6 +91,17 @@ class FeatureStoreClient:
     def get_feature_store(self, name):
         response = get_feature_store_name.sync_detailed(
             name,
+            client=self.client,
+        )
+
+        if response.status_code == 200:
+            return cast(FeatureStore, response.parsed)
+
+        raise Exception(response.content)
+
+    def get_feature_store_by_view(self, view_name):
+        response = get_feature_view_name_store.sync_detailed(
+            view_name,
             client=self.client,
         )
 
@@ -200,6 +212,42 @@ def sync(name: str, chdir: Optional[str]) -> None:
 
     client.post_feature_views(name, request_input)
     print(f"Feature Store '{name}' successfully synced.")
+
+
+@cli.command()
+@click.option(
+    "--chdir",
+    "-c",
+    help="Switch to a different directory before using feature view.",
+)
+@click.option(
+    "--view_name", prompt="Name of the Feature View", help="Name of the feature view to be used"
+)
+def use(view_name: str, chdir: Optional[str]) -> None:
+    client = FeatureStoreClient()
+    repo = Path.cwd() if chdir is None else Path(chdir).absolute()
+
+    # need to extract the S3 files based on the feature store lol
+    # create the folder and then put the shit in there lmao
+    # then extract from feature store yay bruh
+
+    feature_store = client.get_feature_store_by_view(view_name)
+    data_source_dto = data_sources.DataSourceClient().get_datasource(feature_store.data_source_name)
+    s3_data_source = data_sources.cast(data_sources.ObjectStoreDatasource, data_source_dto)
+
+    project_root_path = os.path.join(repo, feature_store.name)
+    project_data_path = os.path.join(repo, feature_store.name, "data")
+    if not os.path.exists(project_root_path):
+        os.makedirs(project_root_path)
+        os.makedirs(project_data_path)
+    s3_data_source.download_file(
+        os.path.join(feature_store.name, "feature_store.yaml"),
+        os.path.join(project_root_path, "feature_store.yaml"),
+    )
+    s3_data_source.download_file(
+        os.path.join(feature_store.name, "registry.db"),
+        os.path.join(project_data_path, "registry.db"),
+    )
 
 
 def __run__feast__init(project_directory, minimal: bool, template: str):

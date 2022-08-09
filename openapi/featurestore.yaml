@@ -69,6 +69,24 @@ paths:
       responses:
         '200':
           description: Success
+  /{featureViewName}/store:
+    get:
+      summary: Get feature store by feature view name
+      parameters:
+        - in: path
+          name: featureViewName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: FeatureView name
+      responses:
+        '200':
+          description: The FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
 
 
 components:
