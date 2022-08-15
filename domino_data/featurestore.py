@@ -171,16 +171,14 @@ def init(project_directory, minimal: bool, template: str) -> None:
     "-c",
     help="Switch to a different feature repository directory before syncing.",
 )
-@click.option(
-    "--name", prompt="Name of the Feature Store", help="Name of the feature store to be synced"
-)
-def sync(name: str, chdir: Optional[str]) -> None:
+def sync(chdir: Optional[str]) -> None:
     """Sync information in registry.db with Domino"""
 
     # upload registry.db and config YAML file to S3
     client = FeatureStoreClient()
     repo = Path.cwd() if chdir is None else Path(chdir).absolute()
 
+    name = os.path.basename(os.path.normpath(repo))
     feature_store = client.get_feature_store(name)
     data_source_dto = data_sources.DataSourceClient().get_datasource(feature_store.data_source_name)
     s3_data_source = data_sources.cast(data_sources.ObjectStoreDatasource, data_source_dto)
