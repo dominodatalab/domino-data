@@ -289,7 +289,7 @@ def test_config_returns_overrides():
     """Config returns override for changed fields only."""
 
     @ds.attr.s(auto_attribs=True)
-    class DummyConfig(ds_gen.Config):
+    class DummyConfig(ds.Config):
         """Dummy Config"""
 
         # pylint: disable=protected-access
@@ -318,7 +318,7 @@ def test_config_returns_overrides():
 def test_mysql_config():
     """MySQL config serializes to expected keys."""
 
-    mysql = ds_gen.MySQLConfig(database="dev2", username="awsadmin", password="protec")
+    mysql = ds.MySQLConfig(database="dev2", username="awsadmin", password="protec")
 
     assert mysql.config() == {"database": "dev2"}
     assert mysql.credential() == {"username": "awsadmin", "password": "protec"}
@@ -327,7 +327,7 @@ def test_mysql_config():
 def test_postgresql_config():
     """PostgreSQL config serializes to expected keys."""
 
-    postgres = ds_gen.PostgreSQLConfig(
+    postgres = ds.PostgreSQLConfig(
         database="dev2",
         username="awsadmin",
         password="protec",
@@ -340,7 +340,7 @@ def test_postgresql_config():
 def test_redshift_config():
     """Redshift config serializes to expected keys."""
 
-    red = ds_gen.RedshiftConfig(database="dev2", username="awsadmin", password="protec")
+    red = ds.RedshiftConfig(database="dev2", username="awsadmin", password="protec")
 
     assert red.config() == {"database": "dev2"}
     assert red.credential() == {"username": "awsadmin", "password": "protec"}
@@ -349,7 +349,7 @@ def test_redshift_config():
 def test_snowflake_config():
     """Snowflake config serializes to expected keys."""
 
-    snow = ds_gen.SnowflakeConfig(
+    snow = ds.SnowflakeConfig(
         database="winter",
         schema="private",
         warehouse="xxl",
@@ -369,7 +369,7 @@ def test_snowflake_config():
 
 def test_oracle_config():
     """Oracle config serializes to expected keys."""
-    orcl = ds_gen.OracleConfig(database="dev2", username="awsadmin", password="protec")
+    orcl = ds.OracleConfig(database="dev2", username="awsadmin", password="protec")
 
     assert orcl.config() == {"database": "dev2"}
     assert orcl.credential() == {"username": "awsadmin", "password": "protec"}
@@ -377,7 +377,7 @@ def test_oracle_config():
 
 def test_s3_config():
     """S3 config serializes to expected keys."""
-    s3c = ds_gen.S3Config(
+    s3c = ds.S3Config(
         bucket="sceau",
         region="midi-pyrenees",
         aws_access_key_id="identite",
@@ -391,7 +391,7 @@ def test_s3_config():
 def test_sqlserver_config():
     """SQL Server config serializes to expected keys."""
 
-    sqlServer = ds_gen.SQLServerConfig(database="dev2", username="awsadmin", password="protec")
+    sqlServer = ds.SQLServerConfig(database="dev2", username="awsadmin", password="protec")
 
     assert sqlServer.config() == {"database": "dev2"}
     assert sqlServer.credential() == {"username": "awsadmin", "password": "protec"}
@@ -400,7 +400,7 @@ def test_sqlserver_config():
 def test_gcp_config():
     """GCP config serializes to expected keys."""
 
-    gcsc = ds_gen.GCSConfig(
+    gcsc = ds.GCSConfig(
         bucket="cestino",
         private_key_json="chiave-segreta",
     )

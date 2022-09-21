@@ -5,12 +5,12 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "dominodatalab-data"
-version = "0.3.1dev4"
+version = "0.4.1dev1"
 description = "Domino Data API for interacting with Domino Data features"
 readme = "README.md"
 authors = [
-    "Aaron Read <aaron.read@dominodatalab.com>",
     "Gabriel Haim <gabriel.haim@dominodatalab.com>",
+    "Aaron Read <aaron.read@dominodatalab.com>",
 ]
 license = "Apache Software License 2.0"
 repository = "https://github.com/dominodatalab/domino-data"

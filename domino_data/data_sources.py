@@ -1,6 +1,7 @@
 """Datasource module."""
 from typing import Any, Dict, List, Optional, cast
 
+import builtins
 import configparser
 import json
 import os
@@ -11,6 +12,7 @@ import httpx
 import pandas
 from pyarrow import ArrowException, flight, parquet
 
+import domino_data.configuration_gen
 from datasource_api_client.api.datasource import get_datasource_by_name
 from datasource_api_client.api.proxy import get_key_url, list_keys, log_metric
 from datasource_api_client.models import DatasourceConfig as APIConfig
@@ -42,6 +44,17 @@ AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
 AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
 DOMINO_TOKEN_DEFAULT_LOCATION = "/var/lib/domino/home/.api/token"
 DOMINO_TOKEN_FILE = "DOMINO_TOKEN_FILE"
+
+
+def __getattr__(name: str) -> Any:
+    if name.endswith("Config"):
+        return getattr(domino_data.configuration_gen, name)
+    raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+def __dir__() -> List[str]:
+    confs = filter(lambda x: x.endswith("Config"), dir(domino_data.configuration_gen))
+    return builtins.dir() + list(confs)
 
 
 class DominoError(Exception):

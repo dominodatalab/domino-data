@@ -5,6 +5,7 @@ class DatasourceDtoAuthType(str, Enum):
     AZUREBASIC = "AzureBasic"
     BASIC = "Basic"
     AWSIAMBASIC = "AWSIAMBasic"
+    AWSIAMBASICNOOVERRIDE = "AWSIAMBasicNoOverride"
     AWSIAMROLE = "AWSIAMRole"
     AWSIAMROLEWITHUSERNAME = "AWSIAMRoleWithUsername"
     GCPBASIC = "GCPBasic"
