@@ -6,17 +6,24 @@ info:
   version: 0.1.0
 
 paths:
-  /{featureStoreName}:
+  /:
+    get:
+      summary: Get FeatureStore
+      responses:
+        '200':
+          description: The FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
+        '404':
+          description: Not Found
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
     post:
       summary: Create FeatureStore
-      parameters:
-        - in: path
-          name: featureStoreName
-          required: true
-          schema:
-            type: string
-            minimum: 1
-          description: FeatureStore name
       requestBody:
         description: CreateFeatureStoreRequest
         required: true
@@ -31,44 +38,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeatureStore'
-    get:
-      summary: Get Feature Store
-      parameters:
-        - in: path
-          name: featureStoreName
-          required: true
-          schema:
-            type: string
-            minimum: 1
-          description: FeatureStore name
-      responses:
-        '200':
-          description: The FeatureStore
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeatureStore'
-  /{featureStoreName}/featureview:
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
+  /featureview:
     post:
-      summary: Create FeatureViews
-      parameters:
-        - in: path
-          name: featureStoreName
-          required: true
-          schema:
-            type: string
-            minimum: 1
-          description: FeatureStore name
+      summary: Upsert FeatureViews
       requestBody:
-        description: CreateFeatureViewsRequest
+        description: UpsertFeatureViewsRequest
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateFeatureViewsRequest'
+              $ref: '#/components/schemas/UpsertFeatureViewsRequest'
       responses:
         '200':
           description: Success
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
   /{featureViewName}/store:
     get:
       summary: Get feature store by feature view name
@@ -88,58 +82,154 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureStore'
 
-
 components:
   schemas:
+    # Enums
+    #
+    AuthFieldName:
+      type: string
+      enum:
+        - password
+        - username
+    AuthType:
+      type: string
+      enum:
+        - BasicOptional
+        - UserOnly
+        - NoAuth
+    ConfigFieldName:
+      type: string
+      enum:
+        - accountId
+        - role
+        - warehouse
+        - database
+        - clusterId
+        - region
+        - s3StagingLocation
+        - iamRole
+        - datasetName
+        - gcsStagingLocation
+        - location
+        - gcsProjectName
+        - authenticator
+        - blobExportLocation
+        - configPath
+        - schema
+        - storageIntegrationName
+    OfflineStoreType:
+      type: string
+      enum:
+        - File
+        - BigQuery
+        - Redshift
+        - Snowflake
+    GitProviderName:
+      type: string
+      enum:
+        - Bitbucket
+        - BitbucketServer
+        - Github
+        - GithubEnterprise
+        - Gitlab
+        - GitlabEnterprise
+        - Unknown
+    AuthConfig:
+      type: object
+      properties:
+        authType:
+          $ref: '#/components/schemas/AuthType'
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Field'
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - authType
+        - fields
+        - meta
+    OfflineStoreConfig:
+      type: object
+      properties:
+        authTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthType'
+        offlineStoreType:
+          $ref: '#/components/schemas/OfflineStoreType'
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Field'
+      required:
+        - authTypes
+        - offlineStoreType
+        - fields
+    Field:
+      type: object
+      properties:
+        alias:
+          type: string
+        isOptional:
+          type: boolean
+        isOverridable:
+          type: boolean
+        isSecret:
+          type: boolean
+        name:
+          type: string
+        regexp:
+          type: string
+        regexpErrorMessage:
+          type: string
+      required:
+        - isOptional
+        - isOverridable
+        - name
+
+    # Entities
+    #
     FeatureStore:
       type: object
       properties:
         id:
           type: string
-        projectId:
-          type: string
-        name:
+        ownerId:
           type: string
         creationTime:
           type: string
           format: date-time
-        dataSourceName:
-          type: string
-      required:
-        - id
-        - projectId
-        - name
-        - creationTime
-        - dataSourceName
-    FeatureView:
-      type: object
-      properties:
-        name:
-          type: string
-        ttl:
-          type: string
-        entities:
-          type: array
-          items:
-            type: string
-        features:
-          type: array
-          items:
-            type: string
-        batchSource:
-          $ref: '#/components/schemas/BatchSource'
-        online:
-          type: boolean
-        tags:
+        offlineStoreType:
+          $ref: '#/components/schemas/OfflineStoreType'
+        offlineStoreConfig:
           type: object
           additionalProperties:
             type: string
+        gitRepo:
+          type: string
+        gitServiceProvider:
+          $ref: '#/components/schemas/GitProviderName'
+        projectIds:
+          type: array
+          items:
+            type: string
+        lastUpdatedTime:
+          type: string
+          format: date-time
       required:
-        - name
-        - features
-        - entities
-        - batchSource
-    FeatureViewDto:
+        - id
+        - ownerId
+        - creationTime
+        - offlineStoreType
+        - offlineStoreConfig
+        - gitRepo
+        - gitServiceProvider
+        - projectIds
+        - lastUpdatedTime
+    FeatureView:
       type: object
       properties:
         id:
@@ -148,41 +238,46 @@ components:
           type: string
         featureStoreId:
           type: string
-        ttl:
-          type: string
+        metadata:
+          $ref: '#/components/schemas/Metadata'
         entities:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Entity'
         features:
           type: array
           items:
-            type: string
-        batchSource:
-          $ref: '#/components/schemas/BatchSource'
-        online:
-          type: boolean
+            $ref: '#/components/schemas/Feature'
+        ttl:
+          type: integer
+          format: int64
         tags:
           type: object
           additionalProperties:
+            type: string
+        projectIds:
+          type: array
+          items:
             type: string
       required:
         - id
         - name
         - featureStoreId
-        - features
+        - metadata
         - entities
-        - batchSource
+        - features
+        - tags
+        - projectIds
     Feature:
       type: object
       properties:
         name:
           type: string
-        valueType:
+        dtype:
           type: string
       required:
         - name
-        - valueType
+        - dtype
     Entity:
       type: object
       properties:
@@ -195,52 +290,70 @@ components:
       required:
         - name
         - valueType
-    BatchSource:
+    Metadata:
       type: object
       properties:
-        eventTimestampColumn:
-          type: string
-        createdTimestampColumn:
-          type: string
-        datePartitionColumn:
-          type: string
-        database:
-          type: string
-        query:
-          type: string
-        table:
-          type: string
+        createdAtMillis:
+          type: integer
+          format: int64
+        lastUpdatedMillis:
+          type: integer
+          format: int64
+      required:
+        - createdAtMillis
+        - lastUpdatedMillis
     CreateFeatureStoreRequest:
       type: object
       properties:
         name:
           type: string
-        projectId:
+        offlineStoreType:
+          $ref: '#/components/schemas/OfflineStoreType'
+        offlineStoreConfig:
+          type: object
+          additionalProperties:
+            type: string
+        gitRepo:
           type: string
-        bucket:
-          type: string
-        region:
-          type: string
-        visibleCredential:
-          type: string
-        secretCredential:
-          type: string
+        gitServiceProvider:
+          $ref: '#/components/schemas/GitProviderName'
       required:
         - name
-        - projectId
-        - bucket
-        - region
-        - visibleCredential
-        - secretCredential
-    CreateFeatureViewsRequest:
+        - offlineStoreType
+        - offlineStoreConfig
+        - gitRepo
+        - gitServiceProvider
+    UpsertFeatureViewsRequest:
+      type: object
+      properties:
+        featureViews:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureViewRequest'
+      required:
+        - featureViews
+    FeatureViewRequest:
       type: object
       properties:
         name:
           type: string
-        featureViews:
+        entities:
           type: array
           items:
-            $ref: '#/components/schemas/FeatureView'
+            $ref: '#/components/schemas/Entity'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        ttl:
+          type: integer
+          format: int64
+        tags:
+          type: object
+          additionalProperties:
+            type: string
       required:
         - name
-        - featureViews
+        - features
+        - entities
+        - tags

@@ -2,31 +2,41 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-T = TypeVar("T", bound="Feature")
+from ..models.auth_config_fields import AuthConfigFields
+from ..models.auth_config_meta import AuthConfigMeta
+from ..models.auth_type import AuthType
+
+T = TypeVar("T", bound="AuthConfig")
 
 
 @attr.s(auto_attribs=True)
-class Feature:
+class AuthConfig:
     """
     Attributes:
-        name (str):
-        dtype (str):
+        auth_type (AuthType):
+        fields (AuthConfigFields):
+        meta (AuthConfigMeta):
     """
 
-    name: str
-    dtype: str
+    auth_type: AuthType
+    fields: AuthConfigFields
+    meta: AuthConfigMeta
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        name = self.name
-        dtype = self.dtype
+        auth_type = self.auth_type.value
+
+        fields = self.fields.to_dict()
+
+        meta = self.meta.to_dict()
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "name": name,
-                "dtype": dtype,
+                "authType": auth_type,
+                "fields": fields,
+                "meta": meta,
             }
         )
 
@@ -35,17 +45,20 @@ class Feature:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        name = d.pop("name")
+        auth_type = AuthType(d.pop("authType"))
 
-        dtype = d.pop("dtype")
+        fields = AuthConfigFields.from_dict(d.pop("fields"))
 
-        feature = cls(
-            name=name,
-            dtype=dtype,
+        meta = AuthConfigMeta.from_dict(d.pop("meta"))
+
+        auth_config = cls(
+            auth_type=auth_type,
+            fields=fields,
+            meta=meta,
         )
 
-        feature.additional_properties = d
-        return feature
+        auth_config.additional_properties = d
+        return auth_config
 
     @property
     def additional_keys(self) -> List[str]:

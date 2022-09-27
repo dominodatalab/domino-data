@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union, cast
 
 import httpx
 
@@ -9,12 +9,11 @@ from ...types import Response
 
 
 def _get_kwargs(
-    feature_store_name: str,
     *,
     client: Client,
     json_body: CreateFeatureStoreRequest,
 ) -> Dict[str, Any]:
-    url = "{}/{featureStoreName}".format(client.base_url, featureStoreName=feature_store_name)
+    url = "{}/".format(client.base_url)
 
     headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -31,15 +30,24 @@ def _get_kwargs(
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[FeatureStore]:
+def _parse_response(*, response: httpx.Response) -> Optional[Union[Any, FeatureStore]]:
     if response.status_code == 200:
         response_200 = FeatureStore.from_dict(response.json())
 
         return response_200
+    if response.status_code == 400:
+        response_400 = cast(Any, None)
+        return response_400
+    if response.status_code == 403:
+        response_403 = cast(Any, None)
+        return response_403
+    if response.status_code == 500:
+        response_500 = cast(Any, None)
+        return response_500
     return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[FeatureStore]:
+def _build_response(*, response: httpx.Response) -> Response[Union[Any, FeatureStore]]:
     return Response(
         status_code=response.status_code,
         content=response.content,
@@ -49,23 +57,20 @@ def _build_response(*, response: httpx.Response) -> Response[FeatureStore]:
 
 
 def sync_detailed(
-    feature_store_name: str,
     *,
     client: Client,
     json_body: CreateFeatureStoreRequest,
-) -> Response[FeatureStore]:
+) -> Response[Union[Any, FeatureStore]]:
     """Create FeatureStore
 
     Args:
-        feature_store_name (str):
         json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[FeatureStore]
+        Response[Union[Any, FeatureStore]]
     """
 
     kwargs = _get_kwargs(
-        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     )
@@ -79,46 +84,40 @@ def sync_detailed(
 
 
 def sync(
-    feature_store_name: str,
     *,
     client: Client,
     json_body: CreateFeatureStoreRequest,
-) -> Optional[FeatureStore]:
+) -> Optional[Union[Any, FeatureStore]]:
     """Create FeatureStore
 
     Args:
-        feature_store_name (str):
         json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[FeatureStore]
+        Response[Union[Any, FeatureStore]]
     """
 
     return sync_detailed(
-        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     ).parsed
 
 
 async def asyncio_detailed(
-    feature_store_name: str,
     *,
     client: Client,
     json_body: CreateFeatureStoreRequest,
-) -> Response[FeatureStore]:
+) -> Response[Union[Any, FeatureStore]]:
     """Create FeatureStore
 
     Args:
-        feature_store_name (str):
         json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[FeatureStore]
+        Response[Union[Any, FeatureStore]]
     """
 
     kwargs = _get_kwargs(
-        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     )
@@ -130,24 +129,21 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    feature_store_name: str,
     *,
     client: Client,
     json_body: CreateFeatureStoreRequest,
-) -> Optional[FeatureStore]:
+) -> Optional[Union[Any, FeatureStore]]:
     """Create FeatureStore
 
     Args:
-        feature_store_name (str):
         json_body (CreateFeatureStoreRequest):
 
     Returns:
-        Response[FeatureStore]
+        Response[Union[Any, FeatureStore]]
     """
 
     return (
         await asyncio_detailed(
-            feature_store_name=feature_store_name,
             client=client,
             json_body=json_body,
         )

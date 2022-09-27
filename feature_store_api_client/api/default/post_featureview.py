@@ -3,19 +3,16 @@ from typing import Any, Dict
 import httpx
 
 from ...client import Client
-from ...models.create_feature_views_request import CreateFeatureViewsRequest
+from ...models.upsert_feature_views_request import UpsertFeatureViewsRequest
 from ...types import Response
 
 
 def _get_kwargs(
-    feature_store_name: str,
     *,
     client: Client,
-    json_body: CreateFeatureViewsRequest,
+    json_body: UpsertFeatureViewsRequest,
 ) -> Dict[str, Any]:
-    url = "{}/{featureStoreName}/featureview".format(
-        client.base_url, featureStoreName=feature_store_name
-    )
+    url = "{}/featureview".format(client.base_url)
 
     headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
@@ -42,23 +39,20 @@ def _build_response(*, response: httpx.Response) -> Response[Any]:
 
 
 def sync_detailed(
-    feature_store_name: str,
     *,
     client: Client,
-    json_body: CreateFeatureViewsRequest,
+    json_body: UpsertFeatureViewsRequest,
 ) -> Response[Any]:
-    """Create FeatureViews
+    """Upsert FeatureViews
 
     Args:
-        feature_store_name (str):
-        json_body (CreateFeatureViewsRequest):
+        json_body (UpsertFeatureViewsRequest):
 
     Returns:
         Response[Any]
     """
 
     kwargs = _get_kwargs(
-        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     )
@@ -72,23 +66,20 @@ def sync_detailed(
 
 
 async def asyncio_detailed(
-    feature_store_name: str,
     *,
     client: Client,
-    json_body: CreateFeatureViewsRequest,
+    json_body: UpsertFeatureViewsRequest,
 ) -> Response[Any]:
-    """Create FeatureViews
+    """Upsert FeatureViews
 
     Args:
-        feature_store_name (str):
-        json_body (CreateFeatureViewsRequest):
+        json_body (UpsertFeatureViewsRequest):
 
     Returns:
         Response[Any]
     """
 
     kwargs = _get_kwargs(
-        feature_store_name=feature_store_name,
         client=client,
         json_body=json_body,
     )

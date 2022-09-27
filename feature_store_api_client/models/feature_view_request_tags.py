@@ -2,59 +2,39 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-T = TypeVar("T", bound="Feature")
+T = TypeVar("T", bound="FeatureViewRequestTags")
 
 
 @attr.s(auto_attribs=True)
-class Feature:
-    """
-    Attributes:
-        name (str):
-        dtype (str):
-    """
+class FeatureViewRequestTags:
+    """ """
 
-    name: str
-    dtype: str
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, str] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        name = self.name
-        dtype = self.dtype
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "name": name,
-                "dtype": dtype,
-            }
-        )
+        field_dict.update({})
 
         return field_dict
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        name = d.pop("name")
+        feature_view_request_tags = cls()
 
-        dtype = d.pop("dtype")
-
-        feature = cls(
-            name=name,
-            dtype=dtype,
-        )
-
-        feature.additional_properties = d
-        return feature
+        feature_view_request_tags.additional_properties = d
+        return feature_view_request_tags
 
     @property
     def additional_keys(self) -> List[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> str:
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: str) -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

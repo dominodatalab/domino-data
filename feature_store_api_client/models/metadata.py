@@ -2,31 +2,31 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-T = TypeVar("T", bound="Feature")
+T = TypeVar("T", bound="Metadata")
 
 
 @attr.s(auto_attribs=True)
-class Feature:
+class Metadata:
     """
     Attributes:
-        name (str):
-        dtype (str):
+        created_at_millis (int):
+        last_updated_millis (int):
     """
 
-    name: str
-    dtype: str
+    created_at_millis: int
+    last_updated_millis: int
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        name = self.name
-        dtype = self.dtype
+        created_at_millis = self.created_at_millis
+        last_updated_millis = self.last_updated_millis
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "name": name,
-                "dtype": dtype,
+                "createdAtMillis": created_at_millis,
+                "lastUpdatedMillis": last_updated_millis,
             }
         )
 
@@ -35,17 +35,17 @@ class Feature:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        name = d.pop("name")
+        created_at_millis = d.pop("createdAtMillis")
 
-        dtype = d.pop("dtype")
+        last_updated_millis = d.pop("lastUpdatedMillis")
 
-        feature = cls(
-            name=name,
-            dtype=dtype,
+        metadata = cls(
+            created_at_millis=created_at_millis,
+            last_updated_millis=last_updated_millis,
         )
 
-        feature.additional_properties = d
-        return feature
+        metadata.additional_properties = d
+        return metadata
 
     @property
     def additional_keys(self) -> List[str]:
