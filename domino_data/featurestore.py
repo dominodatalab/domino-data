@@ -139,7 +139,7 @@ def sync(
         request_input.append(feature_v)
 
     client.post_feature_views(request_input)
-    print(f"Feature Views successfully synced.")
+    print("Feature Views successfully synced.")
 
 
 def _get_project_id() -> Optional[str]:
