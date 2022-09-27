@@ -63,7 +63,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "autoflake"
-version = "1.6.0"
+version = "1.6.1"
 description = "Removes unused imports and unused variables"
 category = "dev"
 optional = false
@@ -147,7 +147,7 @@ six = ">=1.9.0"
 
 [[package]]
 name = "certifi"
-version = "2022.9.14"
+version = "2022.9.24"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "main"
 optional = false
@@ -317,7 +317,7 @@ gitdb = ">=4.0.1,<5"
 
 [[package]]
 name = "grpcio"
-version = "1.49.0"
+version = "1.49.1"
 description = "HTTP/2-based RPC framework"
 category = "dev"
 optional = false
@@ -327,7 +327,7 @@ python-versions = ">=3.7"
 six = ">=1.5.2"
 
 [package.extras]
-protobuf = ["grpcio-tools (>=1.49.0)"]
+protobuf = ["grpcio-tools (>=1.49.1)"]
 
 [[package]]
 name = "h11"
@@ -865,7 +865,7 @@ python-versions = "*"
 
 [[package]]
 name = "pyupgrade"
-version = "2.38.0"
+version = "2.38.2"
 description = "A tool to automatically upgrade syntax for newer versions."
 category = "dev"
 optional = false
