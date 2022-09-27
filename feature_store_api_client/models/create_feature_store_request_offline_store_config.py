@@ -2,11 +2,11 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-T = TypeVar("T", bound="FeatureViewDtoTags")
+T = TypeVar("T", bound="CreateFeatureStoreRequestOfflineStoreConfig")
 
 
 @attr.s(auto_attribs=True)
-class FeatureViewDtoTags:
+class CreateFeatureStoreRequestOfflineStoreConfig:
     """ """
 
     additional_properties: Dict[str, str] = attr.ib(init=False, factory=dict)
@@ -22,10 +22,10 @@ class FeatureViewDtoTags:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        feature_view_dto_tags = cls()
+        create_feature_store_request_offline_store_config = cls()
 
-        feature_view_dto_tags.additional_properties = d
-        return feature_view_dto_tags
+        create_feature_store_request_offline_store_config.additional_properties = d
+        return create_feature_store_request_offline_store_config
 
     @property
     def additional_keys(self) -> List[str]:

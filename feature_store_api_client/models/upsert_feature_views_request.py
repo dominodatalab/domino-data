@@ -2,25 +2,22 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
-from ..models.feature_view import FeatureView
+from ..models.feature_view_request import FeatureViewRequest
 
-T = TypeVar("T", bound="CreateFeatureViewsRequest")
+T = TypeVar("T", bound="UpsertFeatureViewsRequest")
 
 
 @attr.s(auto_attribs=True)
-class CreateFeatureViewsRequest:
+class UpsertFeatureViewsRequest:
     """
     Attributes:
-        name (str):
-        feature_views (List[FeatureView]):
+        feature_views (List[FeatureViewRequest]):
     """
 
-    name: str
-    feature_views: List[FeatureView]
+    feature_views: List[FeatureViewRequest]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        name = self.name
         feature_views = []
         for feature_views_item_data in self.feature_views:
             feature_views_item = feature_views_item_data.to_dict()
@@ -31,7 +28,6 @@ class CreateFeatureViewsRequest:
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "name": name,
                 "featureViews": feature_views,
             }
         )
@@ -41,22 +37,19 @@ class CreateFeatureViewsRequest:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        name = d.pop("name")
-
         feature_views = []
         _feature_views = d.pop("featureViews")
         for feature_views_item_data in _feature_views:
-            feature_views_item = FeatureView.from_dict(feature_views_item_data)
+            feature_views_item = FeatureViewRequest.from_dict(feature_views_item_data)
 
             feature_views.append(feature_views_item)
 
-        create_feature_views_request = cls(
-            name=name,
+        upsert_feature_views_request = cls(
             feature_views=feature_views,
         )
 
-        create_feature_views_request.additional_properties = d
-        return create_feature_views_request
+        upsert_feature_views_request.additional_properties = d
+        return upsert_feature_views_request
 
     @property
     def additional_keys(self) -> List[str]:

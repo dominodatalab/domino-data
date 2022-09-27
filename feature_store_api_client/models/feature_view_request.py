@@ -1,48 +1,35 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Type, TypeVar, Union
 
 import attr
 
 from ..models.entity import Entity
 from ..models.feature import Feature
-from ..models.feature_view_tags import FeatureViewTags
-from ..models.metadata import Metadata
+from ..models.feature_view_request_tags import FeatureViewRequestTags
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="FeatureView")
+T = TypeVar("T", bound="FeatureViewRequest")
 
 
 @attr.s(auto_attribs=True)
-class FeatureView:
+class FeatureViewRequest:
     """
     Attributes:
-        id (str):
         name (str):
-        feature_store_id (str):
-        metadata (Metadata):
         entities (List[Entity]):
         features (List[Feature]):
-        tags (FeatureViewTags):
-        project_ids (List[str]):
+        tags (FeatureViewRequestTags):
         ttl (Union[Unset, int]):
     """
 
-    id: str
     name: str
-    feature_store_id: str
-    metadata: Metadata
     entities: List[Entity]
     features: List[Feature]
-    tags: FeatureViewTags
-    project_ids: List[str]
+    tags: FeatureViewRequestTags
     ttl: Union[Unset, int] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        id = self.id
         name = self.name
-        feature_store_id = self.feature_store_id
-        metadata = self.metadata.to_dict()
-
         entities = []
         for entities_item_data in self.entities:
             entities_item = entities_item_data.to_dict()
@@ -57,22 +44,16 @@ class FeatureView:
 
         tags = self.tags.to_dict()
 
-        project_ids = self.project_ids
-
         ttl = self.ttl
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "id": id,
                 "name": name,
-                "featureStoreId": feature_store_id,
-                "metadata": metadata,
                 "entities": entities,
                 "features": features,
                 "tags": tags,
-                "projectIds": project_ids,
             }
         )
         if ttl is not UNSET:
@@ -83,13 +64,7 @@ class FeatureView:
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        id = d.pop("id")
-
         name = d.pop("name")
-
-        feature_store_id = d.pop("featureStoreId")
-
-        metadata = Metadata.from_dict(d.pop("metadata"))
 
         entities = []
         _entities = d.pop("entities")
@@ -105,26 +80,20 @@ class FeatureView:
 
             features.append(features_item)
 
-        tags = FeatureViewTags.from_dict(d.pop("tags"))
-
-        project_ids = cast(List[str], d.pop("projectIds"))
+        tags = FeatureViewRequestTags.from_dict(d.pop("tags"))
 
         ttl = d.pop("ttl", UNSET)
 
-        feature_view = cls(
-            id=id,
+        feature_view_request = cls(
             name=name,
-            feature_store_id=feature_store_id,
-            metadata=metadata,
             entities=entities,
             features=features,
             tags=tags,
-            project_ids=project_ids,
             ttl=ttl,
         )
 
-        feature_view.additional_properties = d
-        return feature_view
+        feature_view_request.additional_properties = d
+        return feature_view_request
 
     @property
     def additional_keys(self) -> List[str]:

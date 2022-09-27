@@ -2,6 +2,12 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
+from ..models.create_feature_store_request_offline_store_config import (
+    CreateFeatureStoreRequestOfflineStoreConfig,
+)
+from ..models.git_provider_name import GitProviderName
+from ..models.offline_store_type import OfflineStoreType
+
 T = TypeVar("T", bound="CreateFeatureStoreRequest")
 
 
@@ -10,39 +16,37 @@ class CreateFeatureStoreRequest:
     """
     Attributes:
         name (str):
-        project_id (str):
-        bucket (str):
-        region (str):
-        visible_credential (str):
-        secret_credential (str):
+        offline_store_type (OfflineStoreType):
+        offline_store_config (CreateFeatureStoreRequestOfflineStoreConfig):
+        git_repo (str):
+        git_service_provider (GitProviderName):
     """
 
     name: str
-    project_id: str
-    bucket: str
-    region: str
-    visible_credential: str
-    secret_credential: str
+    offline_store_type: OfflineStoreType
+    offline_store_config: CreateFeatureStoreRequestOfflineStoreConfig
+    git_repo: str
+    git_service_provider: GitProviderName
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
-        project_id = self.project_id
-        bucket = self.bucket
-        region = self.region
-        visible_credential = self.visible_credential
-        secret_credential = self.secret_credential
+        offline_store_type = self.offline_store_type.value
+
+        offline_store_config = self.offline_store_config.to_dict()
+
+        git_repo = self.git_repo
+        git_service_provider = self.git_service_provider.value
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
                 "name": name,
-                "projectId": project_id,
-                "bucket": bucket,
-                "region": region,
-                "visibleCredential": visible_credential,
-                "secretCredential": secret_credential,
+                "offlineStoreType": offline_store_type,
+                "offlineStoreConfig": offline_store_config,
+                "gitRepo": git_repo,
+                "gitServiceProvider": git_service_provider,
             }
         )
 
@@ -53,23 +57,22 @@ class CreateFeatureStoreRequest:
         d = src_dict.copy()
         name = d.pop("name")
 
-        project_id = d.pop("projectId")
+        offline_store_type = OfflineStoreType(d.pop("offlineStoreType"))
 
-        bucket = d.pop("bucket")
+        offline_store_config = CreateFeatureStoreRequestOfflineStoreConfig.from_dict(
+            d.pop("offlineStoreConfig")
+        )
 
-        region = d.pop("region")
+        git_repo = d.pop("gitRepo")
 
-        visible_credential = d.pop("visibleCredential")
-
-        secret_credential = d.pop("secretCredential")
+        git_service_provider = GitProviderName(d.pop("gitServiceProvider"))
 
         create_feature_store_request = cls(
             name=name,
-            project_id=project_id,
-            bucket=bucket,
-            region=region,
-            visible_credential=visible_credential,
-            secret_credential=secret_credential,
+            offline_store_type=offline_store_type,
+            offline_store_config=offline_store_config,
+            git_repo=git_repo,
+            git_service_provider=git_service_provider,
         )
 
         create_feature_store_request.additional_properties = d
