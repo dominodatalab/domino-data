@@ -28,7 +28,7 @@ from datasource_api_client.models import (
     ProxyErrorResponse,
 )
 
-from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient
+from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient, get_jwt_token
 from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
 
@@ -210,11 +210,8 @@ class _Object:
         res.raise_for_status()
 
 
-def load_oauth_credentials(location: str) -> Dict[str, str]:
-    """Load oauth token from given location.
-
-    Args:
-        location: location of file that contains token.
+def load_oauth_credentials() -> Dict[str, str]:
+    """Load oauth token from sidecar container or local file.
 
     Returns:
         .. code-block:: python
@@ -224,7 +221,17 @@ def load_oauth_credentials(location: str) -> Dict[str, str]:
     Raises:
         DominoError: if the provided location is not a valid file
     """
-    location = location or DOMINO_TOKEN_DEFAULT_LOCATION
+    token_url = os.getenv("DOMINO_API_PROXY", "")
+    if token_url:
+        try:
+            jwt = get_jwt_token(token_url)
+        except httpx.HTTPStatusError:
+            logger.opt(exception=True).warning("Failed to get token from sidecar container API")
+            pass
+        else:
+            return {CredElem.TOKEN.value: jwt}
+
+    location = os.getenv("DOMINO_TOKEN_FILE", DOMINO_TOKEN_DEFAULT_LOCATION)
     try:
         with open(location, encoding="ascii") as token_file:
             return {CredElem.TOKEN.value: token_file.readline().rstrip()}
@@ -315,7 +322,7 @@ class Datasource:
         credentials = {}
 
         if self.auth_type == DatasourceDtoAuthType.OAUTH.value:
-            credentials = load_oauth_credentials(os.getenv(DOMINO_TOKEN_FILE, ""))
+            credentials = load_oauth_credentials()
 
         if self.auth_type in (
             DatasourceDtoAuthType.AWSIAMROLE.value,
@@ -323,7 +330,7 @@ class Datasource:
         ):
             credentials = load_aws_credentials(
                 os.getenv(AWS_SHARED_CREDENTIALS_FILE, ""),
-                getattr(self._config_override, "profile", None),
+                getattr(self._config_override, "profile", ""),
             )
 
         credentials.update(self._config_override.credential())
@@ -510,6 +517,7 @@ class DataSourceClient:
 
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
+    token_url: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_API_PROXY"))
 
     def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
@@ -528,12 +536,18 @@ class DataSourceClient:
             base_url=proxy_host,
             api_key=self.api_key,
             token_file=self.token_file,
+            token_url=self.token_url,
+            timeout=0.5,
+            verify_ssl=False,
         )
         self.domino = AuthenticatedClient(
             base_url=f"{domino_host}/v4",
             api_key=self.api_key,
             token_file=self.token_file,
+            token_url=self.token_url,
             headers=ACCEPT_HEADERS,
+            timeout=0.5,
+            verify_ssl=False,
         )
 
     def _set_proxy(self):
@@ -544,6 +558,7 @@ class DataSourceClient:
                 AuthMiddlewareFactory(
                     self.api_key,
                     self.token_file,
+                    self.token_url,
                 )
             ],
         )
