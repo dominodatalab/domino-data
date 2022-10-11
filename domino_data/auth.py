@@ -45,7 +45,7 @@ class AuthenticatedClient(Client):
             )
 
     def get_headers(self) -> Dict[str, str]:
-        """Get headers with both JWT and API Key."""
+        """Get headers with either JWT or API Key."""
         if self.api_key:
             return {"X-Domino-Api-Key": self.api_key, **self.headers}
 

@@ -72,11 +72,13 @@ def training_set_dir(tmpdir, monkeypatch):
 def env(monkeypatch):
     """Set basic environment variables for mocked tests."""
     monkeypatch.setenv("DOMINO_API_HOST", "http://domino")
+    monkeypatch.setenv("DOMINO_API_PROXY", "token-proxy")
     monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/domino_token")
     monkeypatch.setenv("DOMINO_USER_API_KEY", "api-key")
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_HOST", "http://proxy")
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST", "grpc://localhost:8080")
     monkeypatch.setenv("DOMINO_PROJECT_ID", "project-id")
+    yield monkeypatch
 
 
 @pytest.fixture
