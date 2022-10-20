@@ -25,7 +25,7 @@ def get_jwt_token(url: str) -> str:
     Raises:
         HTTPStatusError: if the API returns an error
     """
-    resp = httpx.get(f"http://{url}/access-token")
+    resp = httpx.get(f"{url}/access-token")
     resp.raise_for_status()
     return resp.read().decode("ascii")
 

@@ -521,7 +521,9 @@ class DataSourceClient:
 
     def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
-        domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
+        domino_host = os.getenv(
+            "DOMINO_API_PROXY", os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
+        )
         proxy_host = os.getenv("DOMINO_DATASOURCE_PROXY_HOST", "")
 
         logger.info(
