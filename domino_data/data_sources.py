@@ -539,8 +539,8 @@ class DataSourceClient:
             api_key=self.api_key,
             token_file=self.token_file,
             token_url=self.token_url,
-            timeout=0.5,
-            verify_ssl=False,
+            timeout=5.0,
+            verify_ssl=True,
         )
         self.domino = AuthenticatedClient(
             base_url=f"{domino_host}/v4",
@@ -548,8 +548,8 @@ class DataSourceClient:
             token_file=self.token_file,
             token_url=self.token_url,
             headers=ACCEPT_HEADERS,
-            timeout=0.5,
-            verify_ssl=False,
+            timeout=5.0,
+            verify_ssl=True,
         )
 
     def _set_proxy(self):
