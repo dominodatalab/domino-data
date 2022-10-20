@@ -467,11 +467,14 @@ def test_object_store_upload_fileojb():
     s3d.upload_fileobj("gabrieltest.csv", fileobj)
 
 
-@pytest.mark.usefixtures("env")
-def test_object_store_download_file(respx_mock, datafx, tmp_path):
+def test_object_store_download_file(env, respx_mock, datafx, tmp_path):
     """Object datasource can download a blob content into a file."""
+    env.delenv("DOMINO_API_PROXY")
     mock_content = b"I am a blob"
     mock_file = tmp_path / "file.txt"
+    respx_mock.get("http://token-proxy/access-token").mock(
+        return_value=httpx.Response(200, content=b"jwt")
+    )
     respx_mock.get("http://domino/v4/datasource/name/s3").mock(
         return_value=httpx.Response(200, json=datafx("s3")),
     )
@@ -489,11 +492,14 @@ def test_object_store_download_file(respx_mock, datafx, tmp_path):
     assert mock_file.read_bytes() == mock_content
 
 
-@pytest.mark.usefixtures("env")
-def test_object_store_download_fileobj(respx_mock, datafx):
+def test_object_store_download_fileobj(env, respx_mock, datafx):
     """Object datasource can download a blob content into a file."""
+    env.delenv("DOMINO_API_PROXY")
     mock_content = b"I am a blob"
     mock_fileobj = io.BytesIO()
+    respx_mock.get("http://token-proxy/access-token").mock(
+        return_value=httpx.Response(200, content=b"jwt")
+    )
     respx_mock.get("http://domino/v4/datasource/name/s3").mock(
         return_value=httpx.Response(200, json=datafx("s3")),
     )
@@ -514,6 +520,7 @@ def test_object_store_download_fileobj(respx_mock, datafx):
 @pytest.mark.usefixtures("env")
 def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
     """Object datasource can list and get key url using AWSIAMRole."""
+    monkeypatch.delenv("DOMINO_API_PROXY")
     monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "tests/data/aws_credentials")
     respx_mock.get("http://domino/v4/datasource/name/s3").mock(
         return_value=httpx.Response(200, json=datafx("s3_awsiamrole")),
@@ -526,8 +533,8 @@ def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
     s3d.list_objects()
     s3d.get_key_url("")
 
-    list_request, _ = respx_mock.calls[-1]
-    get_key_url_request, _ = respx_mock.calls[-2]
+    get_key_url_request, _ = respx_mock.calls[-1]
+    list_request, _ = respx_mock.calls[-2]
     list_creds = json.loads(list_request.content)["credentialOverwrites"]
     get_key_url_creds = json.loads(get_key_url_request.content)["credentialOverwrites"]
 
@@ -542,6 +549,7 @@ def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
 @pytest.mark.usefixtures("env")
 def test_credential_override_with_awsiamrole_file_does_not_exist(respx_mock, datafx, monkeypatch):
     """AWSIAMRole workflow should return error if credential file not present"""
+    monkeypatch.delenv("DOMINO_API_PROXY")
     monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "notarealfile")
 
     respx_mock.get("http://domino/v4/datasource/name/s3").mock(
@@ -560,6 +568,7 @@ def test_credential_override_with_awsiamrole_file_does_not_exist(respx_mock, dat
 
 def test_credential_override_with_oauth(datafx, flight_server, monkeypatch, respx_mock):
     """Client can execute a Snowflake query using OAuth"""
+    monkeypatch.delenv("DOMINO_API_PROXY")
     monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/data/domino_jwt")
 
     table = pyarrow.Table.from_pydict({})
@@ -582,6 +591,7 @@ def test_credential_override_with_oauth_file_does_not_exist(
     datafx, flight_server, monkeypatch, respx_mock
 ):
     """Client gets an error if token not present using OAuth"""
+    monkeypatch.delenv("DOMINO_API_PROXY")
     monkeypatch.setenv("DOMINO_TOKEN_FILE", "notarealfile")
 
     table = pyarrow.Table.from_pydict({})
@@ -597,3 +607,32 @@ def test_credential_override_with_oauth_file_does_not_exist(
     snowflake_ds = ds.cast(ds.TabularDatasource, snowflake_ds)
     with pytest.raises(ds.DominoError):
         snowflake_ds.query("SELECT 1")
+
+
+def test_client_uses_token_url_api(env, respx_mock, flight_server, datafx):
+    """Verify client uses token API to get JWT."""
+    env.delenv("DOMINO_USER_API_KEY")
+    env.delenv("DOMINO_TOKEN_FILE")
+
+    table = pyarrow.Table.from_pydict({})
+    respx_mock.get("http://token-proxy/access-token").mock(
+        return_value=httpx.Response(200, content=b"theapijwt")
+    )
+
+    def do_get_callback(_, ticket):
+        tkt = json.loads(ticket.ticket.decode("utf-8"))
+        assert tkt["credentialOverwrites"] == {"token": "theapijwt"}
+        return pyarrow.flight.RecordBatchStream(table)
+
+    def get_datasource(request):
+        assert request.headers["authorization"] == "Bearer theapijwt"
+        return httpx.Response(200, json=datafx("snowflake_oauth"))
+
+    respx_mock.get("http://token-proxy/v4/datasource/name/snowflake").mock(
+        side_effect=get_datasource
+    )
+    flight_server.do_get_callback = do_get_callback
+
+    snow = ds.DataSourceClient().get_datasource("snowflake")
+    snow = ds.cast(ds.TabularDatasource, snow)
+    snow.query("SELECT 1")

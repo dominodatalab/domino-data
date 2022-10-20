@@ -1,6 +1,6 @@
 #* Variables
 SHELL := /usr/bin/env bash
-PYTHON := python
+PYTHON := python3
 
 #* OpenAPI variables
 TRAININGSET_YAML := openapi/trainingset.yaml
@@ -9,11 +9,11 @@ DATASOURCE_YAML := openapi/datasource.yaml
 #* Poetry
 .PHONY: poetry-download
 poetry-download:
-	curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | $(PYTHON) -
+	curl -sSL https://install.python-poetry.org | $(PYTHON) -
 
 .PHONY: poetry-remove
 poetry-remove:
-	curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/install-poetry.py | $(PYTHON) - --uninstall
+	curl -sSL https://install.python-poetry.org | $(PYTHON) - --uninstall
 
 #* Installation
 .PHONY: install
@@ -89,8 +89,8 @@ pycache-remove:
 build-remove:
 	rm -rf build/
 
-.PHONY: clean-all
-clean-all: pycache-remove build-remove docs-remove
+.PHONY: clean
+clean: pycache-remove build-remove docs-remove
 
 #* Docs
 .PHONY: docs
