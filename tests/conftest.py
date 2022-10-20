@@ -72,7 +72,7 @@ def training_set_dir(tmpdir, monkeypatch):
 def env(monkeypatch):
     """Set basic environment variables for mocked tests."""
     monkeypatch.setenv("DOMINO_API_HOST", "http://domino")
-    monkeypatch.setenv("DOMINO_API_PROXY", "token-proxy")
+    monkeypatch.setenv("DOMINO_API_PROXY", "http://token-proxy")
     monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/domino_token")
     monkeypatch.setenv("DOMINO_USER_API_KEY", "api-key")
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_HOST", "http://proxy")

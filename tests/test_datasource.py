@@ -467,9 +467,9 @@ def test_object_store_upload_fileojb():
     s3d.upload_fileobj("gabrieltest.csv", fileobj)
 
 
-@pytest.mark.usefixtures("env")
-def test_object_store_download_file(respx_mock, datafx, tmp_path):
+def test_object_store_download_file(env, respx_mock, datafx, tmp_path):
     """Object datasource can download a blob content into a file."""
+    env.delenv("DOMINO_API_PROXY")
     mock_content = b"I am a blob"
     mock_file = tmp_path / "file.txt"
     respx_mock.get("http://token-proxy/access-token").mock(
@@ -492,9 +492,9 @@ def test_object_store_download_file(respx_mock, datafx, tmp_path):
     assert mock_file.read_bytes() == mock_content
 
 
-@pytest.mark.usefixtures("env")
-def test_object_store_download_fileobj(respx_mock, datafx):
+def test_object_store_download_fileobj(env, respx_mock, datafx):
     """Object datasource can download a blob content into a file."""
+    env.delenv("DOMINO_API_PROXY")
     mock_content = b"I am a blob"
     mock_fileobj = io.BytesIO()
     respx_mock.get("http://token-proxy/access-token").mock(
@@ -628,7 +628,9 @@ def test_client_uses_token_url_api(env, respx_mock, flight_server, datafx):
         assert request.headers["authorization"] == "Bearer theapijwt"
         return httpx.Response(200, json=datafx("snowflake_oauth"))
 
-    respx_mock.get("http://domino/v4/datasource/name/snowflake").mock(side_effect=get_datasource)
+    respx_mock.get("http://token-proxy/v4/datasource/name/snowflake").mock(
+        side_effect=get_datasource
+    )
     flight_server.do_get_callback = do_get_callback
 
     snow = ds.DataSourceClient().get_datasource("snowflake")
