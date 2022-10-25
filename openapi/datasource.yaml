@@ -221,6 +221,7 @@ components:
             - BigQueryConfig
             - GCSConfig
             - GenericS3Config
+            - MongoDBConfig
             - MySQLConfig
             - OracleConfig
             - PostgreSQLConfig
