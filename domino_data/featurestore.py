@@ -52,6 +52,7 @@ class FeatureStoreClient:
 
     def __attrs_post_init__(self):
         domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
+        token_url = os.getenv("DOMINO_API_PROXY")
 
         self.client = cast(
             Client,
@@ -59,6 +60,7 @@ class FeatureStoreClient:
                 base_url=f"{domino_host}/featurestore",
                 api_key=self.api_key,
                 token_file=self.token_file,
+                token_url=token_url,
                 headers={"Accept": "application/json"},
             ),
         )
