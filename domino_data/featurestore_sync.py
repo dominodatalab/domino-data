@@ -75,8 +75,8 @@ class FeastDominoSynchronizer:
             )
             request_input.append(feature_v)
 
-        # TODO update the API to include the commit id so that feature views and commit id can be updated to domino in
-        # one call
+        # TODO update the API to include the commit id so that feature views
+        # and commit id can be updated to domino in one call
         self.client.post_feature_views(request_input)
         print("Feature Views successfully synced.")
 
