@@ -40,7 +40,7 @@ classifiers = [  #! Update me
 ]
 
 [tool.poetry.scripts]
-domino-featurestore = "domino_data.featurestore:cli"
+domino-featurestore = "domino_data.feature_store.cli:cli"
 
 [tool.poetry.group.main.dependencies]
 python = "^3.8"
@@ -52,8 +52,8 @@ pyarrow = "<7,>=4"
 loguru = "^0.5.3"
 backoff = "^1.11.1"
 bson = "^0.5.10"
-feast = "^0.26.0"
-GitPython = "^3.1.29"
+feast = {version = "^0.26.0", optional = true}
+GitPython = {version = "^3.1.29", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 Sphinx = "^4.1.2"
@@ -79,6 +79,10 @@ safety = "^2.3.1"
 sphinx-autodoc-typehints = "^1.12.0"
 sphinx-rtd-theme = "^0.5.2"
 types-PyYAML = "^6.0.4"
+
+[tool.poetry.extras]
+feast = ["feast"]
+git = ["GitPython"]
 
 [tool.black]
 # https://github.com/psf/black
