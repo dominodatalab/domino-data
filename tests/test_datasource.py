@@ -114,7 +114,7 @@ def test_client_list_keys_in_object_store():
 
     keys = client.list_keys(s3d.identifier, "", 1, {}, {})
 
-    assert keys == ["diabetes.csv"]
+    assert keys == ["diabetes_changed.csv"]
 
     keys = client.list_keys(s3d.identifier, "diabetes_", 1000, {}, {})
 
