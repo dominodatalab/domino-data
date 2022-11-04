@@ -1,12 +1,9 @@
 """Containing APIs to sync feature store from feast to domino"""
-from typing import Optional
 
 import os
-import sys
 from pathlib import Path
 
 from feast import FeatureStore
-from feast.errors import FeastProviderLoginError
 from feast.repo_config import load_repo_config
 from feast.repo_operations import apply_total, cli_check_repo
 from git import Repo

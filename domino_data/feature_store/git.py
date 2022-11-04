@@ -20,11 +20,19 @@ def pull_repo(repo: Repo) -> None:
 def push_to_git(repo: Repo) -> None:
     logger.info("Starting Git add/commit/push......")
     current_commit_id = repo.head.object.hexsha
-    # This file can be added in .gitignore file. So forcing adding it here.
-    repo.git.add("data/registry.db", force=True)
-    repo.git.add("data/online.db", force=True)
+    registry_file = "data/registry.db"
+    registry_file_added = False
 
-    logger.info(f"Added data/registry.db and data/online.db to git")
+    for item in repo.index.diff(None):
+        repo.git.add(item.a_path)
+        logger.info(f"Added {item.a_path} to git")
+        if item.a_path == registry_file:
+            registry_file_added = True
+
+    # This file can be added in .gitignore file. So forcing adding it here.
+    if not registry_file_added:
+        repo.git.add(registry_file, force=True)
+        logger.info(f"Forced adding {registry_file} to git")
 
     repo.git.commit("-m", f"feast apply on {current_commit_id}")
     logger.info(f"Committed feast apply result on {current_commit_id}")
