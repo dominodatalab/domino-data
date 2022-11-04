@@ -52,7 +52,7 @@ interactions:
     http_version: HTTP/1.1
     status_code: 200
 - request:
-    body: '{"datasourceId": "61687566a71c0c05f92e9168", "prefix": "", "configOverwrites":
+    body: '{"datasourceId": "61687566a71c0c05f92e9168", "prefix": "", "pageSize": 1000, "configOverwrites":
       {}, "credentialOverwrites": {}}'
     headers:
       accept:
@@ -62,7 +62,7 @@ interactions:
       connection:
       - keep-alive
       content-length:
-      - '110'
+      - '131'
       content-type:
       - application/json
       host:
@@ -87,7 +87,42 @@ interactions:
     http_version: HTTP/1.1
     status_code: 200
 - request:
-    body: '{"datasourceId": "61687566a71c0c05f92e9168", "prefix": "diabetes_", "configOverwrites":
+    body: '{"datasourceId": "61687566a71c0c05f92e9168", "prefix": "", "pageSize": 1, "configOverwrites":
+      {}, "credentialOverwrites": {}}'
+    headers:
+      accept:
+        - '*/*'
+      accept-encoding:
+        - gzip, deflate
+      connection:
+        - keep-alive
+      content-length:
+        - '128'
+      content-type:
+        - application/json
+      host:
+        - localhost:8000
+      user-agent:
+        - python-httpx/0.18.2
+      x-domino-api-key:
+        - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: POST
+    uri: http://localhost:8000/objectstore/list
+  response:
+    content: '["diabetes_changed.csv"]
+
+      '
+    headers:
+      Content-Length:
+        - '25'
+      Content-Type:
+        - application/json
+      Date:
+        - Fri, 15 Oct 2021 18:12:49 GMT
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"datasourceId": "61687566a71c0c05f92e9168", "prefix": "diabetes_", "pageSize": 1000, "configOverwrites":
       {}, "credentialOverwrites": {}}'
     headers:
       accept:
@@ -97,7 +132,7 @@ interactions:
       connection:
       - keep-alive
       content-length:
-      - '119'
+      - '140'
       content-type:
       - application/json
       host:

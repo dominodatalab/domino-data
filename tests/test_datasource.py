@@ -108,11 +108,15 @@ def test_client_list_keys_in_object_store():
     client = ds.DataSourceClient()
     s3d = client.get_datasource("aduser-s3")
 
-    keys = client.list_keys(s3d.identifier, "", {}, {})
+    keys = client.list_keys(s3d.identifier, "", 1000, {}, {})
 
     assert keys == ["diabetes.csv", "diabetes_changed.csv"]
 
-    keys = client.list_keys(s3d.identifier, "diabetes_", {}, {})
+    keys = client.list_keys(s3d.identifier, "", 1, {}, {})
+
+    assert keys == ["diabetes_changed.csv"]
+
+    keys = client.list_keys(s3d.identifier, "diabetes_", 1000, {}, {})
 
     assert keys == ["diabetes_changed.csv"]
 
@@ -124,7 +128,7 @@ def test_client_list_keys_without_jwt(monkeypatch):
     client = ds.DataSourceClient()
     s3d = client.get_datasource("aduser-s3")
 
-    keys = client.list_keys(s3d.identifier, "", {}, {})
+    keys = client.list_keys(s3d.identifier, "", 1000, {}, {})
 
     assert keys
 
@@ -139,7 +143,7 @@ def test_client_list_keys_returns_error():
         Exception,
         match="incorrect region, the bucket is not in 'us-west-2' region",
     ):
-        client.list_keys(s3d.identifier, "", {"bucket": "notreal"}, {})
+        client.list_keys(s3d.identifier, "", 1000, {"bucket": "notreal"}, {})
 
 
 # Log Metric
