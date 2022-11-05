@@ -14,9 +14,6 @@ from feature_store_api_client.types import Response
 
 from .exceptions import ServerException
 
-AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
-AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
-
 
 @define
 class FeatureStoreClient:
@@ -53,10 +50,6 @@ class FeatureStoreClient:
             _raise_response_exn(response, "could not create Feature Views")
 
         return True
-
-
-def _get_project_id() -> Optional[str]:
-    return os.getenv("DOMINO_PROJECT_ID")
 
 
 def _raise_response_exn(response: Response, msg: str):

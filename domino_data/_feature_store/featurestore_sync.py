@@ -3,9 +3,21 @@
 import os
 from pathlib import Path
 
-from feast import FeatureStore
-from feast.repo_config import load_repo_config
-from feast.repo_operations import apply_total, cli_check_repo
+_import_error_message = (
+    "feast is not installed.\n\n"
+    "Please pip install feast:\n\n"
+    "  python -m pip install feast   # install directly\n"
+    '  python -m pip install "dominodatalab-data[feast]" --upgrade   # install via extra dependency'
+)
+
+try:
+    from feast import FeatureStore, repo_config, repo_operations
+except ImportError as e:
+    if e.msg == "No module named 'feast'":
+        raise ImportError(_import_error_message) from e
+    else:
+        raise
+
 from git import Repo
 
 from feature_store_api_client.models import (
@@ -22,7 +34,7 @@ from .git import pull_repo, push_to_git
 
 LOCK_FAILURE_MESSAGE = "Failed to lock feature store for syncing. Please rerun later."
 
-client = FeatureStoreClient()
+client = None
 
 
 def lock() -> None:
@@ -96,16 +108,19 @@ def find_feast_repo_path() -> str:
 def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) -> None:
     logger.info("running feast apply")
     repo_path = Path(repo_path_str).absolute()
-    fs_yaml_file = repo_path / "feature_store.yaml"
-    cli_check_repo(repo_path, fs_yaml_file)
+    fs_yaml_file = repo_path / "_feature_store.yaml"
+    # cli_check_repo(repo_path, fs_yaml_file)
+    repo_operations.cli_check_repo(repo_path)
 
-    repo_config = load_repo_config(repo_path, fs_yaml_file)
-    apply_total(repo_config, repo_path, skip_source_validation)
+    feast_repo_config = repo_config.load_repo_config(repo_path, fs_yaml_file)
+    repo_operations.apply_total(feast_repo_config, repo_path, skip_source_validation)
 
 
 def feature_store_sync(skip_source_validation=False):
     logger.info("Starting feature store syncing......")
     repo_path_str = find_feast_repo_path()
+    global client
+    client = FeatureStoreClient()
     lock()
     try:
         repo = Repo(repo_path_str)
