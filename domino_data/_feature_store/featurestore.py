@@ -1,5 +1,5 @@
 """Feature Store module."""
-from typing import Optional, cast
+from typing import List, Optional, cast
 
 import json
 import os
@@ -9,7 +9,7 @@ from attrs import define, field
 from domino_data.auth import AuthenticatedClient
 from feature_store_api_client.api.default import post_featureview
 from feature_store_api_client.client import Client
-from feature_store_api_client.models import UpsertFeatureViewsRequest
+from feature_store_api_client.models import FeatureViewRequest, UpsertFeatureViewsRequest
 from feature_store_api_client.types import Response
 
 from .exceptions import ServerException
@@ -39,7 +39,15 @@ class FeatureStoreClient:
             ),
         )
 
-    def post_feature_views(self, feature_views):
+    def post_feature_views(self, feature_views: List[FeatureViewRequest]) -> None:
+        """Insert or update feature views.
+
+        Args:
+            feature_views: an array of feature views to be inserted or updated.
+
+        Raises:
+            ServerException: if update fails
+        """
         request = UpsertFeatureViewsRequest(feature_views=feature_views)
         response = post_featureview.sync_detailed(
             client=self.client,
@@ -48,8 +56,6 @@ class FeatureStoreClient:
 
         if response.status_code != 200:
             _raise_response_exn(response, "could not create Feature Views")
-
-        return True
 
 
 def _raise_response_exn(response: Response, msg: str):

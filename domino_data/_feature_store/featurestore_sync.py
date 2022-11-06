@@ -38,21 +38,36 @@ except ImportError as e:
 
 
 def lock() -> None:
+    """Lock the feature store for updating features
+
+    Raises:
+        FeatureStoreLockError: if fails to lock
+    """
     logger.info("Locking the feature store")
     # TODO Call feature store client lock method
     # Raise FeatureStoreLockError with detailed reason if fails to lock.
     logger.info("Locked the feature store")
-    return True
 
 
 def unlock() -> None:
+    """UnLock the feature store
+
+    Raises:
+        FeatureStoreLockError: if fails to unlock
+    """
     logger.info("UnLocking the feature store")
     # TODO Call feature store client unlock method
     logger.info("UnLocked the feature store")
-    return True
 
 
 def update_feature_views(commit_id: str, repo_path: str = None) -> None:
+    """Update domino feature views to sync with specified feast git commit
+
+    Args:
+        commit_id: the feast git repo commit id that are to be synced with domino
+        repo_path: the feast git repo path
+
+    """
     logger.info(f"Syncing feature views to feast git commit {commit_id}")
 
     if not repo_path:
@@ -82,6 +97,16 @@ def update_feature_views(commit_id: str, repo_path: str = None) -> None:
 
 
 def find_feast_repo_path() -> str:
+    """Find the feast repo path
+
+    Returns:
+        the feast repo path
+
+    Raises:
+        FeastRepoError: if no feast repo or more than one repos in the specified root directory
+        FileNotFoundError: the root path doesn't exist
+        NotADirectoryError: the root path is not a directory
+    """
     root_dir = os.getenv("DOMINO_FEAST_REPO_ROOT", "/features")
     sub_dirs = []
     if not os.path.exists(root_dir):
@@ -106,6 +131,13 @@ def find_feast_repo_path() -> str:
 
 
 def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) -> None:
+    """run feast apply
+
+    Args:
+        repo_path_str: the feast git repo path
+        skip_source_validation: don't validate the data sources by
+                                checking for that the tables exist if true
+    """
     logger.info("running feast apply")
     repo_path = Path(repo_path_str).absolute()
     fs_yaml_file = repo_path / "_feature_store.yaml"
@@ -117,6 +149,13 @@ def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) ->
 
 
 def feature_store_sync(skip_source_validation=False):
+    """run feature store syncing
+
+    Args:
+        skip_source_validation: option for running feast apply command.
+                                Don't validate the data sources by checking
+                                for that the tables exist if true
+    """
     logger.info("Starting feature store syncing......")
     repo_path_str = find_feast_repo_path()
     global client

@@ -7,6 +7,14 @@ from .exceptions import GitPullError
 
 
 def pull_repo(repo: Repo) -> None:
+    """Pull feast repo.
+
+    Args:
+        repo: The feast Git Repo object.
+
+    Raises:
+        GitPullError: if fails to pull the repo
+    """
     logger.info(f"Commit Sha before pulling:{repo.head.object.hexsha}")
     logger.info("Pulling the repo......")
     pull_result = repo.remotes.origin.pull()
@@ -18,6 +26,11 @@ def pull_repo(repo: Repo) -> None:
 
 
 def push_to_git(repo: Repo) -> None:
+    """Push feast apply result to the feast repo.
+
+    Args:
+        repo: The feast Git Repo object.
+    """
     logger.info("Starting Git add/commit/push......")
     current_commit_id = repo.head.object.hexsha
     registry_file = "data/registry.db"
