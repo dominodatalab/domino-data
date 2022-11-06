@@ -10,8 +10,8 @@ class ServerException(Exception):
         self.server_msg = server_msg
 
 
-class MultiFeastReposError(Exception):
-    """Raised when more than one feast repos are found"""
+class FeastRepoError(Exception):
+    """Raised when no feast repo is found or more than one feast repos are found"""
 
 
 class GitPullError(Exception):

@@ -28,7 +28,7 @@ from feature_store_api_client.models import (
 )
 
 from ..logging import logger
-from .exceptions import MultiFeastReposError
+from .exceptions import FeastRepoError
 from .featurestore import FeatureStoreClient
 from .git import pull_repo, push_to_git
 
@@ -97,10 +97,10 @@ def find_feast_repo_path() -> str:
             sub_dirs.append(full_path)
 
     if len(sub_dirs) == 0:
-        raise FileNotFoundError(f"No repo is found under {root_dir}")
+        raise FeastRepoError(f"No repo is found under {root_dir}")
 
     if len(sub_dirs) > 1:
-        raise MultiFeastReposError(f"Multiple repos found under {root_dir}: " + ",".join(sub_dirs))
+        raise FeastRepoError(f"Multiple repos found under {root_dir}: " + ",".join(sub_dirs))
 
     return sub_dirs[0]
 
