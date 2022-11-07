@@ -3,7 +3,7 @@
 from git import FetchInfo, PushInfo, Repo
 
 from ..logging import logger
-from .exceptions import GitPullError
+from .exceptions import GitPullError, GitPushError
 
 _VALID_PULL_FLAGS = [FetchInfo.FAST_FORWARD, FetchInfo.NEW_HEAD, FetchInfo.HEAD_UPTODATE]
 _VALID_PUSH_FLAGS = [PushInfo.FAST_FORWARD, PushInfo.NEW_HEAD, PushInfo.UP_TO_DATE]
@@ -33,6 +33,9 @@ def push_to_git(repo: Repo) -> None:
 
     Args:
         repo: The feast Git Repo object.
+
+    Raises:
+        GitPushError: if fails to push to the repo
     """
     logger.info("Starting Git add/commit/push......")
     current_commit_id = repo.head.object.hexsha
@@ -60,5 +63,5 @@ def push_to_git(repo: Repo) -> None:
     push_result = repo.remotes.origin.push()
     result_flag = push_result[0].flags
     if result_flag not in _VALID_PUSH_FLAGS:
-        raise GitPullError(f"Failed to push to the repo with error flag {result_flag}")
+        raise GitPushError(f"Failed to push to the repo with error flag {result_flag}")
     logger.info(f"Pushed to the repo. The commit id {repo.head.object.hexsha}")

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest as pytest
 from git import FetchInfo, GitCommandError, PushInfo
 
+from domino_data._feature_store.exceptions import GitPullError, GitPushError
 from domino_data._feature_store.git import pull_repo, push_to_git
 
 
@@ -18,7 +19,7 @@ def test_git_pull(caplog):
     # Pull failure
     repo.remotes.origin.pull.return_value = [MagicMock(flags=FetchInfo.ERROR)]
     with pytest.raises(
-        Exception,
+        GitPullError,
         match="Failed to pull the repo with error flag 128",
     ):
         pull_repo(repo)
@@ -38,7 +39,7 @@ def test_git_push(caplog):
     # push failure
     repo.remotes.origin.push.return_value = [MagicMock(flags=PushInfo.ERROR)]
     with pytest.raises(
-        Exception,
+        GitPushError,
         match="Failed to push to the repo with error flag 1024",
     ):
         push_to_git(repo)

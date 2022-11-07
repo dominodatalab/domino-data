@@ -18,5 +18,9 @@ class GitPullError(Exception):
     """Raised when git pull failed"""
 
 
+class GitPushError(Exception):
+    """Raised when git push failed"""
+
+
 class FeatureStoreLockError(Exception):
     """Raised when failed to lock or unlock the feature store"""
