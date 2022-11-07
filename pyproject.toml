@@ -39,9 +39,6 @@ classifiers = [  #! Update me
   "Programming Language :: Python :: 3.9",
 ]
 
-[tool.poetry.scripts]
-domino-featurestore = "domino_data.feature_store.cli:cli"
-
 [tool.poetry.group.main.dependencies]
 python = "^3.8"
 pandas = ">=1.3.0"
