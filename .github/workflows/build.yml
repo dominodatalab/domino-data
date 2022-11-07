@@ -28,6 +28,7 @@ jobs:
       run: |
         poetry config virtualenvs.in-project true
         poetry install
+        poetry install --extras "feast git"
 
     - name: Run style checks
       run: |
