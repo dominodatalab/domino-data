@@ -1,9 +1,12 @@
 """Containing APIs to interact with feast git repository"""
 
-from git import FetchInfo, Repo
+from git import FetchInfo, PushInfo, Repo
 
 from ..logging import logger
 from .exceptions import GitPullError
+
+_VALID_PULL_FLAGS = [FetchInfo.FAST_FORWARD, FetchInfo.NEW_HEAD, FetchInfo.HEAD_UPTODATE]
+_VALID_PUSH_FLAGS = [PushInfo.FAST_FORWARD, PushInfo.NEW_HEAD, PushInfo.UP_TO_DATE]
 
 
 def pull_repo(repo: Repo) -> None:
@@ -19,7 +22,7 @@ def pull_repo(repo: Repo) -> None:
     logger.info("Pulling the repo......")
     pull_result = repo.remotes.origin.pull()
     result_flag = pull_result[0].flags
-    if result_flag == FetchInfo.ERROR or result_flag == FetchInfo.REJECTED:
+    if result_flag not in _VALID_PULL_FLAGS:
         raise GitPullError(f"Failed to pull the repo with error flag {result_flag}")
     logger.info("Finished pulling the repo.")
     logger.info(f"Commit Sha after pulling:{repo.head.object.hexsha}")
@@ -54,5 +57,8 @@ def push_to_git(repo: Repo) -> None:
 
     repo.git.commit("-m", f"feast apply on {current_commit_id}")
     logger.info(f"Committed feast apply result on {current_commit_id}")
-    repo.remotes.origin.push()
+    push_result = repo.remotes.origin.push()
+    result_flag = push_result[0].flags
+    if result_flag not in _VALID_PUSH_FLAGS:
+        raise GitPullError(f"Failed to push to the repo with error flag {result_flag}")
     logger.info(f"Pushed to the repo. The commit id {repo.head.object.hexsha}")
