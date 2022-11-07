@@ -103,6 +103,8 @@ def datafx():
 
 @pytest.fixture
 def caplog(_caplog):
+    """Capture loguru log fixture"""
+
     class PropogateHandler(logging.Handler):
         def emit(self, record):
             logging.getLogger(record.name).handle(record)
