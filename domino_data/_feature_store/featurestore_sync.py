@@ -140,7 +140,7 @@ def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) ->
     """
     logger.info("running feast apply")
     repo_path = Path(repo_path_str).absolute()
-    fs_yaml_file = repo_path / "_feature_store.yaml"
+    fs_yaml_file = repo_path / "feature_store.yaml"
     repo_operations.cli_check_repo(repo_path, fs_yaml_file)
 
     feast_repo_config = repo_config.load_repo_config(repo_path, fs_yaml_file)
