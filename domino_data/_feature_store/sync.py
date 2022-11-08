@@ -148,14 +148,14 @@ def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) ->
 
 
 def feature_store_sync(
-    feature_store_id: str, repo_path_str: str, git_branch: str, skip_source_validation=False
+    feature_store_id: str, repo_path_str: str, branch_name: str, skip_source_validation=False
 ):
     """run feature store syncing
 
     Args:
         feature_store_id: the feature store domino id
         repo_path_str: feast repo path
-        git_branch: feast repo branch
+        branch_name: feast repo branch
         skip_source_validation: option for running feast apply command.
                                 Don't validate the data sources by checking
                                 for that the tables exist if true
@@ -165,16 +165,17 @@ def feature_store_sync(
         repo_path_str = find_feast_repo_path(root_dir)
 
     repo = Repo(repo_path_str)
-    if not git_branch:
-        git_branch = repo.active_branch.name
+    if not branch_name:
+        branch_name = repo.active_branch.name
 
     logger.info(
-        f"Starting syncing for feature store {feature_store_id} with {repo_path_str} on branch {git_branch}"
+        f"Starting syncing for feature store {feature_store_id} with {repo_path_str} "
+        f"on branch {branch_name}"
     )
 
     lock()
     try:
-        pull_repo(repo)
+        pull_repo(repo, branch_name)
         run_feast_apply(repo_path_str=repo_path_str, skip_source_validation=skip_source_validation)
         push_to_git(repo)
         update_feature_views(repo.head.object.hexsha, repo_path_str)
