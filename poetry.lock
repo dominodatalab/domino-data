@@ -27,8 +27,8 @@ trio = ["trio (>=0.16,<0.22)"]
 name = "appdirs"
 version = "1.4.4"
 description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -145,8 +145,8 @@ uvloop = ["uvloop (>=0.15.2)"]
 name = "bowler"
 version = "0.9.0"
 description = "Safe code refactoring for modern Python projects"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -172,8 +172,8 @@ six = ">=1.9.0"
 name = "cachetools"
 version = "5.2.0"
 description = "Extensible memoizing collections and decorators"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "~=3.7"
 
 [[package]]
@@ -196,7 +196,7 @@ python-versions = ">=3.6.1"
 name = "charset-normalizer"
 version = "2.1.1"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6.0"
 
@@ -207,7 +207,7 @@ unicode-backport = ["unicodedata2"]
 name = "click"
 version = "8.1.3"
 description = "Composable command line interface toolkit"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -218,8 +218,8 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 name = "cloudpickle"
 version = "2.2.0"
 description = "Extended pickling support for Python objects"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [[package]]
@@ -256,8 +256,8 @@ python-versions = ">=3.6,<4.0"
 name = "dask"
 version = "2022.1.1"
 description = "Parallel PyData with Task Scheduling"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -280,7 +280,7 @@ test = ["pre-commit", "pytest", "pytest-rerunfailures", "pytest-xdist"]
 name = "dill"
 version = "0.3.6"
 description = "serialize all of python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -335,8 +335,8 @@ pyrepl = ">=0.8.2"
 name = "fastapi"
 version = "0.86.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -353,8 +353,8 @@ test = ["anyio[trio] (>=3.2.1,<4.0.0)", "black (==22.8.0)", "coverage[toml] (>=6
 name = "fastavro"
 version = "1.7.0"
 description = "Fast read/write of AVRO files"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.extras]
@@ -367,8 +367,8 @@ zstandard = ["zstandard"]
 name = "feast"
 version = "0.26.0"
 description = "Python SDK for Feast"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7.0"
 
 [package.dependencies]
@@ -438,8 +438,8 @@ testing = ["covdefaults (>=2.2)", "coverage (>=6.4.2)", "pytest (>=7.1.2)", "pyt
 name = "fissix"
 version = "21.11.13"
 description = "Monkeypatches to override default behavior of lib2to3."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -462,8 +462,8 @@ pyflakes = ">=2.4.0,<2.5.0"
 name = "fsspec"
 version = "2022.10.0"
 description = "File-system specification"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.extras]
@@ -493,7 +493,7 @@ tqdm = ["tqdm"]
 name = "gitdb"
 version = "4.0.9"
 description = "Git Object Database"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -504,7 +504,7 @@ smmap = ">=3.0.1,<6"
 name = "gitpython"
 version = "3.1.29"
 description = "GitPython is a python library used to interact with Git repositories"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -515,8 +515,8 @@ gitdb = ">=4.0.1,<5"
 name = "google-api-core"
 version = "2.10.2"
 description = "Google API client core library"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -532,10 +532,10 @@ grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0dev)"]
 
 [[package]]
 name = "google-auth"
-version = "2.14.0"
+version = "2.14.1"
 description = "Google Authentication Library"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*"
 
 [package.dependencies]
@@ -547,15 +547,15 @@ six = ">=1.9.0"
 [package.extras]
 aiohttp = ["aiohttp (>=3.6.2,<4.0.0dev)", "requests (>=2.20.0,<3.0.0dev)"]
 enterprise-cert = ["cryptography (==36.0.2)", "pyopenssl (==22.0.0)"]
-pyopenssl = ["pyopenssl (>=20.0.0)"]
+pyopenssl = ["cryptography (>=38.0.3)", "pyopenssl (>=20.0.0)"]
 reauth = ["pyu2f (>=0.1.5)"]
 
 [[package]]
 name = "googleapis-common-protos"
 version = "1.56.4"
 description = "Common protobufs used in Google APIs"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -568,8 +568,8 @@ grpc = ["grpcio (>=1.0.0,<2.0.0dev)"]
 name = "greenlet"
 version = "2.0.1"
 description = "Lightweight in-process concurrent programming"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*"
 
 [package.extras]
@@ -580,7 +580,7 @@ test = ["faulthandler", "objgraph", "psutil"]
 name = "grpcio"
 version = "1.50.0"
 description = "HTTP/2-based RPC framework"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -594,8 +594,8 @@ protobuf = ["grpcio-tools (>=1.50.0)"]
 name = "grpcio-reflection"
 version = "1.50.0"
 description = "Standard Protobuf Reflection Service for gRPC"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -632,8 +632,8 @@ socks = ["socksio (>=1.0.0,<2.0.0)"]
 name = "httptools"
 version = "0.5.0"
 description = "A collection of framework independent HTTP protocol utils."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.5.0"
 
 [package.extras]
@@ -706,8 +706,8 @@ testing = ["flake8 (<5)", "flufl.flake8", "importlib-resources (>=1.3)", "packag
 name = "importlib-resources"
 version = "5.10.0"
 description = "Read resources from Python packages"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -746,7 +746,7 @@ requirements-deprecated-finder = ["pip-api", "pipreqs"]
 name = "jinja2"
 version = "3.1.2"
 description = "A very fast and expressive template engine."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -760,8 +760,8 @@ i18n = ["Babel (>=2.7)"]
 name = "jsonschema"
 version = "4.17.0"
 description = "An implementation of JSON Schema validation for Python"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -786,8 +786,8 @@ python-versions = ">=3.7"
 name = "locket"
 version = "1.0.0"
 description = "File-based locks for Python on Linux and Windows"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
@@ -809,7 +809,7 @@ dev = ["Sphinx (>=2.2.1)", "black (>=19.10b0)", "codecov (>=2.0.15)", "colorama 
 name = "markupsafe"
 version = "2.1.1"
 description = "Safely add untrusted strings to HTML/XML markup."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -825,16 +825,16 @@ python-versions = "*"
 name = "mmh3"
 version = "3.0.0"
 description = "Python wrapper for MurmurHash (MurmurHash3), a set of fast and robust hash functions."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "*"
 
 [[package]]
 name = "moreorless"
 version = "0.4.0"
 description = "Python diff wrapper"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -852,7 +852,7 @@ python-versions = ">=3.7"
 name = "mypy"
 version = "0.910"
 description = "Optional static typing for Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.5"
 
@@ -869,7 +869,7 @@ python2 = ["typed-ast (>=1.4.0,<1.5.0)"]
 name = "mypy-extensions"
 version = "0.4.3"
 description = "Experimental type system extensions for programs checked with the mypy typechecker."
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 
@@ -918,7 +918,7 @@ typer = ">=0.6,<0.7"
 name = "packaging"
 version = "21.3"
 description = "Core utilities for Python packages"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -948,8 +948,8 @@ test = ["hypothesis (>=5.5.3)", "pytest (>=6.0)", "pytest-xdist (>=1.31)"]
 name = "pandavro"
 version = "1.5.2"
 description = "The interface between Avro and pandas DataFrame"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.dependencies]
@@ -965,8 +965,8 @@ tests = ["pytest"]
 name = "partd"
 version = "1.3.0"
 description = "Appendable key-value storage"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -1013,8 +1013,8 @@ testing = ["funcsigs", "pytest"]
 name = "pkgutil-resolve-name"
 version = "1.3.10"
 description = "Resolve a name to an object."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [[package]]
@@ -1061,8 +1061,8 @@ virtualenv = ">=20.0.8"
 name = "proto-plus"
 version = "1.22.1"
 description = "Beautiful, Pythonic protocol buffers."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -1075,8 +1075,8 @@ testing = ["google-api-core[grpc] (>=1.31.5)"]
 name = "protobuf"
 version = "4.21.9"
 description = ""
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [[package]]
@@ -1102,16 +1102,16 @@ numpy = ">=1.16.6"
 name = "pyasn1"
 version = "0.4.8"
 description = "ASN.1 types and codecs"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "*"
 
 [[package]]
 name = "pyasn1-modules"
 version = "0.2.8"
 description = "A collection of ASN.1-based protocols modules."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "*"
 
 [package.dependencies]
@@ -1129,7 +1129,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 name = "pydantic"
 version = "1.10.2"
 description = "Data validation and settings management using python type hints"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -1166,7 +1166,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 name = "pygments"
 version = "2.13.0"
 description = "Pygments is a syntax highlighting package written in Python."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -1200,7 +1200,7 @@ testutils = ["gitpython (>3)"]
 name = "pyparsing"
 version = "3.0.9"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6.8"
 
@@ -1227,8 +1227,8 @@ python-versions = "*"
 name = "pyrsistent"
 version = "0.19.2"
 description = "Persistent/Functional/Immutable data structures"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [[package]]
@@ -1295,8 +1295,8 @@ six = ">=1.5"
 name = "python-dotenv"
 version = "0.21.0"
 description = "Read key-value pairs from a .env file and set them as environment variables"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.extras]
@@ -1325,7 +1325,7 @@ tokenize-rt = "<5"
 name = "pyyaml"
 version = "6.0"
 description = "YAML parser and emitter for Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -1333,7 +1333,7 @@ python-versions = ">=3.6"
 name = "requests"
 version = "2.28.1"
 description = "Python HTTP for Humans."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7, <4"
 
@@ -1376,8 +1376,8 @@ idna2008 = ["idna"]
 name = "rsa"
 version = "4.9"
 description = "Pure-Python RSA implementation"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6,<4"
 
 [package.dependencies]
@@ -1459,7 +1459,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 name = "smmap"
 version = "5.0.0"
 description = "A pure Python implementation of a sliding window memory map manager"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 
@@ -1616,8 +1616,8 @@ test = ["pytest"]
 name = "sqlalchemy"
 version = "1.4.43"
 description = "Database Abstraction Library"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.7"
 
 [package.dependencies]
@@ -1650,8 +1650,8 @@ sqlcipher = ["sqlcipher3_binary"]
 name = "sqlalchemy2-stubs"
 version = "0.0.2a29"
 description = "Typing Stubs for SQLAlchemy 1.4"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -1661,8 +1661,8 @@ typing-extensions = ">=3.7.4"
 name = "starlette"
 version = "0.20.4"
 description = "The little ASGI library that shines."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -1687,8 +1687,8 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 name = "tabulate"
 version = "0.9.0"
 description = "Pretty-print tabular data"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.extras]
@@ -1698,8 +1698,8 @@ widechars = ["wcwidth"]
 name = "tenacity"
 version = "8.1.0"
 description = "Retry code until it succeeds"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.6"
 
 [package.extras]
@@ -1717,7 +1717,7 @@ python-versions = ">=3.6.1"
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
@@ -1741,16 +1741,16 @@ python-versions = ">=3.6"
 name = "toolz"
 version = "0.12.0"
 description = "List processing tools and functional utilities"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.5"
 
 [[package]]
 name = "tqdm"
 version = "4.64.1"
 description = "Fast, Extensible Progress Meter"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
 
 [package.dependencies]
@@ -1766,8 +1766,8 @@ telegram = ["requests"]
 name = "typeguard"
 version = "2.13.3"
 description = "Run-time type checker for Python"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.5.3"
 
 [package.extras]
@@ -1803,7 +1803,7 @@ python-versions = "*"
 name = "typing-extensions"
 version = "4.4.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -1811,7 +1811,7 @@ python-versions = ">=3.7"
 name = "urllib3"
 version = "1.26.12"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4"
 
@@ -1824,8 +1824,8 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 name = "uvicorn"
 version = "0.19.0"
 description = "The lightning-fast ASGI server."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -1846,8 +1846,8 @@ standard = ["colorama (>=0.4)", "httptools (>=0.5.0)", "python-dotenv (>=0.13)",
 name = "uvloop"
 version = "0.17.0"
 description = "Fast implementation of asyncio event loop on top of libuv"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.extras]
@@ -1890,16 +1890,16 @@ testing = ["coverage (>=6.2)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7
 name = "volatile"
 version = "2.1.0"
 description = "A small extension for the tempfile module."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = "*"
 
 [[package]]
 name = "watchfiles"
 version = "0.18.1"
 description = "Simple, modern and high performance file watching and code reload in python."
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
@@ -1909,8 +1909,8 @@ anyio = ">=3.0.0"
 name = "websockets"
 version = "10.4"
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
-category = "main"
-optional = true
+category = "dev"
+optional = false
 python-versions = ">=3.7"
 
 [[package]]
@@ -1956,7 +1956,7 @@ multidict = ">=4.0"
 name = "zipp"
 version = "3.10.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 
@@ -1964,14 +1964,10 @@ python-versions = ">=3.7"
 docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)"]
 testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
 
-[extras]
-feast = ["feast"]
-git = ["GitPython"]
-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "30654be15e0f023e2baffa100d95e4717a15e8b9e44c72274a39c8fafea52530"
+content-hash = "0052d0cca6f1cf79492dbfea8d37ead254d5dd4f55b8145b53dc129c47d33409"
 
 [metadata.files]
 alabaster = [
@@ -2216,8 +2212,8 @@ google-api-core = [
     {file = "google_api_core-2.10.2-py3-none-any.whl", hash = "sha256:34f24bd1d5f72a8c4519773d99ca6bf080a6c4e041b4e9f024fe230191dda62e"},
 ]
 google-auth = [
-    {file = "google-auth-2.14.0.tar.gz", hash = "sha256:cf24817855d874ede2efd071aa22125445f555de1685b739a9782fcf408c2a3d"},
-    {file = "google_auth-2.14.0-py2.py3-none-any.whl", hash = "sha256:1ad5b0e6eba5f69645971abb3d2c197537d5914070a8c6d30299dfdb07c5c700"},
+    {file = "google-auth-2.14.1.tar.gz", hash = "sha256:ccaa901f31ad5cbb562615eb8b664b3dd0bf5404a67618e642307f00613eda4d"},
+    {file = "google_auth-2.14.1-py2.py3-none-any.whl", hash = "sha256:f5d8701633bebc12e0deea4df8abd8aff31c28b355360597f7f2ee60f2e4d016"},
 ]
 googleapis-common-protos = [
     {file = "googleapis-common-protos-1.56.4.tar.gz", hash = "sha256:c25873c47279387cfdcbdafa36149887901d36202cb645a0e4f29686bf6e4417"},

@@ -14,23 +14,31 @@ _INVALID_PUSH_FLAGS = [
 ]
 
 
-def pull_repo(repo: Repo) -> None:
+def pull_repo(repo: Repo, branch_name: str) -> None:
     """Pull feast repo.
 
     Args:
-        repo: The feast Git Repo object.
+        repo: the feast Git Repo object.
+        branch_name: the branch to pull
 
     Raises:
         GitPullError: if fails to pull the repo
     """
-    logger.info(f"Commit Sha before pulling:{repo.head.object.hexsha}")
-    logger.info("Pulling the repo......")
-    pull_result = repo.remotes.origin.pull()
-    result_flag = pull_result[0].flags
-    if result_flag in _INVALID_PULL_FLAGS:
-        raise GitPullError(f"Failed to pull the repo with error flag {result_flag}")
-    logger.info("Finished pulling the repo.")
-    logger.info(f"Commit Sha after pulling:{repo.head.object.hexsha}")
+    current_branch = repo.active_branch.name
+    if current_branch == branch_name:
+        logger.info(f"The git repo is already on branch {branch_name}")
+        logger.info(f"Commit Sha before pulling:{repo.head.object.hexsha}")
+        pull_result = repo.remotes.origin.pull()
+        result_flag = pull_result[0].flags
+        if result_flag in _INVALID_PULL_FLAGS:
+            raise GitPullError(f"Failed to pull the repo with error flag {result_flag}")
+        logger.info("Finished pulling the repo.")
+        logger.info(f"Commit Sha after pulling:{repo.head.object.hexsha}")
+    else:
+        logger.info(f"Switching branch from {current_branch} to {branch_name}")
+        result = repo.git.checkout(branch_name)
+        logger.info(result)
+        logger.info(f"Switched to branch {branch_name}, commit Sha:{repo.head.object.hexsha}")
 
 
 def push_to_git(repo: Repo) -> None:
@@ -63,7 +71,7 @@ def push_to_git(repo: Repo) -> None:
         repo.git.add(registry_file, force=True)
         logger.info(f"Forced adding {registry_file} to git")
 
-    repo.git.commit("-m", f"feast apply on {current_commit_id}")
+    repo.git.commit("-m", f"Domino run feast apply on {current_commit_id}")
     logger.info(f"Committed feast apply result on {current_commit_id}")
     push_result = repo.remotes.origin.push()
     result_flag = push_result[0].flags

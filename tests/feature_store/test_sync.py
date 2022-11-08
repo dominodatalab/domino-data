@@ -8,41 +8,38 @@ import pytest
 from feast import FeatureStore, repo_config, repo_operations
 from git import Repo
 
-from domino_data._feature_store import featurestore_sync
+from domino_data._feature_store import sync
 from domino_data._feature_store.exceptions import FeastRepoError, ServerException
-from domino_data._feature_store.featurestore_sync import find_feast_repo_path
+from domino_data._feature_store.sync import find_feast_repo_path
 
 
-def test_find_feast_repo_path(feast_repo_root_dir, monkeypatch):
+def test_find_feast_repo_path(feast_repo_root_dir):
     feast_repo_root_dir = _get_feast_repo_root_dir()
 
     with pytest.raises(
         FeastRepoError,
     ):
-        find_feast_repo_path()
+        find_feast_repo_path(feast_repo_root_dir)
 
     open(os.path.join(feast_repo_root_dir, "a_file"), "a").close()
-    monkeypatch.setenv("DOMINO_FEAST_REPO_ROOT", os.path.join(feast_repo_root_dir, "a_file"))
     with pytest.raises(
         NotADirectoryError,
     ):
-        find_feast_repo_path()
+        find_feast_repo_path(os.path.join(feast_repo_root_dir, "a_file"))
 
-    monkeypatch.setenv("DOMINO_FEAST_REPO_ROOT", feast_repo_root_dir)
     Path(os.path.join(feast_repo_root_dir, "feast-repo1")).mkdir(parents=True, exist_ok=True)
     Path(os.path.join(feast_repo_root_dir, "feast-repo2")).mkdir(parents=True, exist_ok=True)
 
     with pytest.raises(
         FeastRepoError,
     ):
-        find_feast_repo_path()
+        find_feast_repo_path(feast_repo_root_dir)
 
-    monkeypatch.delenv("DOMINO_FEAST_REPO_ROOT")
     with pytest.raises(
         FileNotFoundError,
-        match="The repo root path /features does not exist.",
+        match="The repo root path /non-exist-dir does not exist.",
     ):
-        find_feast_repo_path()
+        find_feast_repo_path("/non-exist-dir")
 
 
 def test_sync(feast_repo_root_dir, env, respx_mock):
@@ -59,7 +56,7 @@ def test_sync(feast_repo_root_dir, env, respx_mock):
     repo_operations.cli_check_repo = MagicMock()
     repo_operations.apply_total = MagicMock()
 
-    featurestore_sync.feature_store_sync()
+    sync.feature_store_sync()
 
     repo_config.load_repo_config.assert_called()
     repo_operations.cli_check_repo.assert_called()
@@ -74,7 +71,7 @@ def test_sync(feast_repo_root_dir, env, respx_mock):
         ServerException,
         match="could not create Feature Views",
     ):
-        featurestore_sync.feature_store_sync()
+        sync.feature_store_sync()
 
     _clean_up_feast_repo()
 

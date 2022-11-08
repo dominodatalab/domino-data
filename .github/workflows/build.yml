@@ -27,8 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry config virtualenvs.in-project true
-        poetry install
-        poetry install --extras "feast git"
+        poetry install --with extra
 
     - name: Run style checks
       run: |
