@@ -13,13 +13,12 @@ from feature_store_api_client.models import (
 )
 
 from ..logging import logger
+from .client import FeatureStoreClient
 from .exceptions import FeastRepoError
-from .featurestore import FeatureStoreClient
 from .git import pull_repo, push_to_git
 
 LOCK_FAILURE_MESSAGE = "Failed to lock feature store for syncing. Please rerun later."
 
-client = None
 
 _import_error_message = (
     "feast is not installed.\n\n"
@@ -60,7 +59,7 @@ def unlock() -> None:
     logger.info("UnLocked the feature store")
 
 
-def update_feature_views(commit_id: str, repo_path: str = None) -> None:
+def update_feature_views(commit_id: str, repo_path: str) -> None:
     """Update domino feature views to sync with specified feast git commit
 
     Args:
@@ -70,8 +69,6 @@ def update_feature_views(commit_id: str, repo_path: str = None) -> None:
     """
     logger.info(f"Syncing feature views to feast git commit {commit_id}")
 
-    if not repo_path:
-        repo_path = find_feast_repo_path()
     feast_feature_store = FeatureStore(repo_path)
 
     feature_views = feast_feature_store.list_feature_views()
@@ -92,22 +89,25 @@ def update_feature_views(commit_id: str, repo_path: str = None) -> None:
 
     # TODO update the API to include the commit id so that feature views
     # and commit id can be updated to domino in one call
+    client = FeatureStoreClient()
     client.post_feature_views(request_input)
     logger.info("Feature Views successfully synced.")
 
 
-def find_feast_repo_path() -> str:
+def find_feast_repo_path(root_dir: str) -> str:
     """Find the feast repo path
+
+    Args:
+        root_dir: the feast git repo root directory
 
     Returns:
         the feast repo path
 
     Raises:
-        FeastRepoError: if no feast repo or more than one repos in the specified root directory
+        FeastRepoError: if no feast repo or more than one repo in the specified root directory
         FileNotFoundError: the root path doesn't exist
         NotADirectoryError: the root path is not a directory
     """
-    root_dir = os.getenv("DOMINO_FEAST_REPO_ROOT", "/features")
     sub_dirs = []
     if not os.path.exists(root_dir):
         raise FileNotFoundError(f"The repo root path {root_dir} does not exist.")
@@ -147,25 +147,38 @@ def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) ->
     repo_operations.apply_total(feast_repo_config, repo_path, skip_source_validation)
 
 
-def feature_store_sync(skip_source_validation=False):
+def feature_store_sync(
+    feature_store_id: str, repo_path_str: str, branch_name: str, skip_source_validation=False
+):
     """run feature store syncing
 
     Args:
+        feature_store_id: the feature store domino id
+        repo_path_str: feast repo path
+        branch_name: feast repo branch
         skip_source_validation: option for running feast apply command.
                                 Don't validate the data sources by checking
                                 for that the tables exist if true
     """
-    logger.info("Starting feature store syncing......")
-    repo_path_str = find_feast_repo_path()
-    global client
-    client = FeatureStoreClient()
+    if not repo_path_str:
+        root_dir = os.getenv("DOMINO_FEAST_REPO_ROOT", "/features")
+        repo_path_str = find_feast_repo_path(root_dir)
+
+    repo = Repo(repo_path_str)
+    if not branch_name:
+        branch_name = repo.active_branch.name
+
+    logger.info(
+        f"Starting syncing for feature store {feature_store_id} with {repo_path_str} "
+        f"on branch {branch_name}"
+    )
+
     lock()
     try:
-        repo = Repo(repo_path_str)
-        pull_repo(repo)
+        pull_repo(repo, branch_name)
         run_feast_apply(repo_path_str=repo_path_str, skip_source_validation=skip_source_validation)
         push_to_git(repo)
-        update_feature_views(repo.head.object.hexsha)
+        update_feature_views(repo.head.object.hexsha, repo_path_str)
         logger.info("Finished feature store syncing.")
     finally:
         unlock()

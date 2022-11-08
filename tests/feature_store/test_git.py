@@ -13,7 +13,8 @@ def test_git_pull(caplog):
     repo.remotes.origin.pull.return_value = [MagicMock(flags=FetchInfo.HEAD_UPTODATE)]
 
     # Pull success
-    pull_repo(repo)
+    repo.active_branch.name = "main"
+    pull_repo(repo, "main")
     assert "Finished pulling the repo" in caplog.text
 
     # Pull failure
@@ -22,7 +23,11 @@ def test_git_pull(caplog):
         GitPullError,
         match="Failed to pull the repo with error flag 128",
     ):
-        pull_repo(repo)
+        pull_repo(repo, "main")
+
+    # Switch branch
+    pull_repo(repo, "dev")
+    assert "Switched to branch dev" in caplog.text
 
 
 def test_git_push(caplog):
