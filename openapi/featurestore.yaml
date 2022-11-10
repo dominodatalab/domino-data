@@ -81,6 +81,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeatureStore'
+  /lock:
+    post:
+      summary: Lock FeatureStore
+      requestBody:
+        description: LockFeatureStoreRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LockFeatureStoreRequest'
+      responses:
+        '200':
+          description: The operation result
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
+  /unlock/{featureStoreId}:
+    get:
+      summary: Unlock FeatureStore
+      parameters:
+        - in: path
+          name: featureStoreId
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: FeatureStore Id
+      responses:
+        '200':
+          description: The operation result
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
 
 components:
   schemas:
@@ -357,3 +402,16 @@ components:
         - features
         - entities
         - tags
+    LockFeatureStoreRequest:
+      type: object
+      properties:
+        featureStoreId:
+          type: string
+        projectName:
+          type: string
+        userName:
+          type: string
+        runId:
+          type: string
+      required:
+        - featureStoreId

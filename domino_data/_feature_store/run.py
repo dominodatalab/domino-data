@@ -31,10 +31,19 @@ if __name__ == "__main__":
         required=False,
         help="the feature store git repo branch",
     )
+
+    parser.add_argument(
+        "-r",
+        "--retry",
+        metavar="MAX_LOCK_RETRY_COUNT",
+        type=int,
+        required=False,
+        help="the maximum feature store lock retry count",
+    )
     args = parser.parse_args()
 
     try:
-        feature_store_sync(args.id, args.path, args.branch)
+        feature_store_sync(args.id, args.path, args.branch, args.retry)
     except Exception as e:
         logger.exception(e)
         sys.exit(-1)

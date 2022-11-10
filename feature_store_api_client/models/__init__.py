@@ -20,6 +20,7 @@ from .feature_view_request_tags import FeatureViewRequestTags
 from .feature_view_tags import FeatureViewTags
 from .field import Field
 from .git_provider_name import GitProviderName
+from .lock_feature_store_request import LockFeatureStoreRequest
 from .metadata import Metadata
 from .offline_store_config import OfflineStoreConfig
 from .offline_store_config_fields import OfflineStoreConfigFields
