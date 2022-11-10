@@ -75,10 +75,10 @@ sphinx-autodoc-typehints = "^1.12.0"
 sphinx-rtd-theme = "^0.5.2"
 types-PyYAML = "^6.0.4"
 
-[tool.poetry.group.extra]
+[tool.poetry.group.featurestore]
 optional = true
 
-[tool.poetry.group.extra.dependencies]
+[tool.poetry.group.featurestore.dependencies]
 feast = "^0.26.0"
 GitPython = "^3.1.29"
 
