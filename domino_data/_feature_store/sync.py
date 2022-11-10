@@ -60,6 +60,7 @@ def lock(feature_store_id: str, max_retries: int) -> None:
         lock_result = client.lock(lock_request)
         if not lock_result:
             time.sleep(1)
+            logger.info(f"Failed to lock the feature store. retry count: {retry_count}")
             retry_count += 1
 
     if not lock_result:
