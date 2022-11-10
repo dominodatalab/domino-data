@@ -7,9 +7,17 @@ import os
 from attrs import define, field
 
 from domino_data.auth import AuthenticatedClient
-from feature_store_api_client.api.default import post_featureview
+from feature_store_api_client.api.default import (
+    get_unlock_feature_store_id,
+    post_featureview,
+    post_lock,
+)
 from feature_store_api_client.client import Client
-from feature_store_api_client.models import FeatureViewRequest, UpsertFeatureViewsRequest
+from feature_store_api_client.models import (
+    FeatureViewRequest,
+    LockFeatureStoreRequest,
+    UpsertFeatureViewsRequest,
+)
 from feature_store_api_client.types import Response
 
 from .exceptions import ServerException
@@ -56,6 +64,46 @@ class FeatureStoreClient:
 
         if response.status_code != 200:
             _raise_response_exn(response, "could not create Feature Views")
+
+    def lock(self, lock_request: LockFeatureStoreRequest) -> bool:
+        """Lock the feature store
+
+        Args:
+            lock_request: the lock request
+
+        Returns:
+            True if success
+
+        Raises:
+            ServerException: if lock fails
+        """
+        response = post_lock.sync_detailed(
+            client=self.client,
+            json_body=lock_request,
+        )
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not lock feature store")
+        return False if response.parsed is None else response.parsed
+
+    def unlock(self, feature_store_id: str) -> bool:
+        """UnLock the feature store
+
+        Args:
+            feature_store_id: the id of the feature store to be locked
+
+        Returns:
+            True if success
+
+        Raises:
+            ServerException: if unlock fails
+        """
+        response = get_unlock_feature_store_id.sync_detailed(
+            client=self.client,
+            feature_store_id=feature_store_id,
+        )
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not unlock feature store")
+        return False if response.parsed is None else response.parsed
 
 
 def _raise_response_exn(response: Response, msg: str):

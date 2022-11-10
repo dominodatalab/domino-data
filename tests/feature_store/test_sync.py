@@ -9,7 +9,11 @@ from feast import FeatureStore, repo_config, repo_operations
 from git import Repo
 
 from domino_data._feature_store import sync
-from domino_data._feature_store.exceptions import FeastRepoError, ServerException
+from domino_data._feature_store.exceptions import (
+    FeastRepoError,
+    FeatureStoreLockError,
+    ServerException,
+)
 from domino_data._feature_store.sync import find_feast_repo_path
 
 
@@ -42,12 +46,21 @@ def test_find_feast_repo_path(feast_repo_root_dir):
         find_feast_repo_path("/non-exist-dir")
 
 
-def test_sync(feast_repo_root_dir, env, respx_mock):
+def test_sync(feast_repo_root_dir, env, respx_mock, datafx):
     _set_up_feast_repo()
 
     # Happy path
+    test_feature_store_id = "634e0eee26077433a69b0ec3"
     respx_mock.post("http://domino/featurestore/featureview").mock(
         return_value=httpx.Response(200),
+    )
+
+    respx_mock.post("http://domino/featurestore/lock").mock(
+        return_value=httpx.Response(200, content="true"),
+    )
+
+    respx_mock.get(f"http://domino/featurestore/unlock/{test_feature_store_id}").mock(
+        return_value=httpx.Response(200, content="true"),
     )
 
     FeatureStore.__new__ = MagicMock()
@@ -56,7 +69,7 @@ def test_sync(feast_repo_root_dir, env, respx_mock):
     repo_operations.cli_check_repo = MagicMock()
     repo_operations.apply_total = MagicMock()
 
-    sync.feature_store_sync("634e0eee26077433a69b0ec3", None, None)
+    sync.feature_store_sync(test_feature_store_id, None, None, None)
 
     repo_config.load_repo_config.assert_called()
     repo_operations.cli_check_repo.assert_called()
@@ -71,7 +84,17 @@ def test_sync(feast_repo_root_dir, env, respx_mock):
         ServerException,
         match="could not create Feature Views",
     ):
-        sync.feature_store_sync("634e0eee26077433a69b0ec3", "/features/feast-test", None)
+        sync.feature_store_sync(test_feature_store_id, "/features/feast-test", None, None)
+
+    # Lock failure
+    respx_mock.post("http://domino/featurestore/lock").mock(
+        return_value=httpx.Response(200, content="false"),
+    )
+
+    with pytest.raises(
+        FeatureStoreLockError,
+    ):
+        sync.feature_store_sync(test_feature_store_id, None, None, 1)
 
     _clean_up_feast_repo()
 
