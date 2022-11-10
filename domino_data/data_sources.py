@@ -378,11 +378,12 @@ class ObjectStoreDatasource(Datasource):
         """Return an object with given key and datasource client."""
         return _Object(datasource=self, key=key)
 
-    def list_objects(self, prefix: str = "") -> List[_Object]:
+    def list_objects(self, prefix: str = "", page_size: int = 1000) -> List[_Object]:
         """List objects in the object store datasource.
 
         Args:
             prefix: optional prefix to filter objects
+            page_size: optional number of objects to fetch
 
         Returns:
             List of objects
@@ -390,6 +391,7 @@ class ObjectStoreDatasource(Datasource):
         keys = self.client.list_keys(
             self.identifier,
             prefix,
+            page_size,
             config=self._config_override.config(),
             credential=self._get_credential_override(),
         )
@@ -676,6 +678,7 @@ class DataSourceClient:
         self,
         datasource_id: str,
         prefix: str,
+        page_size: int,
         config: Dict[str, str],
         credential: Dict[str, str],
     ) -> List[str]:
@@ -684,6 +687,7 @@ class DataSourceClient:
         Args:
             datasource_id: unique identifier of a datasource
             prefix: prefix to filter keys with
+            page_size: number of objects to return
             config: overwrite configuration dictionary
             credential: overwrite credential dictionary
 
@@ -694,13 +698,14 @@ class DataSourceClient:
             Exception: if the response from the Proxy is not 200
             UnauthenticatedError: if the request has invalid authentication
         """
-        logger.info("list_keys", datasource_id=datasource_id, prefix=prefix)
+        logger.info("list_keys", datasource_id=datasource_id, prefix=prefix, page_size=page_size)
 
         response = list_keys.sync_detailed(
             client=self.proxy_http,
             json_body=ListRequest(
                 datasource_id=datasource_id,
                 prefix=prefix,
+                page_size=page_size,
                 config_overwrites=APIConfig.from_dict(config),
                 credential_overwrites=APIConfig.from_dict(credential),
             ),

@@ -6,6 +6,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     BIGQUERYCONFIG = "BigQueryConfig"
     GCSCONFIG = "GCSConfig"
     GENERICS3CONFIG = "GenericS3Config"
+    MONGODBCONFIG = "MongoDBConfig"
     MYSQLCONFIG = "MySQLConfig"
     ORACLECONFIG = "OracleConfig"
     POSTGRESQLCONFIG = "PostgreSQLConfig"
