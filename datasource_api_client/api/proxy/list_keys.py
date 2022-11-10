@@ -13,7 +13,7 @@ def _get_kwargs(
     client: Client,
     json_body: ListRequest,
 ) -> Dict[str, Any]:
-    url = "{}/objectstore/list".format(client.base_url)
+    url = f"{client.base_url}/objectstore/list"
 
     headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
