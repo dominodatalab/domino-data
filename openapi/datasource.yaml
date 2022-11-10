@@ -222,6 +222,7 @@ components:
             - BigQueryConfig
             - GCSConfig
             - GenericS3Config
+            - MongoDBConfig
             - MySQLConfig
             - OracleConfig
             - PostgreSQLConfig
@@ -307,6 +308,8 @@ components:
           type: string
         prefix:
           type: string
+        pageSize:
+          type: integer
       required:
         - datasourceId
         - prefix
