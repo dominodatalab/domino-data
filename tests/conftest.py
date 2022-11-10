@@ -1,9 +1,12 @@
 """pytest fixtures and configuration."""
 
 import json
+import logging
 
 import pyarrow
 import pytest
+from _pytest.logging import caplog as _caplog
+from loguru import logger
 
 # TODO This method is deprecated and should be refactored using `env`
 # and respx mocked APIs
@@ -69,6 +72,12 @@ def training_set_dir(tmpdir, monkeypatch):
 
 
 @pytest.fixture
+def feast_repo_root_dir(tmpdir, monkeypatch):
+    """Set the right environment variables for feature store repo root dir."""
+    monkeypatch.setenv("DOMINO_FEAST_REPO_ROOT", str(tmpdir))
+
+
+@pytest.fixture
 def env(monkeypatch):
     """Set basic environment variables for mocked tests."""
     monkeypatch.setenv("DOMINO_API_HOST", "http://domino")
@@ -90,3 +99,15 @@ def datafx():
             return json.loads(file.read())
 
     return _load_json_file
+
+
+@pytest.fixture
+def caplog(_caplog):
+    """Capture loguru log fixture"""
+
+    class PropogateHandler(logging.Handler):
+        def emit(self, record):
+            logging.getLogger(record.name).handle(record)
+
+    logger.add(PropogateHandler(), format="{message}")
+    yield _caplog

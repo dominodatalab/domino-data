@@ -1,0 +1,359 @@
+openapi: 3.0.0
+
+info:
+  title: FeatureStore API
+  description: Feature Store metadata service
+  version: 0.1.0
+
+paths:
+  /:
+    get:
+      summary: Get FeatureStore
+      responses:
+        '200':
+          description: The FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
+        '404':
+          description: Not Found
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
+    post:
+      summary: Create FeatureStore
+      requestBody:
+        description: CreateFeatureStoreRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeatureStoreRequest'
+      responses:
+        '200':
+          description: The new FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
+  /featureview:
+    post:
+      summary: Upsert FeatureViews
+      requestBody:
+        description: UpsertFeatureViewsRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertFeatureViewsRequest'
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
+  /{featureViewName}/store:
+    get:
+      summary: Get feature store by feature view name
+      parameters:
+        - in: path
+          name: featureViewName
+          required: true
+          schema:
+            type: string
+            minimum: 1
+          description: FeatureView name
+      responses:
+        '200':
+          description: The FeatureStore
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureStore'
+
+components:
+  schemas:
+    # Enums
+    #
+    AuthFieldName:
+      type: string
+      enum:
+        - password
+        - username
+    AuthType:
+      type: string
+      enum:
+        - BasicOptional
+        - UserOnly
+        - NoAuth
+    ConfigFieldName:
+      type: string
+      enum:
+        - accountId
+        - role
+        - warehouse
+        - database
+        - clusterId
+        - region
+        - s3StagingLocation
+        - iamRole
+        - datasetName
+        - gcsStagingLocation
+        - location
+        - gcsProjectName
+        - authenticator
+        - blobExportLocation
+        - configPath
+        - schema
+        - storageIntegrationName
+    OfflineStoreType:
+      type: string
+      enum:
+        - File
+        - BigQuery
+        - Redshift
+        - Snowflake
+    GitProviderName:
+      type: string
+      enum:
+        - Bitbucket
+        - BitbucketServer
+        - Github
+        - GithubEnterprise
+        - Gitlab
+        - GitlabEnterprise
+        - Unknown
+    AuthConfig:
+      type: object
+      properties:
+        authType:
+          $ref: '#/components/schemas/AuthType'
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Field'
+        meta:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - authType
+        - fields
+        - meta
+    OfflineStoreConfig:
+      type: object
+      properties:
+        authTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthType'
+        offlineStoreType:
+          $ref: '#/components/schemas/OfflineStoreType'
+        fields:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Field'
+      required:
+        - authTypes
+        - offlineStoreType
+        - fields
+    Field:
+      type: object
+      properties:
+        alias:
+          type: string
+        isOptional:
+          type: boolean
+        isOverridable:
+          type: boolean
+        isSecret:
+          type: boolean
+        name:
+          type: string
+        regexp:
+          type: string
+        regexpErrorMessage:
+          type: string
+      required:
+        - isOptional
+        - isOverridable
+        - name
+
+    # Entities
+    #
+    FeatureStore:
+      type: object
+      properties:
+        id:
+          type: string
+        ownerId:
+          type: string
+        creationTime:
+          type: string
+          format: date-time
+        offlineStoreType:
+          $ref: '#/components/schemas/OfflineStoreType'
+        offlineStoreConfig:
+          type: object
+          additionalProperties:
+            type: string
+        gitRepo:
+          type: string
+        gitServiceProvider:
+          $ref: '#/components/schemas/GitProviderName'
+        projectIds:
+          type: array
+          items:
+            type: string
+        lastUpdatedTime:
+          type: string
+          format: date-time
+      required:
+        - id
+        - ownerId
+        - creationTime
+        - offlineStoreType
+        - offlineStoreConfig
+        - gitRepo
+        - gitServiceProvider
+        - projectIds
+        - lastUpdatedTime
+    FeatureView:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        featureStoreId:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entity'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        ttl:
+          type: integer
+          format: int64
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        projectIds:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - name
+        - featureStoreId
+        - metadata
+        - entities
+        - features
+        - tags
+        - projectIds
+    Feature:
+      type: object
+      properties:
+        name:
+          type: string
+        dtype:
+          type: string
+      required:
+        - name
+        - dtype
+    Entity:
+      type: object
+      properties:
+        name:
+          type: string
+        joinKey:
+          type: string
+        valueType:
+          type: string
+      required:
+        - name
+        - valueType
+    Metadata:
+      type: object
+      properties:
+        createdAtMillis:
+          type: integer
+          format: int64
+        lastUpdatedMillis:
+          type: integer
+          format: int64
+      required:
+        - createdAtMillis
+        - lastUpdatedMillis
+    CreateFeatureStoreRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        offlineStoreType:
+          $ref: '#/components/schemas/OfflineStoreType'
+        offlineStoreConfig:
+          type: object
+          additionalProperties:
+            type: string
+        gitRepo:
+          type: string
+        gitServiceProvider:
+          $ref: '#/components/schemas/GitProviderName'
+      required:
+        - name
+        - offlineStoreType
+        - offlineStoreConfig
+        - gitRepo
+        - gitServiceProvider
+    UpsertFeatureViewsRequest:
+      type: object
+      properties:
+        featureViews:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureViewRequest'
+      required:
+        - featureViews
+    FeatureViewRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Entity'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+        ttl:
+          type: integer
+          format: int64
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - name
+        - features
+        - entities
+        - tags

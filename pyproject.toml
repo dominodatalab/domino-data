@@ -21,6 +21,7 @@ packages = [
     { include = "domino_data" },
     { include = "datasource_api_client" },
     { include = "training_set_api_client" },
+    { include = "feature_store_api_client" },
 ]
 
 # Keywords description https://python-poetry.org/docs/pyproject/#keywords
@@ -47,6 +48,7 @@ python-dateutil = "^2.8.0"
 pyarrow = "^8.0.0"
 loguru = "^0.5.3"
 backoff = "^1.11.1"
+bson = "^0.5.10"
 
 [tool.poetry.group.dev.dependencies]
 Sphinx = "^4.1.2"
@@ -72,6 +74,13 @@ safety = "^2.3.1"
 sphinx-autodoc-typehints = "^1.12.0"
 sphinx-rtd-theme = "^0.5.2"
 types-PyYAML = "^6.0.4"
+
+[tool.poetry.group.featurestore]
+optional = true
+
+[tool.poetry.group.featurestore.dependencies]
+feast = "^0.26.0"
+GitPython = "^3.1.29"
 
 [tool.black]
 # https://github.com/psf/black
@@ -135,3 +144,8 @@ warn_return_any = true
 warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
+
+[tool.coverage.run]
+omit = [
+    "domino_data/_feature_store/run_featurestore_sync.py"
+]
