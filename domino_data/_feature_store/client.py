@@ -109,7 +109,7 @@ class FeatureStoreClient:
 def _raise_response_exn(response: Response, msg: str):
     try:
         response_json = json.loads(response.content.decode("utf8"))
-        server_msg = response_json.get("message")
+        server_msg = response_json.get("errors")
     except Exception:
         server_msg = None
 
