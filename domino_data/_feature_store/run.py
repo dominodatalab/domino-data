@@ -32,7 +32,6 @@ if __name__ == "__main__":
         help="the feature store git repo branch",
     )
     args = parser.parse_args()
-    logger.add(sink=sys.stdout, format="[{time}] {message}")
 
     try:
         feature_store_sync(args.id, args.path, args.branch)
