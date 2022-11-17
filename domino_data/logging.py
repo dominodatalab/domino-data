@@ -29,6 +29,7 @@ def getlogger():
             {
                 "format": "[{time}] {message}",
                 "sink": sys.stdout,
+                "filter": "domino_data._feature_store",
             },
         ],
         extra={
