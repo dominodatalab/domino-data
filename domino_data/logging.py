@@ -1,7 +1,6 @@
 """Logging module."""
 
 import os
-import sys
 import tempfile
 
 from loguru import logger as _logger
