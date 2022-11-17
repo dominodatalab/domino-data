@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, cast
 
 import builtins
 import configparser
+import io
 import json
 import os
 
@@ -123,6 +124,10 @@ class _Object:
         )
 
         return res.content
+
+    def get_bytes(self) -> io.BytesIO:
+        """Get object content as byte stream."""
+        return io.BytesIO(self.get())
 
     def download_file(self, filename: str) -> None:
         """Download object content to file located at filename.
@@ -435,6 +440,17 @@ class ObjectStoreDatasource(Datasource):
             object content as bytes
         """
         return self.Object(object_key).get()
+
+    def get_bytes(self, object_key: str) -> io.BytesIO:
+        """Get object content as byte stream.
+
+        Args:
+            object_key: unique key of object
+
+        Returns:
+            object content as io.BytesIO
+        """
+        return self.Object(object_key).get_bytes()
 
     def download_file(self, object_key: str, filename: str) -> None:
         """Download object content to file located at filename.
