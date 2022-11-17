@@ -58,11 +58,11 @@ class FeatureStoreClient:
             _raise_response_exn(response, "could not create Feature Views")
 
 
-def _raise_response_exn(response: Response, msg: str):
+def _raise_response_exn(response: Response, msg: str) -> None:
     try:
         response_json = json.loads(response.content.decode("utf8"))
         server_msg = response_json.get("message")
     except Exception:
-        server_msg = None
+        server_msg = ""
 
     raise ServerException(msg, server_msg)
