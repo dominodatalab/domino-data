@@ -1,7 +1,6 @@
 """Logging module."""
 
 import os
-import sys
 import tempfile
 
 from loguru import logger as _logger
@@ -25,7 +24,7 @@ def getlogger():
                 "retention": 7,
                 "enqueue": True,
                 "serialize": True,
-            }
+            },
         ],
         extra={
             "ip": os.getenv("DOMINO_NODE_IP"),
