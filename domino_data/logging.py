@@ -25,11 +25,7 @@ def getlogger():
                 "retention": 7,
                 "enqueue": True,
                 "serialize": True,
-            },
-            {
-                "format": "[{time}] {message}",
-                "sink": sys.stdout,
-            },
+            }
         ],
         extra={
             "ip": os.getenv("DOMINO_NODE_IP"),
