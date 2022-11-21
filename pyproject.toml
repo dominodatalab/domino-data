@@ -112,7 +112,7 @@ color_output = true
 
 [tool.mypy]
 # mypy configurations: https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
-exclude = 'datasource_api_client/|domino_data/training_sets/|.venv'
+exclude = 'datasource_api_client/|domino_data/training_sets/|.venv/|tests/'
 python_version = 3.8
 pretty = true
 show_traceback = true
