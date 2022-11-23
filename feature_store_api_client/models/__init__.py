@@ -19,6 +19,7 @@ from .feature_view_request import FeatureViewRequest
 from .feature_view_request_tags import FeatureViewRequestTags
 from .feature_view_tags import FeatureViewTags
 from .field import Field
+from .get_unlock_feature_store_id_result_result import GetUnlockFeatureStoreIdResultResult
 from .git_provider_name import GitProviderName
 from .lock_feature_store_request import LockFeatureStoreRequest
 from .metadata import Metadata

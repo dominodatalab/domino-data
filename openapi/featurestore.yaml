@@ -104,7 +104,7 @@ paths:
           description: Forbidden
         '500':
           description: Server Error
-  /unlock/{featureStoreId}:
+  /unlock/{featureStoreId}/{result}:
     get:
       summary: Unlock FeatureStore
       parameters:
@@ -115,6 +115,15 @@ paths:
             type: string
             minimum: 1
           description: FeatureStore Id
+        - in: path
+          name: result
+          required: true
+          schema:
+            type: string
+            enum:
+              - Success
+              - Failure
+          description: Feature Store Synchronization Result
       responses:
         '200':
           description: The operation result

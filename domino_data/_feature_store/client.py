@@ -8,7 +8,7 @@ from attrs import define, field
 
 from domino_data.auth import AuthenticatedClient
 from feature_store_api_client.api.default import (
-    get_unlock_feature_store_id,
+    get_unlock_feature_store_id_result,
     post_featureview,
     post_lock,
 )
@@ -85,11 +85,12 @@ class FeatureStoreClient:
             _raise_response_exn(response, "could not lock feature store")
         return False if response.parsed is None else response.parsed
 
-    def unlock(self, feature_store_id: str) -> bool:
+    def unlock(self, feature_store_id: str, result: str) -> bool:
         """UnLock the feature store
 
         Args:
             feature_store_id: the id of the feature store to be locked
+            result: the synchronization result
 
         Returns:
             True if success
@@ -97,9 +98,10 @@ class FeatureStoreClient:
         Raises:
             ServerException: if unlock fails
         """
-        response = get_unlock_feature_store_id.sync_detailed(
+        response = get_unlock_feature_store_id_result.sync_detailed(
             client=self.client,
             feature_store_id=feature_store_id,
+            result=result,
         )
         if response.status_code != 200:
             _raise_response_exn(response, "could not unlock feature store")
