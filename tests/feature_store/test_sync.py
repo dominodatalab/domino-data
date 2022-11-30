@@ -59,7 +59,7 @@ def test_sync(feast_repo_root_dir, env, respx_mock, datafx):
         return_value=httpx.Response(200, content="true"),
     )
 
-    respx_mock.get(f"http://domino/featurestore/unlock/{test_feature_store_id}").mock(
+    respx_mock.post(f"http://domino/featurestore/unlock").mock(
         return_value=httpx.Response(200, content="true"),
     )
 
