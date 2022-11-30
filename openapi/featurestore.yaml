@@ -81,6 +81,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeatureStore'
+  /lock:
+    post:
+      summary: Lock FeatureStore
+      requestBody:
+        description: LockFeatureStoreRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LockFeatureStoreRequest'
+      responses:
+        '200':
+          description: The operation result
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          description: Bad Request
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
+  /unlock:
+    post:
+      summary: Unlock FeatureStore
+      requestBody:
+        description: UnlockFeatureStoreRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockFeatureStoreRequest'
+      responses:
+        '200':
+          description: The operation result
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '403':
+          description: Forbidden
+        '500':
+          description: Server Error
 
 components:
   schemas:
@@ -189,6 +233,11 @@ components:
         - isOptional
         - isOverridable
         - name
+    FeatureStoreSyncResult:
+      type: string
+      enum:
+        - Success
+        - Failure
 
     # Entities
     #
@@ -357,3 +406,26 @@ components:
         - features
         - entities
         - tags
+    LockFeatureStoreRequest:
+      type: object
+      properties:
+        featureStoreId:
+          type: string
+        projectName:
+          type: string
+        userName:
+          type: string
+        runId:
+          type: string
+      required:
+        - featureStoreId
+    UnlockFeatureStoreRequest:
+      type: object
+      properties:
+        featureStoreId:
+          type: string
+        syncResult:
+          $ref: '#/components/schemas/FeatureStoreSyncResult'
+      required:
+        - featureStoreId
+        - syncResult

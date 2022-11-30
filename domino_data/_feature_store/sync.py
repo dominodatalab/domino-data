@@ -1,6 +1,7 @@
 """Containing APIs to sync feature store from feast to domino"""
 
 import os
+import time
 from pathlib import Path
 
 from git import Repo
@@ -8,17 +9,19 @@ from git import Repo
 from feature_store_api_client.models import (
     Entity,
     Feature,
+    FeatureStoreSyncResult,
     FeatureViewRequest,
     FeatureViewRequestTags,
+    LockFeatureStoreRequest,
+    UnlockFeatureStoreRequest,
 )
 
 from ..logging import logger
 from .client import FeatureStoreClient
-from .exceptions import FeastRepoError
+from .exceptions import FeastRepoError, FeatureStoreLockError
 from .git import pull_repo, push_to_git
 
 LOCK_FAILURE_MESSAGE = "Failed to lock feature store for syncing. Please rerun later."
-
 
 _import_error_message = (
     "feast is not installed.\n\n"
@@ -36,36 +39,61 @@ except ImportError as e:
         raise
 
 
-def lock() -> None:
-    """Lock the feature store for updating features
-
+def lock(feature_store_id: str, max_retries: int) -> None:
+    """Lock the feature store for updating features. If fails, retry until
+    succeeds or reaches the maximum retry limit
+    Args:
+        feature_store_id: the id of the feature store to be locked
+        max_retries: the maximum number of retries
     Raises:
         FeatureStoreLockError: if fails to lock
     """
     logger.info("Locking the feature store")
-    # TODO Call feature store client lock method
-    # Raise FeatureStoreLockError with detailed reason if fails to lock.
+    client = FeatureStoreClient()
+    lock_request = LockFeatureStoreRequest(
+        feature_store_id=feature_store_id,
+        project_name=os.getenv("DOMINO_PROJECT_NAME", ""),
+        user_name=os.getenv("DOMINO_STARTING_USERNAME", ""),
+        run_id=os.getenv("DOMINO_RUN_ID", ""),
+    )
+    lock_result = False
+    retry_count = 0
+    while not lock_result and retry_count <= max_retries:
+        lock_result = client.lock(lock_request)
+        if not lock_result:
+            time.sleep(1)
+            logger.info(f"Failed to lock the feature store. retry count: {retry_count}")
+            retry_count += 1
+
+    if not lock_result:
+        raise FeatureStoreLockError(LOCK_FAILURE_MESSAGE)
     logger.info("Locked the feature store")
 
 
-def unlock() -> None:
+def unlock(feature_store_id: str, sync_result: FeatureStoreSyncResult) -> None:
     """UnLock the feature store
-
-    Raises:
-        FeatureStoreLockError: if fails to unlock
+    Args:
+        feature_store_id: the id of the feature store to be unlocked
+        sync_result: the synchronization result
     """
     logger.info("UnLocking the feature store")
-    # TODO Call feature store client unlock method
-    logger.info("UnLocked the feature store")
+    try:
+        client = FeatureStoreClient()
+        result = client.unlock(
+            UnlockFeatureStoreRequest(feature_store_id=feature_store_id, sync_result=sync_result)
+        )
+        logger.info(
+            "Unlocked the feature store." if result else "Failed to unlock the feature store."
+        )
+    except Exception as e:
+        logger.exception(e)
 
 
 def update_feature_views(commit_id: str, repo_path: str) -> None:
     """Update domino feature views to sync with specified feast git commit
-
     Args:
         commit_id: the feast git repo commit id that are to be synced with domino
         repo_path: the feast git repo path
-
     """
     logger.info(f"Syncing feature views to feast git commit {commit_id}")
 
@@ -96,13 +124,10 @@ def update_feature_views(commit_id: str, repo_path: str) -> None:
 
 def find_feast_repo_path(root_dir: str) -> str:
     """Find the feast repo path
-
     Args:
         root_dir: the feast git repo root directory
-
     Returns:
         the feast repo path
-
     Raises:
         FeastRepoError: if no feast repo or more than one repo in the specified root directory
         FileNotFoundError: the root path doesn't exist
@@ -132,7 +157,6 @@ def find_feast_repo_path(root_dir: str) -> str:
 
 def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) -> None:
     """run feast apply
-
     Args:
         repo_path_str: the feast git repo path
         skip_source_validation: don't validate the data sources by
@@ -148,14 +172,18 @@ def run_feast_apply(repo_path_str: str, skip_source_validation: bool = False) ->
 
 
 def feature_store_sync(
-    feature_store_id: str, repo_path_str: str, branch_name: str, skip_source_validation=False
+    feature_store_id: str,
+    repo_path_str: str,
+    branch_name: str,
+    max_retries: int,
+    skip_source_validation=False,
 ):
     """run feature store syncing
-
     Args:
         feature_store_id: the feature store domino id
         repo_path_str: feast repo path
         branch_name: feast repo branch
+        max_retries: maximum lock retry count
         skip_source_validation: option for running feast apply command.
                                 Don't validate the data sources by checking
                                 for that the tables exist if true
@@ -168,17 +196,22 @@ def feature_store_sync(
     if not branch_name:
         branch_name = repo.active_branch.name
 
+    if not max_retries:
+        max_retries = 60
+
     logger.info(
         f"Starting syncing for feature store {feature_store_id} with {repo_path_str} "
         f"on branch {branch_name}"
     )
 
-    lock()
+    result = FeatureStoreSyncResult.FAILURE
+    lock(feature_store_id, max_retries)
     try:
         pull_repo(repo, branch_name)
         run_feast_apply(repo_path_str=repo_path_str, skip_source_validation=skip_source_validation)
         push_to_git(repo)
         update_feature_views(repo.head.object.hexsha, repo_path_str)
+        result = FeatureStoreSyncResult.SUCCESS
         logger.info("Finished feature store syncing.")
     finally:
-        unlock()
+        unlock(feature_store_id, result)
