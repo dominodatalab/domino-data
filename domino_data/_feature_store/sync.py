@@ -9,10 +9,11 @@ from git import Repo
 from feature_store_api_client.models import (
     Entity,
     Feature,
+    FeatureStoreSyncResult,
     FeatureViewRequest,
     FeatureViewRequestTags,
-    GetUnlockFeatureStoreIdResultResult,
     LockFeatureStoreRequest,
+    UnlockFeatureStoreRequest,
 )
 
 from ..logging import logger
@@ -69,16 +70,18 @@ def lock(feature_store_id: str, max_retries: int) -> None:
     logger.info("Locked the feature store")
 
 
-def unlock(feature_store_id: str, result: str) -> None:
+def unlock(feature_store_id: str, sync_result: FeatureStoreSyncResult) -> None:
     """UnLock the feature store
     Args:
         feature_store_id: the id of the feature store to be unlocked
-        result: the synchronization result
+        sync_result: the synchronization result
     """
     logger.info("UnLocking the feature store")
     try:
         client = FeatureStoreClient()
-        result = client.unlock(feature_store_id, result)
+        result = client.unlock(
+            UnlockFeatureStoreRequest(feature_store_id=feature_store_id, sync_result=sync_result)
+        )
         logger.info(
             "Unlocked the feature store." if result else "Failed to unlock the feature store."
         )
@@ -201,14 +204,14 @@ def feature_store_sync(
         f"on branch {branch_name}"
     )
 
-    result = GetUnlockFeatureStoreIdResultResult.FAILURE
+    result = FeatureStoreSyncResult.FAILURE
     lock(feature_store_id, max_retries)
     try:
         pull_repo(repo, branch_name)
         run_feast_apply(repo_path_str=repo_path_str, skip_source_validation=skip_source_validation)
         push_to_git(repo)
         update_feature_views(repo.head.object.hexsha, repo_path_str)
-        result = GetUnlockFeatureStoreIdResultResult.SUCCESS
+        result = FeatureStoreSyncResult.SUCCESS
         logger.info("Finished feature store syncing.")
     finally:
         unlock(feature_store_id, result)

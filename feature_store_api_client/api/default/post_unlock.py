@@ -3,29 +3,29 @@ from typing import Any, Dict, Optional, Union, cast
 import httpx
 
 from ...client import Client
-from ...models.get_unlock_feature_store_id_result_result import GetUnlockFeatureStoreIdResultResult
+from ...models.unlock_feature_store_request import UnlockFeatureStoreRequest
 from ...types import Response
 
 
 def _get_kwargs(
-    feature_store_id: str,
-    result: GetUnlockFeatureStoreIdResultResult,
     *,
     client: Client,
+    json_body: UnlockFeatureStoreRequest,
 ) -> Dict[str, Any]:
-    url = "{}/unlock/{featureStoreId}/{result}".format(
-        client.base_url, featureStoreId=feature_store_id, result=result
-    )
+    url = f"{client.base_url}/unlock"
 
     headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()
 
+    json_json_body = json_body.to_dict()
+
     return {
-        "method": "get",
+        "method": "post",
         "url": url,
         "headers": headers,
         "cookies": cookies,
         "timeout": client.get_timeout(),
+        "json": json_json_body,
     }
 
 
@@ -52,25 +52,22 @@ def _build_response(*, response: httpx.Response) -> Response[Union[Any, bool]]:
 
 
 def sync_detailed(
-    feature_store_id: str,
-    result: GetUnlockFeatureStoreIdResultResult,
     *,
     client: Client,
+    json_body: UnlockFeatureStoreRequest,
 ) -> Response[Union[Any, bool]]:
     """Unlock FeatureStore
 
     Args:
-        feature_store_id (str):
-        result (GetUnlockFeatureStoreIdResultResult):
+        json_body (UnlockFeatureStoreRequest):
 
     Returns:
         Response[Union[Any, bool]]
     """
 
     kwargs = _get_kwargs(
-        feature_store_id=feature_store_id,
-        result=result,
         client=client,
+        json_body=json_body,
     )
 
     response = httpx.request(
@@ -82,48 +79,42 @@ def sync_detailed(
 
 
 def sync(
-    feature_store_id: str,
-    result: GetUnlockFeatureStoreIdResultResult,
     *,
     client: Client,
+    json_body: UnlockFeatureStoreRequest,
 ) -> Optional[Union[Any, bool]]:
     """Unlock FeatureStore
 
     Args:
-        feature_store_id (str):
-        result (GetUnlockFeatureStoreIdResultResult):
+        json_body (UnlockFeatureStoreRequest):
 
     Returns:
         Response[Union[Any, bool]]
     """
 
     return sync_detailed(
-        feature_store_id=feature_store_id,
-        result=result,
         client=client,
+        json_body=json_body,
     ).parsed
 
 
 async def asyncio_detailed(
-    feature_store_id: str,
-    result: GetUnlockFeatureStoreIdResultResult,
     *,
     client: Client,
+    json_body: UnlockFeatureStoreRequest,
 ) -> Response[Union[Any, bool]]:
     """Unlock FeatureStore
 
     Args:
-        feature_store_id (str):
-        result (GetUnlockFeatureStoreIdResultResult):
+        json_body (UnlockFeatureStoreRequest):
 
     Returns:
         Response[Union[Any, bool]]
     """
 
     kwargs = _get_kwargs(
-        feature_store_id=feature_store_id,
-        result=result,
         client=client,
+        json_body=json_body,
     )
 
     async with httpx.AsyncClient(verify=client.verify_ssl) as _client:
@@ -133,16 +124,14 @@ async def asyncio_detailed(
 
 
 async def asyncio(
-    feature_store_id: str,
-    result: GetUnlockFeatureStoreIdResultResult,
     *,
     client: Client,
+    json_body: UnlockFeatureStoreRequest,
 ) -> Optional[Union[Any, bool]]:
     """Unlock FeatureStore
 
     Args:
-        feature_store_id (str):
-        result (GetUnlockFeatureStoreIdResultResult):
+        json_body (UnlockFeatureStoreRequest):
 
     Returns:
         Response[Union[Any, bool]]
@@ -150,8 +139,7 @@ async def asyncio(
 
     return (
         await asyncio_detailed(
-            feature_store_id=feature_store_id,
-            result=result,
             client=client,
+            json_body=json_body,
         )
     ).parsed

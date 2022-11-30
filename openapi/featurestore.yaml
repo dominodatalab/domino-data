@@ -104,26 +104,16 @@ paths:
           description: Forbidden
         '500':
           description: Server Error
-  /unlock/{featureStoreId}/{result}:
-    get:
+  /unlock:
+    post:
       summary: Unlock FeatureStore
-      parameters:
-        - in: path
-          name: featureStoreId
-          required: true
-          schema:
-            type: string
-            minimum: 1
-          description: FeatureStore Id
-        - in: path
-          name: result
-          required: true
-          schema:
-            type: string
-            enum:
-              - Success
-              - Failure
-          description: Feature Store Synchronization Result
+      requestBody:
+        description: UnlockFeatureStoreRequest
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockFeatureStoreRequest'
       responses:
         '200':
           description: The operation result
@@ -243,6 +233,11 @@ components:
         - isOptional
         - isOverridable
         - name
+    FeatureStoreSyncResult:
+      type: string
+      enum:
+        - Success
+        - Failure
 
     # Entities
     #
@@ -424,3 +419,13 @@ components:
           type: string
       required:
         - featureStoreId
+    UnlockFeatureStoreRequest:
+      type: object
+      properties:
+        featureStoreId:
+          type: string
+        syncResult:
+          $ref: '#/components/schemas/FeatureStoreSyncResult'
+      required:
+        - featureStoreId
+        - syncResult

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class GetUnlockFeatureStoreIdResultResult(str, Enum):
+class FeatureStoreSyncResult(str, Enum):
     SUCCESS = "Success"
     FAILURE = "Failure"
 
