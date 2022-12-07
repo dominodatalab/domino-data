@@ -5,7 +5,6 @@ import logging
 
 import pyarrow
 import pytest
-from _pytest.logging import caplog as _caplog
 from loguru import logger
 
 # TODO This method is deprecated and should be refactored using `env`

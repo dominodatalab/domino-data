@@ -12,7 +12,7 @@ def _get_kwargs(
     client: Client,
     json_body: LockFeatureStoreRequest,
 ) -> Dict[str, Any]:
-    url = f"{client.base_url}/lock"
+    url = "{}/lock".format(client.base_url)
 
     headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

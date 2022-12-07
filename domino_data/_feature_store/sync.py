@@ -118,7 +118,7 @@ def update_feature_views(commit_id: str, repo_path: str) -> None:
     # TODO update the API to include the commit id so that feature views
     # and commit id can be updated to domino in one call
     client = FeatureStoreClient()
-    client.post_feature_views(request_input)
+    client.post_feature_views(request_input, commit_id)
     logger.info("Feature Views successfully synced.")
 
 
