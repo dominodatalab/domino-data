@@ -227,6 +227,7 @@ def load_oauth_credentials() -> Dict[str, str]:
             jwt = get_jwt_token(token_url)
         except httpx.HTTPStatusError:
             logger.opt(exception=True).warning("Failed to get token from sidecar container API")
+            pass
         else:
             return {CredElem.TOKEN.value: jwt}
 
