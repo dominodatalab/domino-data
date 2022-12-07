@@ -49,6 +49,7 @@ class FeatureStoreClient:
 
         Args:
             feature_views: an array of feature views to be inserted or updated.
+            commit_id: the commit hash the feature store is to be synced with
 
         Raises:
             ServerException: if update fails
