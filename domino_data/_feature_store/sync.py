@@ -15,9 +15,9 @@ from feature_store_api_client.models import (
     LockFeatureStoreRequest,
     UnlockFeatureStoreRequest,
 )
+from feature_store_api_client.types import UNSET
 
 from ..logging import logger
-from ..types import UNSET
 from .client import FeatureStoreClient
 from .exceptions import FeastRepoError, FeatureStoreLockError
 from .git import pull_repo, push_to_git
