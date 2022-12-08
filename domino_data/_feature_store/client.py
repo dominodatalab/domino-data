@@ -1,5 +1,5 @@
 """Feature Store module."""
-from typing import List, Optional, cast
+from typing import Any, List, Optional, cast
 
 import json
 import os
@@ -104,7 +104,7 @@ class FeatureStoreClient:
         return False if response.parsed is None else response.parsed
 
 
-def _raise_response_exn(response: Response, msg: str):
+def _raise_response_exn(response: Response[Any], msg: str) -> None:
     try:
         response_json = json.loads(response.content.decode("utf8"))
         server_msg = response_json.get("errors")
