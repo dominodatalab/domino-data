@@ -379,8 +379,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/FeatureViewRequest'
+        gitCommitHash:
+          type: string
       required:
         - featureViews
+        - gitCommitHash
     FeatureViewRequest:
       type: object
       properties:

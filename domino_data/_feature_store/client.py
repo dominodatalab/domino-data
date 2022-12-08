@@ -1,5 +1,5 @@
 """Feature Store module."""
-from typing import List, Optional, cast
+from typing import Any, List, Optional, cast
 
 import json
 import os
@@ -44,16 +44,17 @@ class FeatureStoreClient:
             ),
         )
 
-    def post_feature_views(self, feature_views: List[FeatureViewRequest]) -> None:
+    def post_feature_views(self, feature_views: List[FeatureViewRequest], commit_id: str) -> None:
         """Insert or update feature views.
 
         Args:
             feature_views: an array of feature views to be inserted or updated.
+            commit_id: the commit hash the feature store is to be synced with
 
         Raises:
             ServerException: if update fails
         """
-        request = UpsertFeatureViewsRequest(feature_views=feature_views)
+        request = UpsertFeatureViewsRequest(feature_views=feature_views, git_commit_hash=commit_id)
         response = post_featureview.sync_detailed(
             client=self.client,
             json_body=request,
@@ -103,7 +104,7 @@ class FeatureStoreClient:
         return False if response.parsed is None else response.parsed
 
 
-def _raise_response_exn(response: Response, msg: str):
+def _raise_response_exn(response: Response[Any], msg: str) -> None:
     try:
         response_json = json.loads(response.content.decode("utf8"))
         server_msg = response_json.get("errors")

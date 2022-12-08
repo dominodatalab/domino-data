@@ -15,6 +15,7 @@ from feature_store_api_client.models import (
     LockFeatureStoreRequest,
     UnlockFeatureStoreRequest,
 )
+from feature_store_api_client.types import UNSET
 
 from ..logging import logger
 from .client import FeatureStoreClient
@@ -110,15 +111,13 @@ def update_feature_views(commit_id: str, repo_path: str) -> None:
                 for x, y in zip(fv.entities, fv.entity_columns)
             ],
             features=[Feature(name=f.name, dtype=str(f.dtype)) for f in fv.features],
-            ttl=None if fv.ttl is None else int(fv.ttl.total_seconds() * 1000),
+            ttl=UNSET if fv.ttl is None else int(fv.ttl.total_seconds() * 1000),
             tags=FeatureViewRequestTags.from_dict(fv.tags),
         )
         request_input.append(feature_v)
 
-    # TODO update the API to include the commit id so that feature views
-    # and commit id can be updated to domino in one call
     client = FeatureStoreClient()
-    client.post_feature_views(request_input)
+    client.post_feature_views(request_input, commit_id)
     logger.info("Feature Views successfully synced.")
 
 
@@ -176,8 +175,8 @@ def feature_store_sync(
     repo_path_str: str,
     branch_name: str,
     max_retries: int,
-    skip_source_validation=False,
-):
+    skip_source_validation: bool = False,
+) -> None:
     """run feature store syncing
     Args:
         feature_store_id: the feature store domino id

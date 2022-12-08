@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 from feast import FeatureStore, repo_config, repo_operations
-from git import Repo
+from git.repo import Repo
 
 from domino_data._feature_store import sync
 from domino_data._feature_store.exceptions import (
@@ -63,8 +63,12 @@ def test_sync(feast_repo_root_dir, env, respx_mock, datafx):
         return_value=httpx.Response(200, content="true"),
     )
 
+    repo_mock = MagicMock()
+    repo_mock.head.object.hexsha = "123456"
+
     FeatureStore.__new__ = MagicMock()
     Repo.__new__ = MagicMock()
+    Repo.__new__.return_value = repo_mock
     repo_config.load_repo_config = MagicMock()
     repo_operations.cli_check_repo = MagicMock()
     repo_operations.apply_total = MagicMock()
