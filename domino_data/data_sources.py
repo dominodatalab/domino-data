@@ -527,7 +527,8 @@ class DataSourceClient:
         if is_local == "false":
             logging.warning(
                 "Data Sources are in beta for all Nexus enabled deployments, "
-                "so some functionality may not work as expected. Contact your Admin if you encounter any issues."
+                "so some functionality may not work as expected. "
+                "Contact your Admin if you encounter any issues."
             )
 
     def __attrs_post_init__(self):
