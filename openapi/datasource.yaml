@@ -232,6 +232,7 @@ components:
             - TabularS3GlueConfig
             - TeradataConfig
             - TrinoConfig
+            - PalantirConfig
         description:
           type: string
           nullable: true
