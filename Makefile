@@ -1,5 +1,5 @@
 #* Variables
-SHELL := /usr/bin/env zsh
+SHELL := /usr/bin/env bash
 PYTHON := python3
 
 #* OpenAPI variables
