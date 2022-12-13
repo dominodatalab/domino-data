@@ -7,8 +7,7 @@ formats: []
 # Install via pip/poetry and docs requirements
 python:
   install:
-    - method: pip
-      path: .
+    - requirements: requirements.txt
     - requirements: docs/requirements.txt
 
 # Use python 3.9
