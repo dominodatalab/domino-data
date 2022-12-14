@@ -18,7 +18,7 @@ build:
   tools:
     python: "3.9"
 
-# Do not fail because of warnings on type hinting
+# Fail on warnings to ensure build render properly
 sphinx:
   builder: html
   configuration: docs/source/conf.py
