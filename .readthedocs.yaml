@@ -10,7 +10,6 @@ python:
     - method: pip
       path: .
     - requirements: requirements.txt
-    - requirements: docs/requirements.txt
 
 # Use python 3.9
 build:
