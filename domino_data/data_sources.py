@@ -1,7 +1,6 @@
 """Datasource module."""
 from typing import Any, Dict, List, Optional, cast
 
-import builtins
 import configparser
 import json
 import logging
@@ -55,7 +54,7 @@ def __getattr__(name: str) -> Any:
 
 def __dir__() -> List[str]:
     confs = filter(lambda x: x.endswith("Config"), dir(domino_data.configuration_gen))
-    return builtins.dir() + list(confs)
+    return list(globals().keys()) + list(confs)
 
 
 class DominoError(Exception):
