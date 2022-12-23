@@ -206,9 +206,18 @@ def feature_store_sync(
     result = FeatureStoreSyncResult.FAILURE
     lock(feature_store_id, max_retries)
     try:
-        pull_repo(repo, branch_name)
-        run_feast_apply(repo_path_str=repo_path_str, skip_source_validation=skip_source_validation)
-        push_to_git(repo)
+        # Feature store syncing is going to be run in a domino job. Turn off it
+        # to avoid the user interaction on host authentication. Feast git repo
+        # has already been pulled and mounted as a volume to the job pod, so the host
+        # can be trusted.
+        git_ssh_cmd = "ssh -o StrictHostKeyChecking=no"
+        with repo.git.custom_environment(GIT_SSH_COMMAND=git_ssh_cmd):
+            pull_repo(repo, branch_name)
+            run_feast_apply(
+                repo_path_str=repo_path_str, skip_source_validation=skip_source_validation
+            )
+            push_to_git(repo)
+
         update_feature_views(repo.head.object.hexsha, repo_path_str)
         result = FeatureStoreSyncResult.SUCCESS
         logger.info("Finished feature store syncing.")
