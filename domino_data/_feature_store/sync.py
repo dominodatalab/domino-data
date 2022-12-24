@@ -17,10 +17,10 @@ from feature_store_api_client.models import (
 )
 from feature_store_api_client.types import UNSET
 
-from ..logging import logger
 from .client import FeatureStoreClient
 from .exceptions import FeastRepoError, FeatureStoreLockError
 from .git import pull_repo, push_to_git
+from .logging import logger
 
 LOCK_FAILURE_MESSAGE = "Failed to lock feature store for syncing. Please rerun later."
 

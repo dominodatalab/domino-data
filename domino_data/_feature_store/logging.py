@@ -1,30 +1,19 @@
-"""Logging module."""
+"""Dedicated Feature Store Logging module."""
 
 import os
 import sys
-import tempfile
 
 from loguru import logger as _logger
 
-LOGFILE_LOCATION = "domino_logs/data_api.log"
 
-
-def getsink():
-    """Return log sink location."""
-    return f"{tempfile.gettempdir()}/{LOGFILE_LOCATION}"
-
-
-def getlogger():
+def get_feature_store_logger():
     """Configure and return a logger."""
     _logger.configure(
         handlers=[
             {
                 "format": "[{time}] {message}",
-                "sink": getsink(),
-                "rotation": "1 day",
-                "retention": 7,
+                "sink": sys.stdout,
                 "enqueue": True,
-                "serialize": True,
             },
         ],
         extra={
@@ -37,4 +26,4 @@ def getlogger():
     return _logger
 
 
-logger = getlogger()
+logger = get_feature_store_logger()
