@@ -2,7 +2,7 @@
 import argparse
 import sys
 
-from ..logging import logger
+from .logging import logger
 from .sync import feature_store_sync
 
 if __name__ == "__main__":

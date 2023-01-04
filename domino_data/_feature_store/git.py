@@ -2,8 +2,8 @@
 
 from git import FetchInfo, PushInfo, Repo
 
-from ..logging import logger
 from .exceptions import GitPullError, GitPushError
+from .logging import logger
 
 _INVALID_PULL_FLAGS = [FetchInfo.ERROR, FetchInfo.REJECTED]
 _INVALID_PUSH_FLAGS = [
