@@ -17,6 +17,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     TABULARS3GLUECONFIG = "TabularS3GlueConfig"
     TERADATACONFIG = "TeradataConfig"
     TRINOCONFIG = "TrinoConfig"
+    PALANTIRCONFIG = "PalantirConfig"
 
     def __str__(self) -> str:
         return str(self.value)
