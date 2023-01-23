@@ -151,7 +151,6 @@ class GenericS3Config(Config):
 class MongoDBConfig(Config):
     """MongoDBConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
@@ -252,11 +251,9 @@ class TabularS3GlueConfig(Config):
     region: Optional[str] = _config(elem=ConfigElem.REGION)
 
 
-
 @attr.s(auto_attribs=True)
 class TeradataConfig(Config):
     """TeradataConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -276,7 +273,6 @@ class TrinoConfig(Config):
 @attr.s(auto_attribs=True)
 class PalantirConfig(Config):
     """PalantirConfig datasource configuration."""
-
 
     client_id: Optional[str] = _cred(elem=CredElem.CLIENTID)
     client_secret: Optional[str] = _cred(elem=CredElem.CLIENTSECRET)
