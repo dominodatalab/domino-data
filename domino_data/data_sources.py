@@ -559,7 +559,7 @@ class DataSourceClient:
             token_file=self.token_file,
             token_url=self.token_url,
             headers=ACCEPT_HEADERS,
-            timeout=5.0,
+            timeout=20.0,
             verify_ssl=True,
         )
 
