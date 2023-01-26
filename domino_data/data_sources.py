@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Optional, cast
 
 import configparser
 import json
-import logging
 import os
 
 import attr
@@ -520,15 +519,6 @@ class DataSourceClient:
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
     token_url: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_API_PROXY"))
-
-    def __attrs_pre_init__(self):
-        is_local = os.getenv("DOMINO_IS_LOCAL_DATA_PLANE")
-        if is_local == "false":
-            logging.warning(
-                "Data Sources are in beta for all Nexus enabled deployments, "
-                "so some functionality may not work as expected. "
-                "Contact your Admin if you encounter any issues."
-            )
 
     def __attrs_post_init__(self):
         flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
