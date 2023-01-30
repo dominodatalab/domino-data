@@ -15,6 +15,7 @@ from .feature import Feature
 from .feature_store import FeatureStore
 from .feature_store_offline_store_config import FeatureStoreOfflineStoreConfig
 from .feature_store_sync_result import FeatureStoreSyncResult
+from .feature_tags import FeatureTags
 from .feature_view import FeatureView
 from .feature_view_request import FeatureViewRequest
 from .feature_view_request_tags import FeatureViewRequestTags

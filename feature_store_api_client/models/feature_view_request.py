@@ -18,6 +18,7 @@ class FeatureViewRequest:
         entities (List[Entity]):
         features (List[Feature]):
         tags (FeatureViewRequestTags):
+        description (str):
         ttl (Union[Unset, int]):
     """
 
@@ -25,6 +26,7 @@ class FeatureViewRequest:
     entities: List[Entity]
     features: List[Feature]
     tags: FeatureViewRequestTags
+    description: str
     ttl: Union[Unset, int] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
@@ -44,6 +46,7 @@ class FeatureViewRequest:
 
         tags = self.tags.to_dict()
 
+        description = self.description
         ttl = self.ttl
 
         field_dict: Dict[str, Any] = {}
@@ -54,6 +57,7 @@ class FeatureViewRequest:
                 "entities": entities,
                 "features": features,
                 "tags": tags,
+                "description": description,
             }
         )
         if ttl is not UNSET:
@@ -82,6 +86,8 @@ class FeatureViewRequest:
 
         tags = FeatureViewRequestTags.from_dict(d.pop("tags"))
 
+        description = d.pop("description")
+
         ttl = d.pop("ttl", UNSET)
 
         feature_view_request = cls(
@@ -89,6 +95,7 @@ class FeatureViewRequest:
             entities=entities,
             features=features,
             tags=tags,
+            description=description,
             ttl=ttl,
         )
 

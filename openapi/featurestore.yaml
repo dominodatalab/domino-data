@@ -324,9 +324,14 @@ components:
           type: string
         dtype:
           type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
       required:
         - name
         - dtype
+        - tags
     Entity:
       type: object
       properties:
@@ -381,9 +386,15 @@ components:
             $ref: '#/components/schemas/FeatureViewRequest'
         gitCommitHash:
           type: string
+        projectId:
+          type: string
+        userId:
+          type: string
       required:
         - featureViews
         - gitCommitHash
+        - projectId
+        - userId
     FeatureViewRequest:
       type: object
       properties:
@@ -404,11 +415,14 @@ components:
           type: object
           additionalProperties:
             type: string
+        description:
+          type: string
       required:
         - name
         - features
         - entities
         - tags
+        - description
     LockFeatureStoreRequest:
       type: object
       properties:
