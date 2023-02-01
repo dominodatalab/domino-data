@@ -126,7 +126,6 @@ def update_feature_views(commit_id: str, repo_path: str) -> None:
         request_input,
         commit_id,
         os.getenv("DOMINO_PROJECT_ID", ""),
-        os.getenv("DOMINO_STARTING_USERID", ""),
     )
     logger.info("Feature Views successfully synced.")
 

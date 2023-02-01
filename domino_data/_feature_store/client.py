@@ -49,7 +49,6 @@ class FeatureStoreClient:
         feature_views: List[FeatureViewRequest],
         commit_id: str,
         project_id: str,
-        user_id: str,
     ) -> None:
         """Insert or update feature views.
 
@@ -57,7 +56,6 @@ class FeatureStoreClient:
             feature_views: an array of feature views to be inserted or updated.
             commit_id: the commit hash the feature store is to be synced with
             project_id: the id of the project from where the sync operation is performed
-            user_id: the id of the user who starts this sync operation
 
         Raises:
             ServerException: if update fails
@@ -66,7 +64,6 @@ class FeatureStoreClient:
             feature_views=feature_views,
             git_commit_hash=commit_id,
             project_id=project_id,
-            user_id=user_id,
         )
         response = post_featureview.sync_detailed(
             client=self.client,
