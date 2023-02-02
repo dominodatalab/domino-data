@@ -525,7 +525,7 @@ class DataSourceClient:
         is_local = os.getenv("DOMINO_IS_LOCAL_DATA_PLANE")
         if is_local == "false":
             logging.warning(
-                "Data Sources are in beta for all Nexus enabled deployments, "
+                "Data Sources are in Preview for all Nexus enabled deployments, "
                 "so some functionality may not work as expected. "
                 "Contact your Admin if you encounter any issues."
             )
