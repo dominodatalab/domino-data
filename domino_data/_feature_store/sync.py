@@ -10,6 +10,7 @@ from feature_store_api_client.models import (
     Entity,
     Feature,
     FeatureStoreSyncResult,
+    FeatureTags,
     FeatureViewRequest,
     FeatureViewRequestTags,
     LockFeatureStoreRequest,
@@ -110,14 +111,22 @@ def update_feature_views(commit_id: str, repo_path: str) -> None:
                 Entity(name=x, join_key=y.name, value_type=str(y.dtype))
                 for x, y in zip(fv.entities, fv.entity_columns)
             ],
-            features=[Feature(name=f.name, dtype=str(f.dtype)) for f in fv.features],
+            features=[
+                Feature(name=f.name, dtype=str(f.dtype), tags=FeatureTags.from_dict(f.tags))
+                for f in fv.features
+            ],
             ttl=UNSET if fv.ttl is None else int(fv.ttl.total_seconds() * 1000),
             tags=FeatureViewRequestTags.from_dict(fv.tags),
+            description=fv.description,
         )
         request_input.append(feature_v)
 
     client = FeatureStoreClient()
-    client.post_feature_views(request_input, commit_id)
+    client.post_feature_views(
+        request_input,
+        commit_id,
+        os.getenv("DOMINO_PROJECT_ID", ""),
+    )
     logger.info("Feature Views successfully synced.")
 
 

@@ -44,17 +44,27 @@ class FeatureStoreClient:
             ),
         )
 
-    def post_feature_views(self, feature_views: List[FeatureViewRequest], commit_id: str) -> None:
+    def post_feature_views(
+        self,
+        feature_views: List[FeatureViewRequest],
+        commit_id: str,
+        project_id: str,
+    ) -> None:
         """Insert or update feature views.
 
         Args:
             feature_views: an array of feature views to be inserted or updated.
             commit_id: the commit hash the feature store is to be synced with
+            project_id: the id of the project from where the sync operation is performed
 
         Raises:
             ServerException: if update fails
         """
-        request = UpsertFeatureViewsRequest(feature_views=feature_views, git_commit_hash=commit_id)
+        request = UpsertFeatureViewsRequest(
+            feature_views=feature_views,
+            git_commit_hash=commit_id,
+            project_id=project_id,
+        )
         response = post_featureview.sync_detailed(
             client=self.client,
             json_body=request,

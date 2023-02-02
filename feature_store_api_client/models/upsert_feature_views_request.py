@@ -13,10 +13,12 @@ class UpsertFeatureViewsRequest:
     Attributes:
         feature_views (List[FeatureViewRequest]):
         git_commit_hash (str):
+        project_id (str):
     """
 
     feature_views: List[FeatureViewRequest]
     git_commit_hash: str
+    project_id: str
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -27,6 +29,7 @@ class UpsertFeatureViewsRequest:
             feature_views.append(feature_views_item)
 
         git_commit_hash = self.git_commit_hash
+        project_id = self.project_id
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -34,6 +37,7 @@ class UpsertFeatureViewsRequest:
             {
                 "featureViews": feature_views,
                 "gitCommitHash": git_commit_hash,
+                "projectId": project_id,
             }
         )
 
@@ -51,9 +55,12 @@ class UpsertFeatureViewsRequest:
 
         git_commit_hash = d.pop("gitCommitHash")
 
+        project_id = d.pop("projectId")
+
         upsert_feature_views_request = cls(
             feature_views=feature_views,
             git_commit_hash=git_commit_hash,
+            project_id=project_id,
         )
 
         upsert_feature_views_request.additional_properties = d

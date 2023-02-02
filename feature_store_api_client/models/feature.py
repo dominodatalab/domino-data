@@ -2,6 +2,8 @@ from typing import Any, Dict, List, Type, TypeVar
 
 import attr
 
+from ..models.feature_tags import FeatureTags
+
 T = TypeVar("T", bound="Feature")
 
 
@@ -11,15 +13,18 @@ class Feature:
     Attributes:
         name (str):
         dtype (str):
+        tags (FeatureTags):
     """
 
     name: str
     dtype: str
+    tags: FeatureTags
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
         dtype = self.dtype
+        tags = self.tags.to_dict()
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -27,6 +32,7 @@ class Feature:
             {
                 "name": name,
                 "dtype": dtype,
+                "tags": tags,
             }
         )
 
@@ -39,9 +45,12 @@ class Feature:
 
         dtype = d.pop("dtype")
 
+        tags = FeatureTags.from_dict(d.pop("tags"))
+
         feature = cls(
             name=name,
             dtype=dtype,
+            tags=tags,
         )
 
         feature.additional_properties = d
