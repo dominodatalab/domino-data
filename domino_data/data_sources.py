@@ -369,6 +369,14 @@ class TabularDatasource(Datasource):
         )
 
 
+# Function that says happy birthday to AJ
+def happy_birthday_aj():
+    print("Happy birthday to you!")
+    print("Happy birthday to you!")
+    print("Happy birthday dear AJ!")
+    print("Happy birthday to you!")
+
+
 @attr.s
 class ObjectStoreDatasource(Datasource):
     """Represents a object store type datasource."""
