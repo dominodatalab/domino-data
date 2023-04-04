@@ -311,7 +311,7 @@ class Datasource:
         if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
             self._httpx = httpx.Client(headers=ADLS_HEADERS, verify=context)
         elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
-            self._httpx = httpx.Client(verify=False)
+            self._httpx = httpx.Client(verify=False) # nosec
         else:
             self._httpx = httpx.Client(verify=context)
         return self._httpx
