@@ -31,6 +31,7 @@ from datasource_api_client.models import (
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient, get_jwt_token
 from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
+from .meta import MetaMiddlewareFactory
 from .transfer import MAX_WORKERS, BlobTransfer
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
@@ -43,6 +44,13 @@ FLIGHT_ERROR_SPLIT = ". gRPC client debug context:"
 
 AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
 AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
+DOMINO_API_HOST = "DOMINO_API_HOST"
+DOMINO_API_PROXY = "DOMINO_API_PROXY"
+DOMINO_DATASOURCE_PROXY_HOST = "DOMINO_DATASOURCE_PROXY_HOST"
+DOMINO_DATASOURCE_PROXY_FLIGHT_HOST = "DOMINO_DATASOURCE_PROXY_FLIGHT_HOST"
+DOMINO_USER_API_KEY = "DOMINO_USER_API_KEY"
+DOMINO_USER_HOST = "DOMINO_USER_HOST"
+DOMINO_RUN_ID = "DOMINO_RUN_ID"
 DOMINO_TOKEN_DEFAULT_LOCATION = "/var/lib/domino/home/.api/token"
 DOMINO_TOKEN_FILE = "DOMINO_TOKEN_FILE"
 
@@ -245,7 +253,7 @@ def load_oauth_credentials() -> Dict[str, str]:
     Raises:
         DominoError: if the provided location is not a valid file
     """
-    token_url = os.getenv("DOMINO_API_PROXY", "")
+    token_url = os.getenv(DOMINO_API_PROXY, "")
     if token_url:
         try:
             jwt = get_jwt_token(token_url)
@@ -562,16 +570,18 @@ class DataSourceClient:
     proxy: flight.FlightClient = attr.ib(init=False, repr=False)
     proxy_http: AuthenticatedClient = attr.ib(init=False, repr=False)
 
-    api_key: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
-    token_file: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
-    token_url: Optional[str] = attr.ib(factory=lambda: os.getenv("DOMINO_API_PROXY"))
+    api_key: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_USER_API_KEY))
+    token_file: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_TOKEN_FILE))
+    token_url: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_API_PROXY))
+
+    run_id: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_RUN_ID))
 
     def __attrs_post_init__(self):
-        flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
+        flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
         domino_host = os.getenv(
-            "DOMINO_API_PROXY", os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
+            DOMINO_API_PROXY, os.getenv(DOMINO_API_HOST, os.getenv(DOMINO_USER_HOST, ""))
         )
-        proxy_host = os.getenv("DOMINO_DATASOURCE_PROXY_HOST", "")
+        proxy_host = os.getenv(DOMINO_DATASOURCE_PROXY_HOST, "")
 
         logger.info(
             "initializing datasource client with hosts",
@@ -600,7 +610,7 @@ class DataSourceClient:
         )
 
     def _set_proxy(self):
-        flight_host = os.getenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST")
+        flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
         self.proxy = flight.FlightClient(
             flight_host,
             middleware=[
@@ -608,7 +618,8 @@ class DataSourceClient:
                     self.api_key,
                     self.token_file,
                     self.token_url,
-                )
+                ),
+                MetaMiddlewareFactory(self.run_id),
             ],
         )
 
@@ -626,11 +637,11 @@ class DataSourceClient:
         """
         logger.info("get_datasource", datasource_name=name)
 
-        run_id = os.getenv("DOMINO_RUN_ID")
+        run_id = os.getenv(DOMINO_RUN_ID)
         response = get_datasource_by_name.sync_detailed(
             name,
             client=self.domino,
-            run_id=run_id,
+            run_id=run_id,  # TODO: consider also putting in headers?
         )
         if response.status_code == 200:
             datasource_dto = cast(DatasourceDto, response.parsed)
