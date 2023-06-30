@@ -32,7 +32,7 @@ from datasource_api_client.models import (
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient, get_jwt_token
 from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
-from .transfer import BlobTransfer
+from .transfer import MAX_WORKERS, BlobTransfer
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
@@ -151,7 +151,7 @@ class _Object:
             False,
         )
 
-    def download(self, filename: str, max_workers: int = 10) -> None:
+    def download(self, filename: str, max_workers: int = MAX_WORKERS) -> None:
         """Download object content to file with multithreaded support.
 
         The file will be created if it does not exists. File will be overwritten if it exists.
@@ -479,6 +479,18 @@ class ObjectStoreDatasource(Datasource):
             filename: path of file to write content to.
         """
         self.Object(object_key).download_file(filename)
+
+    def download(self, object_key: str, filename: str, max_workers: int = MAX_WORKERS) -> None:
+        """Download object content to file located at filename.
+
+        The file will be created if it does not exists.
+
+        Args:
+            object_key: unique key of object
+            filename: path of file to write content to
+            max_workers: max parallelism for high speed download
+        """
+        self.Object(object_key).download(filename, max_workers)
 
     def download_fileobj(self, object_key: str, fileobj: Any) -> None:
         """Download object content to file like object.

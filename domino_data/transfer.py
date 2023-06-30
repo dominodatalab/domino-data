@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import urllib3
 
+MAX_WORKERS = 10
 MB = 2**20
 
 
