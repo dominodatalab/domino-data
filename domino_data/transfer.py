@@ -1,4 +1,4 @@
-from typing import BinaryIO, Generator, Optional
+from typing import BinaryIO, Generator, Optional, Tuple
 
 import io
 import shutil
@@ -11,7 +11,7 @@ MAX_WORKERS = 10
 MB = 2**20  # 2^20 bytes - 1 Megabyte
 
 
-def split_range(start: int, end: int, step: int) -> Generator[tuple[int, int], None, None]:
+def split_range(start: int, end: int, step: int) -> Generator[Tuple[int, int], None, None]:
     """Yield all steps from start to end as tuple of integers.
 
     All returned block are inclusive to ensure every integer is covered from start to end.
@@ -62,7 +62,7 @@ class BlobTransfer:
         res = self.http.request("GET", self.url, headers={"Range": "bytes=0-0"})
         return int(res.headers["Content-Range"].partition("/")[-1])
 
-    def get_part(self, block: tuple[int, int]) -> None:
+    def get_part(self, block: Tuple[int, int]) -> None:
         """Download specific block of data from blob and writes it into destination.
 
         Args:
@@ -72,8 +72,7 @@ class BlobTransfer:
         res = self.http.request("GET", self.url, headers=headers, preload_content=False)
 
         buffer = io.BytesIO()
-        # https://github.com/python/mypy/issues/15031
-        shutil.copyfileobj(res, buffer)  # type: ignore[misc]
+        shutil.copyfileobj(res, buffer)
 
         buffer.seek(0)
         with self._lock:
