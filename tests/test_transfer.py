@@ -24,7 +24,7 @@ def test_blob_transfer():
         transfer.BlobTransfer(
             "https://murat-secure-test.s3.us-west-2.amazonaws.com/9095835.png",
             dest,
-            chunk_size=2**10,
+            chunk_size=1024,
         )
 
         assert 21821 == len(dest.getvalue())
