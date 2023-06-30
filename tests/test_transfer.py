@@ -1,3 +1,5 @@
+import io
+
 import pytest
 
 from domino_data import transfer
@@ -15,3 +17,14 @@ from domino_data import transfer
 )
 def test_split_range(start, end, step, expected):
     assert expected == list(transfer.split_range(start, end, step))
+
+
+def test_blob_transfer():
+    with io.BytesIO() as dest:
+        transfer.BlobTransfer(
+            "https://murat-secure-test.s3.us-west-2.amazonaws.com/9095835.png",
+            dest,
+            chunk_size=2**10,
+        )
+
+        assert 21821 == len(dest.getvalue())
