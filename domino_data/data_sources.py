@@ -9,6 +9,7 @@ import attr
 import backoff
 import httpx
 import pandas
+import urllib3
 from pyarrow import ArrowException, flight, parquet
 
 import domino_data.configuration_gen
@@ -30,6 +31,7 @@ from datasource_api_client.models import (
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient, get_jwt_token
 from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
+from .transfer import MAX_WORKERS, BlobTransfer
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
@@ -109,6 +111,10 @@ class _Object:
         """Get datasource http client."""
         return self.datasource.http()
 
+    def pool_manager(self) -> urllib3.PoolManager:
+        """Get datasource http pool manager."""
+        return self.datasource.pool_manager()
+
     def get(self) -> bytes:
         """Get object content as bytes."""
         url = self.datasource.get_key_url(self.key, False)
@@ -141,6 +147,25 @@ class _Object:
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
             content_size,
+            False,
+        )
+
+    def download(self, filename: str, max_workers: int = MAX_WORKERS) -> None:
+        """Download object content to file with multithreaded support.
+
+        The file will be created if it does not exists. File will be overwritten if it exists.
+
+        Args:
+            filename: path of file to write content to
+            max_workers: max parallelism for high speed download
+        """
+        url = self.datasource.get_key_url(self.key, False)
+        with open(filename, "wb") as file:
+            blob = BlobTransfer(url, file, max_workers=max_workers, http=self.pool_manager())
+
+        self.datasource.client._log_metric(  # pylint: disable=protected-access
+            self.datasource.datasource_type,
+            blob.content_size,
             False,
         )
 
@@ -316,6 +341,15 @@ class Datasource:
             self._httpx = httpx.Client(verify=context)
         return self._httpx
 
+    def pool_manager(self) -> urllib3.PoolManager:
+        """Urllib3 pool manager for range downloads."""
+        if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
+            return urllib3.PoolManager(headers=ADLS_HEADERS)
+        elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
+            return urllib3.PoolManager(assert_hostname=False)
+        else:
+            return urllib3.PoolManager()
+
     def _get_credential_override(self) -> Dict[str, str]:
         """Gets credentials override by merging service overrides and user overrides"""
         credentials = {}
@@ -445,6 +479,18 @@ class ObjectStoreDatasource(Datasource):
             filename: path of file to write content to.
         """
         self.Object(object_key).download_file(filename)
+
+    def download(self, object_key: str, filename: str, max_workers: int = MAX_WORKERS) -> None:
+        """Download object content to file located at filename.
+
+        The file will be created if it does not exists.
+
+        Args:
+            object_key: unique key of object
+            filename: path of file to write content to
+            max_workers: max parallelism for high speed download
+        """
+        self.Object(object_key).download(filename, max_workers)
 
     def download_fileobj(self, object_key: str, fileobj: Any) -> None:
         """Download object content to file like object.

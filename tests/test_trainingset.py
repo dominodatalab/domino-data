@@ -8,7 +8,8 @@ from domino_data.training_sets import client, model
 
 
 @pytest.mark.vcr
-def test_create_training_set(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_create_training_set():
     """Client can create TrainingSet."""
 
     all_columns = [
@@ -60,8 +61,8 @@ def test_create_training_set(training_set_dir):
     assert not tsv.pending
 
 
-@pytest.mark.vcr
-def test_create_bad_name_error(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_create_bad_name_error():
     """Client raises ValueError when given an invalid trainingset name."""
 
     df = pd.DataFrame(
@@ -81,7 +82,8 @@ def test_create_bad_name_error(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_create_duplicate_name_error(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_create_duplicate_name_error():
     """Client raises ServerException when given a trainingset name that already exists."""
 
     df = pd.DataFrame(
@@ -105,7 +107,8 @@ def test_create_duplicate_name_error(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_get_version(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_get_version():
     """Client can get a TrainingSetVersion."""
 
     df = pd.DataFrame(
@@ -131,7 +134,8 @@ def test_get_version(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_update_version(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_update_version():
     """Client can update a TrainingSetVersion."""
 
     df = pd.DataFrame(
@@ -158,7 +162,8 @@ def test_update_version(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_update_trainingset(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_update_trainingset():
     """Client can update a TrainingSet."""
 
     df = pd.DataFrame(
@@ -184,7 +189,8 @@ def test_update_trainingset(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_list_trainingsets(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_list_trainingsets():
     """Client can list TrainingSets."""
 
     expected = []
@@ -217,7 +223,8 @@ def test_list_trainingsets(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_list_versions(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_list_versions():
     """Client can list TrainingSetVersions."""
 
     expected = []
@@ -250,7 +257,8 @@ def test_list_versions(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_delete_version(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_delete_version():
     """Client can delete TrainingSetVersion."""
 
     df = pd.DataFrame(
@@ -273,7 +281,8 @@ def test_delete_version(training_set_dir):
 
 
 @pytest.mark.vcr
-def test_delete_trainingset(training_set_dir):
+@pytest.mark.usefixtures("training_set_dir")
+def test_delete_trainingset():
     """Client can delete TrainingSet."""
 
     df = pd.DataFrame(
