@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 import urllib3
 
 MAX_WORKERS = 10
-MB = 2**20
+MB = 2**20  # 2^20 bytes - 1 Megabyte
 
 
 def split_range(start: int, end: int, step: int) -> Generator[tuple[int, int], None, None]:
@@ -17,7 +17,7 @@ def split_range(start: int, end: int, step: int) -> Generator[tuple[int, int], N
     All returned block are inclusive to ensure every integer is covered from start to end.
 
     Example:
-        start: 0, end: 10, step: 3 -> (0, 2), (3, 6), (7, 10)
+        start: 0, end: 10, step: 3 -> (0, 2), (3, 5), (6, 8), (9, 10)
         start: 0, end: 10, step: 4 -> (0, 3), (4, 8), (9, 10)
 
     Args:
@@ -43,6 +43,8 @@ class BlobTransfer:
         url: str,
         destination: BinaryIO,
         max_workers: int = MAX_WORKERS,
+        # Recommened chunk size by Amazon S3
+        # See https://docs.aws.amazon.com/whitepapers/latest/s3-optimizing-performance-best-practices/use-byte-range-fetches.html
         chunk_size: int = 16 * MB,
         http: Optional[urllib3.PoolManager] = None,
     ):
