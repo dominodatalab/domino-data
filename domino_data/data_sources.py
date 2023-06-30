@@ -10,7 +10,6 @@ import backoff
 import httpx
 import pandas
 import urllib3
-from numpy import ma
 from pyarrow import ArrowException, flight, parquet
 
 import domino_data.configuration_gen
@@ -157,7 +156,8 @@ class _Object:
         The file will be created if it does not exists. File will be overwritten if it exists.
 
         Args:
-            filename: path of file to write content to.
+            filename: path of file to write content to
+            max_workers: max parallelism for high speed download
         """
         url = self.datasource.get_key_url(self.key, False)
         with open(filename, "wb") as file:

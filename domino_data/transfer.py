@@ -25,7 +25,8 @@ def split_range(start: int, end: int, step: int) -> Generator[tuple[int, int], N
         end: end of the range to split
         step: step size
 
-    Returns: Iterator[tuple[int, int]]
+    Yields:
+        tuple[int, int]
     """
     r = range(start, end, step)
     max_block = start
