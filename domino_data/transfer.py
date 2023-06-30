@@ -41,7 +41,7 @@ class BlobTransfer:
         self,
         url: str,
         destination: BinaryIO,
-        max_workers: int = 10,
+        max_workers: int = MAX_WORKERS,
         chunk_size: int = 16 * MB,
         http: Optional[urllib3.PoolManager] = None,
     ):
@@ -71,10 +71,11 @@ class BlobTransfer:
         buffer = io.BytesIO()
         # https://github.com/python/mypy/issues/15031
         shutil.copyfileobj(res, buffer)  # type: ignore[misc]
-        res.release_connection()
 
         buffer.seek(0)
         with self._lock:
             self.destination.seek(block[0])
             shutil.copyfileobj(buffer, self.destination)
+
         buffer.close()
+        res.release_connection()
