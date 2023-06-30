@@ -56,13 +56,13 @@ class BlobTransfer:
         self._lock = threading.Lock()
 
         with ThreadPoolExecutor(max_workers) as pool:
-            pool.map(self.get_part, split_range(0, self.content_size, chunk_size))
+            pool.map(self._get_part, split_range(0, self.content_size, chunk_size))
 
     def _get_content_size(self) -> int:
         res = self.http.request("GET", self.url, headers={"Range": "bytes=0-0"})
         return int(res.headers["Content-Range"].partition("/")[-1])
 
-    def get_part(self, block: Tuple[int, int]) -> None:
+    def _get_part(self, block: Tuple[int, int]) -> None:
         """Download specific block of data from blob and writes it into destination.
 
         Args:
