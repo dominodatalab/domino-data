@@ -43,7 +43,7 @@ class BlobTransfer:
         url: str,
         destination: BinaryIO,
         max_workers: int = MAX_WORKERS,
-        # Recommened chunk size by Amazon S3
+        # Recommended chunk size by Amazon S3
         # See https://docs.aws.amazon.com/whitepapers/latest/s3-optimizing-performance-best-practices/use-byte-range-fetches.html
         chunk_size: int = 16 * MB,
         http: Optional[urllib3.PoolManager] = None,
