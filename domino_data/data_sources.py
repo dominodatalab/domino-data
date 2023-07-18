@@ -48,9 +48,9 @@ DOMINO_API_HOST = "DOMINO_API_HOST"
 DOMINO_API_PROXY = "DOMINO_API_PROXY"
 DOMINO_DATASOURCE_PROXY_HOST = "DOMINO_DATASOURCE_PROXY_HOST"
 DOMINO_DATASOURCE_PROXY_FLIGHT_HOST = "DOMINO_DATASOURCE_PROXY_FLIGHT_HOST"
+DOMINO_RUN_ID = "DOMINO_RUN_ID"
 DOMINO_USER_API_KEY = "DOMINO_USER_API_KEY"
 DOMINO_USER_HOST = "DOMINO_USER_HOST"
-DOMINO_RUN_ID = "DOMINO_RUN_ID"
 DOMINO_TOKEN_DEFAULT_LOCATION = "/var/lib/domino/home/.api/token"
 DOMINO_TOKEN_FILE = "DOMINO_TOKEN_FILE"
 
@@ -594,6 +594,7 @@ class DataSourceClient:
         self.proxy_http = ProxyClient(
             base_url=proxy_host,
             api_key=self.api_key,
+            run_id=self.run_id,
             token_file=self.token_file,
             token_url=self.token_url,
             timeout=5.0,
