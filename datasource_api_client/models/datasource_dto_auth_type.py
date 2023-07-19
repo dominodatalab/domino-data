@@ -10,7 +10,6 @@ class DatasourceDtoAuthType(str, Enum):
     AWSIAMROLEWITHUSERNAME = "AWSIAMRoleWithUsername"
     GCPBASIC = "GCPBasic"
     OAUTH = "OAuth"
-    CLIENTIDSECRET = "ClientIdSecret"
 
     def __str__(self) -> str:
         return str(self.value)

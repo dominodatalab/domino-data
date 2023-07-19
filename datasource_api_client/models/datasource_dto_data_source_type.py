@@ -18,6 +18,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     TERADATACONFIG = "TeradataConfig"
     TRINOCONFIG = "TrinoConfig"
     PALANTIRCONFIG = "PalantirConfig"
+    STARBURSTSELFSERVICECONFIG = "StarburstSelfServiceConfig"
 
     def __str__(self) -> str:
         return str(self.value)

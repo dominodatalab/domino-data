@@ -233,6 +233,7 @@ components:
             - TeradataConfig
             - TrinoConfig
             - PalantirConfig
+            - StarburstSelfServiceConfig
         description:
           type: string
           nullable: true
