@@ -15,6 +15,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     MARIADBCONFIG = "MariaDBConfig"
     MONGODBCONFIG = "MongoDBConfig"
     MYSQLCONFIG = "MySQLConfig"
+    NETEZZACONFIG = "NetezzaConfig"
     ORACLECONFIG = "OracleConfig"
     PALANTIRCONFIG = "PalantirConfig"
     PHOENIXCONFIG = "PhoenixConfig"
@@ -30,7 +31,6 @@ class DatasourceDtoDataSourceType(str, Enum):
     TERADATACONFIG = "TeradataConfig"
     TRINOCONFIG = "TrinoConfig"
     VERTICACONFIG = "VerticaConfig"
-
 
     def __str__(self) -> str:
         return str(self.value)

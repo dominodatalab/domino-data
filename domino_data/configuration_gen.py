@@ -131,7 +131,6 @@ class BigQueryConfig(Config):
 class ClickHouseConfig(Config):
     """ClickHouseConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
@@ -139,7 +138,6 @@ class ClickHouseConfig(Config):
 @attr.s(auto_attribs=True)
 class DruidConfig(Config):
     """DruidConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -157,7 +155,6 @@ class GCSConfig(Config):
 @attr.s(auto_attribs=True)
 class GenericJDBCConfig(Config):
     """GenericJDBCConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -179,7 +176,6 @@ class GenericS3Config(Config):
 class GreenplumConfig(Config):
     """GreenplumConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
@@ -187,7 +183,6 @@ class GreenplumConfig(Config):
 @attr.s(auto_attribs=True)
 class IgniteConfig(Config):
     """IgniteConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -197,7 +192,6 @@ class IgniteConfig(Config):
 class MariaDBConfig(Config):
     """MariaDBConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
@@ -205,7 +199,6 @@ class MariaDBConfig(Config):
 @attr.s(auto_attribs=True)
 class MongoDBConfig(Config):
     """MongoDBConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -229,7 +222,6 @@ class MySQLConfig(Config):
 class NetezzaConfig(Config):
     """NetezzaConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
@@ -248,7 +240,6 @@ class OracleConfig(Config):
 class PalantirConfig(Config):
     """PalantirConfig datasource configuration."""
 
-
     client_id: Optional[str] = _cred(elem=CredElem.CLIENTID)
     client_secret: Optional[str] = _cred(elem=CredElem.CLIENTSECRET)
 
@@ -256,7 +247,6 @@ class PalantirConfig(Config):
 @attr.s(auto_attribs=True)
 class PhoenixConfig(Config):
     """PhoenixConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -306,7 +296,6 @@ class S3Config(Config):
 class SAPHanaConfig(Config):
     """SAPHanaConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
@@ -314,7 +303,6 @@ class SAPHanaConfig(Config):
 @attr.s(auto_attribs=True)
 class SingleStoreConfig(Config):
     """SingleStoreConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -348,7 +336,6 @@ class SnowflakeConfig(Config):
 class SynapseConfig(Config):
     """SynapseConfig datasource configuration."""
 
-
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
 
@@ -361,11 +348,9 @@ class TabularS3GlueConfig(Config):
     region: Optional[str] = _config(elem=ConfigElem.REGION)
 
 
-
 @attr.s(auto_attribs=True)
 class TeradataConfig(Config):
     """TeradataConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
@@ -385,7 +370,6 @@ class TrinoConfig(Config):
 @attr.s(auto_attribs=True)
 class VerticaConfig(Config):
     """VerticaConfig datasource configuration."""
-
 
     username: Optional[str] = _cred(elem=CredElem.USERNAME)
     password: Optional[str] = _cred(elem=CredElem.PASSWORD)
