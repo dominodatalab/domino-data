@@ -14,7 +14,7 @@ def _get_kwargs(
     client: Client,
     run_id: Union[Unset, None, str] = UNSET,
 ) -> Dict[str, Any]:
-    url = f"{client.base_url}/datasource/name/{name}"
+    url = "{}/datasource/name/{name}".format(client.base_url, name=name)
 
     headers: Dict[str, str] = client.get_headers()
     cookies: Dict[str, Any] = client.get_cookies()

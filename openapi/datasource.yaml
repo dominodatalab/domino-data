@@ -219,20 +219,33 @@ components:
           enum:
             - ADLSConfig
             - BigQueryConfig
+            - ClickHouseConfig
+            - DB2Config
+            - DruidConfig
             - GCSConfig
+            - GenericJDBCConfig
             - GenericS3Config
+            - GreenplumConfig
+            - IgniteConfig
+            - MariaDBConfig
             - MongoDBConfig
             - MySQLConfig
+            - NetezzaConfig
             - OracleConfig
+            - PalantirConfig
+            - PhoenixConfig
             - PostgreSQLConfig
             - RedshiftConfig
             - S3Config
+            - SAPHanaConfig
+            - SingleStoreConfig
             - SQLServerConfig
             - SnowflakeConfig
+            - SynapseConfig
             - TabularS3GlueConfig
             - TeradataConfig
             - TrinoConfig
-            - PalantirConfig
+            - VerticaConfig
         description:
           type: string
           nullable: true
