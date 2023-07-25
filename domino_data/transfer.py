@@ -77,7 +77,7 @@ class BlobTransfer:
         buffer.seek(0)
         with self._lock:
             self.destination.seek(block[0])
-            shutil.copyfileobj(buffer, self.destination)
+            shutil.copyfileobj(buffer, self.destination)  # type: ignore
 
         buffer.close()
         res.release_connection()
