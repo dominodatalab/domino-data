@@ -10,17 +10,19 @@ from pyarrow import flight
 class MetaMiddlewareFactory(flight.ClientMiddlewareFactory):
     """Middleware Factory for metadata."""
 
+    client_source: Optional[str] = attr.ib()
     run_id: Optional[str] = attr.ib()
 
     def start_call(self, _):
         """Called at the start of an RPC."""
-        return MetaMiddleware(self.run_id)
+        return MetaMiddleware(self.client_source, self.run_id)
 
 
 @attr.s(auto_attribs=True)
 class MetaMiddleware(flight.ClientMiddleware):
     """Middleware for authenticating flight requests."""
 
+    client_source: Optional[str] = attr.ib()
     run_id: Optional[str] = attr.ib()
 
     def call_completed(self, _):
@@ -33,6 +35,8 @@ class MetaMiddleware(flight.ClientMiddleware):
         """Return metadata headers."""
         headers = {}
 
+        if self.client_source is not None:
+            headers["x-domino-client-source"] = self.client_source
         if self.run_id is not None:
             headers["x-domino-run-id"] = self.run_id
 

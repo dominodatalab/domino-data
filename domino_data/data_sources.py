@@ -46,6 +46,7 @@ AWS_CREDENTIALS_DEFAULT_LOCATION = "/var/lib/domino/home/.aws/credentials"
 AWS_SHARED_CREDENTIALS_FILE = "AWS_SHARED_CREDENTIALS_FILE"
 DOMINO_API_HOST = "DOMINO_API_HOST"
 DOMINO_API_PROXY = "DOMINO_API_PROXY"
+DOMINO_CLIENT_SOURCE = "DOMINO_CLIENT_SOURCE"
 DOMINO_DATASOURCE_PROXY_HOST = "DOMINO_DATASOURCE_PROXY_HOST"
 DOMINO_DATASOURCE_PROXY_FLIGHT_HOST = "DOMINO_DATASOURCE_PROXY_FLIGHT_HOST"
 DOMINO_RUN_ID = "DOMINO_RUN_ID"
@@ -580,6 +581,8 @@ class DataSourceClient:
             DOMINO_API_PROXY, os.getenv(DOMINO_API_HOST, os.getenv(DOMINO_USER_HOST, ""))
         )
         proxy_host = os.getenv(DOMINO_DATASOURCE_PROXY_HOST, "")
+
+        client_source = os.getenv(DOMINO_CLIENT_SOURCE, "Python")
         run_id = os.getenv(DOMINO_RUN_ID, "")
 
         logger.info(
@@ -593,6 +596,7 @@ class DataSourceClient:
         self.proxy_http = ProxyClient(
             base_url=proxy_host,
             api_key=self.api_key,
+            client_source=client_source,
             run_id=run_id,
             token_file=self.token_file,
             token_url=self.token_url,
@@ -610,6 +614,7 @@ class DataSourceClient:
         )
 
     def _set_proxy(self):
+        client_source = os.getenv(DOMINO_CLIENT_SOURCE, "Python")
         flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
         run_id = os.getenv(DOMINO_RUN_ID, "")
         self.proxy = flight.FlightClient(
@@ -620,7 +625,7 @@ class DataSourceClient:
                     self.token_file,
                     self.token_url,
                 ),
-                MetaMiddlewareFactory(run_id),
+                MetaMiddlewareFactory(client_source, run_id),
             ],
         )
 
