@@ -574,14 +574,13 @@ class DataSourceClient:
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_TOKEN_FILE))
     token_url: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_API_PROXY))
 
-    run_id: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_RUN_ID))
-
     def __attrs_post_init__(self):
         flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
         domino_host = os.getenv(
             DOMINO_API_PROXY, os.getenv(DOMINO_API_HOST, os.getenv(DOMINO_USER_HOST, ""))
         )
         proxy_host = os.getenv(DOMINO_DATASOURCE_PROXY_HOST, "")
+        run_id = os.getenv(DOMINO_RUN_ID, "")
 
         logger.info(
             "initializing datasource client with hosts",
@@ -594,7 +593,7 @@ class DataSourceClient:
         self.proxy_http = ProxyClient(
             base_url=proxy_host,
             api_key=self.api_key,
-            run_id=self.run_id,
+            run_id=run_id,
             token_file=self.token_file,
             token_url=self.token_url,
             timeout=5.0,
@@ -612,6 +611,7 @@ class DataSourceClient:
 
     def _set_proxy(self):
         flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
+        run_id = os.getenv(DOMINO_RUN_ID, "")
         self.proxy = flight.FlightClient(
             flight_host,
             middleware=[
@@ -620,7 +620,7 @@ class DataSourceClient:
                     self.token_file,
                     self.token_url,
                 ),
-                MetaMiddlewareFactory(self.run_id),
+                MetaMiddlewareFactory(run_id),
             ],
         )
 
