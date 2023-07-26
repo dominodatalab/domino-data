@@ -640,8 +640,7 @@ class DataSourceClient:
 
         error_response = cast(ErrorResponse, response.parsed)
         message = (
-            f"Received unexpected response {response.status_code} while getting data source. "
-            f"Raw response: {response}"
+            f"Received unexpected response while getting data source: {response}"
             if error_response is None
             else error_response.message
         )
