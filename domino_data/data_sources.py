@@ -638,7 +638,12 @@ class DataSourceClient:
             )
             return datasource_klass.from_dto(self, datasource_dto)
 
-        message = cast(ErrorResponse, response.parsed).message
+        error_response = cast(ErrorResponse, response.parsed)
+        message = (
+            f"Received unexpected response {response.status_code} while getting data source"
+            if error_response is None
+            else error_response.message
+        )
         logger.exception(message)
         raise Exception(message)
 
