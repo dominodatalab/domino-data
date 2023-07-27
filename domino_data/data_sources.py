@@ -625,7 +625,7 @@ class DataSourceClient:
                     self.token_file,
                     self.token_url,
                 ),
-                MetaMiddlewareFactory(client_source, run_id),
+                MetaMiddlewareFactory(client_source=client_source, run_id=run_id),
             ],
         )
 
@@ -647,7 +647,7 @@ class DataSourceClient:
         response = get_datasource_by_name.sync_detailed(
             name,
             client=self.domino,
-            run_id=run_id,  # TODO: consider also putting in headers?
+            run_id=run_id,
         )
         if response.status_code == 200:
             datasource_dto = cast(DatasourceDto, response.parsed)
