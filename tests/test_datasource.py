@@ -640,3 +640,19 @@ def test_client_uses_token_url_api(env, respx_mock, flight_server, datafx):
     snow = ds.DataSourceClient().get_datasource("snowflake")
     snow = ds.cast(ds.TabularDatasource, snow)
     snow.query("SELECT 1")
+
+
+def test_get_datasource_error(env, respx_mock, monkeypatch):
+    """Client gets an error if fails to get the data source"""
+    monkeypatch.delenv("DOMINO_API_PROXY")
+
+    respx_mock.get("http://domino/v4/datasource/name/snowflake").mock(
+        return_value=httpx.Response(503),
+    )
+
+    with pytest.raises(Exception) as exc_info:
+        ds.DataSourceClient().get_datasource("snowflake")
+        assert (
+            str(exc_info) == "Received unexpected response while getting data source: "
+            "Response(status_code=503, content=b'', headers=Headers({}), parsed=None)"
+        )
