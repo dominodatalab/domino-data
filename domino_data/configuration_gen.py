@@ -136,6 +136,14 @@ class ClickHouseConfig(Config):
 
 
 @attr.s(auto_attribs=True)
+class DB2Config(Config):
+    """DB2Config datasource configuration."""
+
+    username: Optional[str] = _cred(elem=CredElem.USERNAME)
+    password: Optional[str] = _cred(elem=CredElem.PASSWORD)
+
+
+@attr.s(auto_attribs=True)
 class DruidConfig(Config):
     """DruidConfig datasource configuration."""
 
@@ -379,6 +387,7 @@ DatasourceConfig = Union[
     ADLSConfig,
     BigQueryConfig,
     ClickHouseConfig,
+    DB2Config,
     DruidConfig,
     GCSConfig,
     GenericJDBCConfig,
@@ -411,6 +420,7 @@ DATASOURCES = {
     DatasourceDtoDataSourceType.ADLSCONFIG: "ObjectStoreDatasource",
     DatasourceDtoDataSourceType.BIGQUERYCONFIG: "TabularDatasource",
     DatasourceDtoDataSourceType.CLICKHOUSECONFIG: "TabularDatasource",
+    DatasourceDtoDataSourceType.DB2CONFIG: "TabularDatasource",
     DatasourceDtoDataSourceType.DRUIDCONFIG: "TabularDatasource",
     DatasourceDtoDataSourceType.GCSCONFIG: "ObjectStoreDatasource",
     DatasourceDtoDataSourceType.GENERICJDBCCONFIG: "TabularDatasource",
