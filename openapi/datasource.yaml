@@ -212,6 +212,7 @@ components:
             - AWSIAMRoleWithUsername
             - GCPBasic
             - OAuth
+            - ClientIdSecret
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         dataSourceType:
