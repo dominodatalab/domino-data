@@ -234,7 +234,6 @@ components:
             - NetezzaConfig
             - OracleConfig
             - PalantirConfig
-            - PhoenixConfig
             - PostgreSQLConfig
             - RedshiftConfig
             - S3Config
