@@ -18,7 +18,6 @@ class DatasourceDtoDataSourceType(str, Enum):
     NETEZZACONFIG = "NetezzaConfig"
     ORACLECONFIG = "OracleConfig"
     PALANTIRCONFIG = "PalantirConfig"
-    PHOENIXCONFIG = "PhoenixConfig"
     POSTGRESQLCONFIG = "PostgreSQLConfig"
     REDSHIFTCONFIG = "RedshiftConfig"
     S3CONFIG = "S3Config"
