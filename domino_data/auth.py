@@ -69,9 +69,16 @@ class AuthenticatedClient(Client):
 class ProxyClient(AuthenticatedClient):
     """A client that authenticates all requests but with Proxy headers."""
 
+    client_source: Optional[str] = attr.ib()
+    run_id: Optional[str] = attr.ib()
+
     def get_headers(self) -> Dict[str, str]:
         if self.api_key:
             self.headers["X-Domino-Api-Key"] = self.api_key
+        if self.client_source:
+            self.headers["X-Domino-Client-Source"] = self.client_source
+        if self.run_id:
+            self.headers["X-Domino-Run-Id"] = self.run_id
 
         if self.token_url is not None:
             try:
