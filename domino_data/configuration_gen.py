@@ -67,6 +67,7 @@ class ConfigElem(Enum):
     DATABASE = "database"
     EXTRAPROPERTIES = "extraProperties"
     HOST = "host"
+    NETWORKINGPROXY = "networkingProxy"
     PORT = "port"
     PROJECT = "project"
     REGION = "region"
