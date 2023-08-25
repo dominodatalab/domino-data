@@ -95,6 +95,7 @@ paths:
             type: string
             enum:
               - ADLSConfig
+              - AzureBlobStorageConfig
               - GCSConfig
               - GenericS3Config
               - S3Config
@@ -219,6 +220,7 @@ components:
           type: string
           enum:
             - ADLSConfig
+            - AzureBlobStorageConfig
             - BigQueryConfig
             - ClickHouseConfig
             - DB2Config

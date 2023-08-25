@@ -3,6 +3,7 @@ from enum import Enum
 
 class DatasourceDtoDataSourceType(str, Enum):
     ADLSCONFIG = "ADLSConfig"
+    AZUREBLOBSTORAGECONFIG = "AzureBlobStorageConfig"
     BIGQUERYCONFIG = "BigQueryConfig"
     CLICKHOUSECONFIG = "ClickHouseConfig"
     DB2CONFIG = "DB2Config"
