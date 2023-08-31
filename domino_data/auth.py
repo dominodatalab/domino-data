@@ -46,9 +46,6 @@ class AuthenticatedClient(Client):
 
     def get_headers(self) -> Dict[str, str]:
         """Get headers with either JWT or API Key."""
-        if self.api_key:
-            return {"X-Domino-Api-Key": self.api_key, **self.headers}
-
         if self.token_url is not None:
             try:
                 jwt = get_jwt_token(self.token_url)
@@ -61,6 +58,9 @@ class AuthenticatedClient(Client):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
             return {"Authorization": f"Bearer {jwt}", **self.headers}
+
+        if self.api_key:
+            return {"X-Domino-Api-Key": self.api_key, **self.headers}
 
         return self.headers
 
