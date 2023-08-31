@@ -70,9 +70,6 @@ class ProxyClient(AuthenticatedClient):
     """A client that authenticates all requests but with Proxy headers."""
 
     def get_headers(self) -> Dict[str, str]:
-        if self.api_key:
-            self.headers["X-Domino-Api-Key"] = self.api_key
-
         if self.token_url is not None:
             try:
                 jwt = get_jwt_token(self.token_url)
@@ -86,6 +83,9 @@ class ProxyClient(AuthenticatedClient):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
             self.headers["X-Domino-Jwt"] = jwt
+
+        if self.api_key:
+            self.headers["X-Domino-Api-Key"] = self.api_key
 
         return self.headers
 
