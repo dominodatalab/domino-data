@@ -51,6 +51,10 @@ def test_sync(feast_repo_root_dir, env, respx_mock, datafx):
 
     # Happy path
     test_feature_store_id = "634e0eee26077433a69b0ec3"
+    respx_mock.get("http://token-proxy/access-token").mock(
+        return_value=httpx.Response(200, content=b"jwt")
+    )
+
     respx_mock.post("http://domino/featurestore/featureview").mock(
         return_value=httpx.Response(200),
     )
