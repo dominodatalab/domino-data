@@ -341,7 +341,10 @@ class Datasource:
 
         context = httpx.create_ssl_context()
 
-        if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
+        if self.datasource_type in (
+            DatasourceDtoDataSourceType.ADLSCONFIG.value,
+            DatasourceDtoDataSourceType.AZUREBLOBSTORAGECONFIG.value,
+        ):
             self._httpx = httpx.Client(headers=ADLS_HEADERS, verify=context)
         elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
             self._httpx = httpx.Client(verify=False)  # nosec
@@ -351,7 +354,10 @@ class Datasource:
 
     def pool_manager(self) -> urllib3.PoolManager:
         """Urllib3 pool manager for range downloads."""
-        if self.datasource_type == DatasourceDtoDataSourceType.ADLSCONFIG.value:
+        if self.datasource_type in (
+            DatasourceDtoDataSourceType.ADLSCONFIG.value,
+            DatasourceDtoDataSourceType.AZUREBLOBSTORAGECONFIG.value,
+        ):
             return urllib3.PoolManager(headers=ADLS_HEADERS)
         elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
             return urllib3.PoolManager(assert_hostname=False)
