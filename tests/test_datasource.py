@@ -319,6 +319,24 @@ def test_config_returns_overrides():
     assert not dum4.credential()
 
 
+def test_adls_config():
+    """ADLS config serializes to expected keys."""
+
+    adls = ds.ADLSConfig(container="storage", access_key="access")
+
+    assert adls.config() == {"bucket": "storage"}
+    assert adls.credential() == {"accessKey": "access"}
+
+
+def test_azure_blob_storage_config():
+    """AzureBlobStorage config serializes to expected keys."""
+
+    azure_blob_storage = ds.AzureBlobStorageConfig(container="storage", access_key="access")
+
+    assert azure_blob_storage.config() == {"bucket": "storage"}
+    assert azure_blob_storage.credential() == {"accessKey": "access"}
+
+
 def test_mysql_config():
     """MySQL config serializes to expected keys."""
 
