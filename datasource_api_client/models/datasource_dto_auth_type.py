@@ -11,6 +11,7 @@ class DatasourceDtoAuthType(str, Enum):
     GCPBASIC = "GCPBasic"
     OAUTH = "OAuth"
     CLIENTIDSECRET = "ClientIdSecret"
+    PERSONALTOKEN = "PersonalToken"
 
     def __str__(self) -> str:
         return str(self.value)

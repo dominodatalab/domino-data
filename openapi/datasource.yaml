@@ -214,6 +214,7 @@ components:
             - GCPBasic
             - OAuth
             - ClientIdSecret
+            - PersonalToken
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         dataSourceType:
@@ -223,6 +224,7 @@ components:
             - AzureBlobStorageConfig
             - BigQueryConfig
             - ClickHouseConfig
+            - Databricks
             - DB2Config
             - DruidConfig
             - GCSConfig

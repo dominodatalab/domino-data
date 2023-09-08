@@ -6,6 +6,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     AZUREBLOBSTORAGECONFIG = "AzureBlobStorageConfig"
     BIGQUERYCONFIG = "BigQueryConfig"
     CLICKHOUSECONFIG = "ClickHouseConfig"
+    DATABRICKSCONFIG = "DatabricksConfig"
     DB2CONFIG = "DB2Config"
     DRUIDCONFIG = "DruidConfig"
     GCSCONFIG = "GCSConfig"
