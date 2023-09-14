@@ -224,7 +224,7 @@ components:
             - AzureBlobStorageConfig
             - BigQueryConfig
             - ClickHouseConfig
-            - Databricks
+            - DatabricksConfig
             - DB2Config
             - DruidConfig
             - GCSConfig
