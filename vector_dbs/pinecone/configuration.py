@@ -1,0 +1,49 @@
+import os
+
+from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
+
+
+class DominoConfiguration(OpenApiConfiguration):
+    def __init__(
+        self,
+        datasource=None,
+        api_key=None,
+        api_key_prefix=None,
+        access_token=None,
+        username=None,
+        password=None,
+        discard_unknown_keys=False,
+        disabled_client_side_validations="",
+        server_index=None,
+        server_variables=None,
+        server_operation_index=None,
+        server_operation_variables=None,
+        ssl_ca_cert=None,
+    ):
+
+        super().__init__(
+            f"http://{datasource}.proxy.local",
+            api_key,
+            api_key_prefix,
+            access_token,
+            username,
+            password,
+            discard_unknown_keys,
+            disabled_client_side_validations,
+            server_index,
+            server_variables,
+            server_operation_index,
+            server_operation_variables,
+            ssl_ca_cert,
+        )
+
+        self.proxy = os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766")
+        self.proxy_headers = {"X-Domino-Datasource": datasource}
+
+    def get_host_from_settings(self, index, variables=None, servers=None):
+        if variables is not None and "index_name" in variables:
+            url = "http://{index_name}-{project_name}.svc.{environment}.pinecone.io"
+            for key, value in variables.items():
+                url = url.replace("{" + key + "}", value)
+            return url
+        return super().get_host_from_settings(index, variables, servers)

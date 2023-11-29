@@ -82,6 +82,9 @@ vcrpy = "^5.0.0"
 feast = "^0.31.1"
 GitPython = "^3.1.32"
 
+[tool.poetry.group.vectordbs.dependencies]
+pinecone-client = ">=2.2.4"
+
 [tool.black]
 # https://github.com/psf/black
 target-version = ["py38"]
