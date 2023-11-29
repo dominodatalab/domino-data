@@ -7,6 +7,7 @@ class DominoConfiguration(OpenApiConfiguration):
     def __init__(
         self,
         datasource=None,
+        host=None,
         api_key=None,
         api_key_prefix=None,
         access_token=None,
@@ -22,7 +23,7 @@ class DominoConfiguration(OpenApiConfiguration):
     ):
 
         super().__init__(
-            f"http://{datasource}.proxy.local",
+            host,
             api_key,
             api_key_prefix,
             access_token,
@@ -41,9 +42,5 @@ class DominoConfiguration(OpenApiConfiguration):
         self.proxy_headers = {"X-Domino-Datasource": datasource}
 
     def get_host_from_settings(self, index, variables=None, servers=None):
-        if variables is not None and "index_name" in variables:
-            url = "http://{index_name}-{project_name}.svc.{environment}.pinecone.io"
-            for key, value in variables.items():
-                url = url.replace("{" + key + "}", value)
-            return url
-        return super().get_host_from_settings(index, variables, servers)
+        url = super().get_host_from_settings(index, variables, servers)
+        return url.replace("https://", "http://")
