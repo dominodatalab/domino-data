@@ -1,7 +1,7 @@
 """Test Domino customized Pinecone OpenAPI Configuration"""
 import os
 
-from vector_dbs.pinecone.configuration import DominoConfiguration
+from domino_data.vector_dbs.pinecone.configuration import DominoConfiguration
 
 
 def test_get_host_from_setting():
