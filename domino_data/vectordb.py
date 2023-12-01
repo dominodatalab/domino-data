@@ -1,6 +1,19 @@
 import os
 
-from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
+_import_error_message = (
+    "pinecone-client is not installed.\n\n"
+    "Please pip install pinecone-client:\n\n"
+    "  python -m pip install pinecone-client   # install directly\n"
+    '  python -m pip install "dominodatalab-data[pinecone-client]" --upgrade   # install via extra dependency'
+)
+
+try:
+    from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
+except ImportError as e:
+    if e.msg == "No module named 'pinecone'":
+        raise ImportError(_import_error_message) from e
+    else:
+        raise
 
 
 class DominoConfiguration(OpenApiConfiguration):
