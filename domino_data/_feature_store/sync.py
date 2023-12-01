@@ -29,7 +29,6 @@ _import_error_message = (
     "feast is not installed.\n\n"
     "Please pip install feast:\n\n"
     "  python -m pip install feast   # install directly\n"
-    '  python -m pip install "dominodatalab-data[feast]" --upgrade   # install via extra dependency'
 )
 
 try:

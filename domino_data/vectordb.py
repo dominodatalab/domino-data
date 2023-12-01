@@ -4,8 +4,6 @@ _import_error_message = (
     "pinecone-client is not installed.\n\n"
     "Please pip install pinecone-client:\n\n"
     "  python -m pip install pinecone-client   # install directly\n"
-    "  # install via extra dependency\n"
-    '  python -m pip install "dominodatalab-data[pinecone]" --upgrade'
 )
 
 try:
