@@ -1,20 +1,20 @@
 """Test Domino customized Pinecone OpenAPI Configuration"""
 import os
 
-from domino_data.vectordb import DominoConfiguration
+from domino_data.vectordb import DominoPineconeConfiguration
 
 
 def test_get_host_from_setting():
     test_data_source = "test_pine_cone"
     test_data_api_gateway = "http://test_domino_api_gateway:9999"
 
-    domino_conf = DominoConfiguration(datasource=test_data_source)
+    domino_conf = DominoPineconeConfiguration(datasource=test_data_source)
     assert domino_conf.host == "http://unknown-unknown.svc.unknown.pinecone.io"
     assert domino_conf.proxy == "http://127.0.0.1:8766"
     assert domino_conf.proxy_headers["X-Domino-Datasource"] == test_data_source
 
     os.environ["DOMINO_DATA_API_GATEWAY"] = test_data_api_gateway
-    domino_conf = DominoConfiguration(datasource=test_data_source)
+    domino_conf = DominoPineconeConfiguration(datasource=test_data_source)
     assert domino_conf.host == f"http://unknown-unknown.svc.unknown.pinecone.io"
     assert domino_conf.proxy == test_data_api_gateway
     assert domino_conf.proxy_headers["X-Domino-Datasource"] == test_data_source

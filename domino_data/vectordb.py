@@ -17,7 +17,7 @@ except ImportError as e:
         raise
 
 
-class DominoConfiguration(OpenApiConfiguration):
+class DominoPineconeConfiguration(OpenApiConfiguration):
     def __init__(
         self,
         datasource=None,
