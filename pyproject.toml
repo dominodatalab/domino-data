@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "dominodatalab-data"
-version = "5.9.0.dev1"
+version = "5.10.0.dev1"
 description = "Domino Data API for interacting with Domino Data features"
 readme = "README.md"
 authors = [
@@ -81,6 +81,9 @@ vcrpy = "^5.0.0"
 [tool.poetry.group.featurestore.dependencies]
 feast = "^0.31.1"
 GitPython = "^3.1.32"
+
+[tool.poetry.group.vectordbs.dependencies]
+pinecone-client = ">=2.2.4"
 
 [tool.black]
 # https://github.com/psf/black
