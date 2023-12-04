@@ -1,5 +1,5 @@
 anyio==4.1.0 ; python_version >= "3.8" and python_version < "4.0"
-attrs==21.4.0 ; python_version >= "3.8" and python_version < "4.0"
+attrs==23.1.0 ; python_version >= "3.8" and python_version < "4.0"
 backoff==1.11.1 ; python_version >= "3.8" and python_version < "4.0"
 bson==0.5.10 ; python_version >= "3.8" and python_version < "4.0"
 certifi==2023.11.17 ; python_version >= "3.8" and python_version < "4.0"
