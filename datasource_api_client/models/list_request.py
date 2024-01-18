@@ -52,7 +52,7 @@ class ListRequest:
         if credential_overwrites is not UNSET:
             field_dict["credentialOverwrites"] = credential_overwrites
         if page_size is not UNSET:
-            field_dict["pageSize"] = page_size
+            field_dict["page_size"] = page_size
 
         return field_dict
 
@@ -77,7 +77,7 @@ class ListRequest:
         else:
             credential_overwrites = DatasourceConfig.from_dict(_credential_overwrites)
 
-        page_size = d.pop("pageSize", UNSET)
+        page_size = d.pop("page_size", UNSET)
 
         list_request = cls(
             datasource_id=datasource_id,

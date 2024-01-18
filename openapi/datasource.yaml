@@ -325,7 +325,7 @@ components:
           type: string
         prefix:
           type: string
-        pageSize:
+        page_size:  # Currently using camel_case in datasource-proxy
           type: integer
       required:
         - datasourceId
