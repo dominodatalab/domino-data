@@ -177,7 +177,11 @@ def main(args: Any) -> None:
     with open(args.config, encoding="ascii") as config_file:
         configs = yaml.load(config_file, Loader=yaml.FullLoader)
 
-    datasource_configs = configs["datasource_configs"]
+    datasource_configs = {
+        k: v
+        for k, v in configs["datasource_configs"].items()
+        if v.get("connectorGroup", "Native") != "ReverseProxy"
+    }
     auth_configs = configs["auth_configs"]
 
     datasource_names: Dict[str, Any] = {}
@@ -220,12 +224,12 @@ def main(args: Any) -> None:
         )
         gen.write(
             env.get_template(Configs).render(
-                datasource_configs=configs["datasource_configs"],
+                datasource_configs=datasource_configs,
                 datasource_names=datasource_names,
                 auth_names=auth_names,
             ),
         )
-        gen.write(env.get_template(Storages).render(datasources=configs["datasource_configs"]))
+        gen.write(env.get_template(Storages).render(datasources=datasource_configs))
 
 
 if __name__ == "__main__":

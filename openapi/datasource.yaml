@@ -213,6 +213,7 @@ components:
             - AWSIAMRoleWithUsername
             - GCPBasic
             - OAuth
+            - OAuthToken
             - ClientIdSecret
             - PersonalToken
         config:
