@@ -35,6 +35,13 @@ repos:
         types: [python]
         language: system
 
+  - repo: local
+    hooks:
+      - id: git-submodule-update
+        name: git-submodule-update
+        entry: git submodule update --recursive --remote
+        language: system
+
   - repo: https://github.com/awslabs/git-secrets
     rev: b9e96b3
     hooks:
