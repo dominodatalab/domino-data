@@ -5,7 +5,6 @@ import logging
 
 import pyarrow
 import pytest
-from _pytest.logging import caplog as _caplog
 from loguru import logger
 
 # TODO This method is deprecated and should be refactored using `env`
@@ -102,7 +101,7 @@ def datafx():
 
 
 @pytest.fixture
-def caplog(_caplog):
+def caplog(caplog):
     """Capture loguru log fixture"""
 
     class PropogateHandler(logging.Handler):
@@ -110,4 +109,4 @@ def caplog(_caplog):
             logging.getLogger(record.name).handle(record)
 
     logger.add(PropogateHandler(), format="{message}")
-    yield _caplog
+    yield caplog
