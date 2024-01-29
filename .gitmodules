@@ -1,3 +1,4 @@
 [submodule "services"]
 	path = services
 	url = git@github.com:cerebrotech/data-services.git
+	branch = release-5.8
