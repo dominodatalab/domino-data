@@ -106,7 +106,9 @@ class Result:
             where: path of file-like object.
         """
         table = self.reader.read_all()
-        parquet.write_table(table, where)
+        # In Pyarrow v13.0, the parquet version was upgraded to v2.6 from v2.4.
+        # Set the coerce_timestamps to "us"(microseconds) for backward compatibility.
+        parquet.write_table(table, where, coerce_timestamps="us")
 
 
 @attr.s
