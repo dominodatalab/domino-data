@@ -2,6 +2,9 @@
 
 from importlib import metadata as importlib_metadata
 
+# Pyarrow CVE hotfix https://lists.apache.org/thread/4notgcj3y7j5z4vxcr6o966g52jqxpdt
+import pyarrow_hotfix  # noqa: F401
+
 
 def get_version() -> str:
     """Get installed packaged version."""
