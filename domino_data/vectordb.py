@@ -14,7 +14,6 @@ except ImportError as e:
     else:
         raise
 
-DOMINO_DATA_API_GATEWAY = os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766")
 HEADER_DOMINO_DATASOURCE = "X-Domino-Datasource"
 HEADER_PINECONE_INDEX = "X-Domino-Pinecone-Index"
 
@@ -54,7 +53,7 @@ class DominoPineconeConfiguration(OpenApiConfiguration):
             ssl_ca_cert,
         )
 
-        self.proxy = DOMINO_DATA_API_GATEWAY
+        self.proxy = os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766")
         self.proxy_headers = {HEADER_DOMINO_DATASOURCE: datasource}
 
     def get_host_from_settings(self, index, variables=None, servers=None):
@@ -65,14 +64,14 @@ class DominoPineconeConfiguration(OpenApiConfiguration):
 def domino_pinecone3x_init_params(datasource_name: str) -> dict[str, str]:
     return {
         "api_key": "domino",
-        "host": DOMINO_DATA_API_GATEWAY,
+        "host": os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766"),
         "additional_headers": {HEADER_DOMINO_DATASOURCE: datasource_name},
     }
 
 
 def domino_pinecone3x_index_params(datasource_name: str, index_name: str) -> dict[str, str]:
     return {
-        "host": DOMINO_DATA_API_GATEWAY,
+        "host": os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766"),
         "additional_headers": {
             HEADER_DOMINO_DATASOURCE: datasource_name,
             HEADER_PINECONE_INDEX: index_name,
