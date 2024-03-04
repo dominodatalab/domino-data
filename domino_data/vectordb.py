@@ -1,3 +1,5 @@
+from typing import Dict
+
 import os
 
 _import_error_message = (
@@ -13,6 +15,9 @@ except ImportError as e:
         raise ImportError(_import_error_message) from e
     else:
         raise
+
+HEADER_DOMINO_DATASOURCE = "X-Domino-Datasource"
+HEADER_PINECONE_INDEX = "X-Domino-Pinecone-Index"
 
 
 class DominoPineconeConfiguration(OpenApiConfiguration):
@@ -51,8 +56,43 @@ class DominoPineconeConfiguration(OpenApiConfiguration):
         )
 
         self.proxy = os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766")
-        self.proxy_headers = {"X-Domino-Datasource": datasource}
+        self.proxy_headers = {HEADER_DOMINO_DATASOURCE: datasource}
 
     def get_host_from_settings(self, index, variables=None, servers=None):
         url = super().get_host_from_settings(index, variables, servers)
         return url.replace("https://", "http://")
+
+
+def domino_pinecone3x_init_params(datasource_name: str) -> Dict[str, str]:
+    """Wrap the parameters to initialize a Pinecone 3.x client
+
+    Args:
+        datasource_name: the name of the Pinecone data source
+
+    Returns:
+        A dictionary of parameters to initialize the Pinecone client
+    """
+    return {
+        "api_key": "domino",
+        "host": os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766"),
+        "additional_headers": {HEADER_DOMINO_DATASOURCE: datasource_name},
+    }
+
+
+def domino_pinecone3x_index_params(datasource_name: str, index_name: str) -> Dict[str, str]:
+    """Wrap the parameters to target an index in the Pinecone 3.x client
+
+    Args:
+        datasource_name: the name of the Pinecone data source
+        index_name: the name of the index
+
+    Returns:
+        A dictionary of parameters to target the Pinecone index for vector operations
+    """
+    return {
+        "host": os.getenv("DOMINO_DATA_API_GATEWAY", "http://127.0.0.1:8766"),
+        "additional_headers": {
+            HEADER_DOMINO_DATASOURCE: datasource_name,
+            HEADER_PINECONE_INDEX: index_name,
+        },
+    }
