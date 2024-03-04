@@ -63,6 +63,7 @@ class DominoPineconeConfiguration(OpenApiConfiguration):
 
 def domino_pinecone3x_init_params(datasource_name: str) -> dict[str, str]:
     """Wrap the parameters to initialize a Pinecone 3.x client
+
     Args:
         datasource_name: the name of the Pinecone data source
 
@@ -78,6 +79,7 @@ def domino_pinecone3x_init_params(datasource_name: str) -> dict[str, str]:
 
 def domino_pinecone3x_index_params(datasource_name: str, index_name: str) -> dict[str, str]:
     """Wrap the parameters to target an index in the Pinecone 3.x client
+
     Args:
         datasource_name: the name of the Pinecone data source
         index_name: the name of the index
