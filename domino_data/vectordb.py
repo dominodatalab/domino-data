@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Union
 
 import os
 
@@ -63,7 +63,7 @@ class DominoPineconeConfiguration(OpenApiConfiguration):
         return url.replace("https://", "http://")
 
 
-def domino_pinecone3x_init_params(datasource_name: str) -> Dict[str, str]:
+def domino_pinecone3x_init_params(datasource_name: str) -> Dict[str, Union[str, Dict[str, str]]]:
     """Wrap the parameters to initialize a Pinecone 3.x client
 
     Args:
@@ -79,7 +79,7 @@ def domino_pinecone3x_init_params(datasource_name: str) -> Dict[str, str]:
     }
 
 
-def domino_pinecone3x_index_params(datasource_name: str, index_name: str) -> Dict[str, str]:
+def domino_pinecone3x_index_params(datasource_name: str, index_name: str) -> Dict[str, Union[str, Dict[str, str]]]:
     """Wrap the parameters to target an index in the Pinecone 3.x client
 
     Args:
