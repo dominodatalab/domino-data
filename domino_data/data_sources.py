@@ -608,7 +608,7 @@ class DataSourceClient:
             run_id=run_id,
             token_file=self.token_file,
             token_url=self.token_url,
-            timeout=5.0,
+            timeout=httpx.Timeout(5.0),
             verify_ssl=True,
         )
         self.domino = AuthenticatedClient(
@@ -617,7 +617,7 @@ class DataSourceClient:
             token_file=self.token_file,
             token_url=self.token_url,
             headers=ACCEPT_HEADERS,
-            timeout=20.0,
+            timeout=httpx.Timeout(20.0),
             verify_ssl=True,
         )
 
@@ -651,7 +651,7 @@ class DataSourceClient:
         """
         logger.info("get_datasource", datasource_name=name)
 
-        run_id = os.getenv(DOMINO_RUN_ID)
+        run_id = os.getenv(DOMINO_RUN_ID, "")
         response = get_datasource_by_name.sync_detailed(
             name,
             client=self.domino.with_auth_headers(),
