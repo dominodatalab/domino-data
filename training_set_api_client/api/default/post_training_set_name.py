@@ -1,8 +1,11 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
+
+from http import HTTPStatus
 
 import httpx
 
-from ...client import Client
+from ... import errors
+from ...client import AuthenticatedClient, Client
 from ...models.create_training_set_version_request import CreateTrainingSetVersionRequest
 from ...models.training_set_version import TrainingSetVersion
 from ...types import Response
@@ -11,69 +14,97 @@ from ...types import Response
 def _get_kwargs(
     training_set_name: str,
     *,
-    client: Client,
     json_body: CreateTrainingSetVersionRequest,
 ) -> Dict[str, Any]:
-    url = "{}/{trainingSetName}".format(client.base_url, trainingSetName=training_set_name)
 
-    headers: Dict[str, Any] = client.get_headers()
-    cookies: Dict[str, Any] = client.get_cookies()
+    pass
 
     json_json_body = json_body.to_dict()
 
     return {
-        "url": url,
-        "headers": headers,
-        "cookies": cookies,
-        "timeout": client.get_timeout(),
+        "method": "post",
+        "url": "/{trainingSetName}".format(
+            trainingSetName=training_set_name,
+        ),
         "json": json_json_body,
-        "verify": client.verify_ssl,
     }
 
 
-def _parse_response(*, response: httpx.Response) -> Optional[TrainingSetVersion]:
-    if response.status_code == 200:
+def _parse_response(
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[TrainingSetVersion]:
+    if response.status_code == HTTPStatus.OK:
         response_200 = TrainingSetVersion.from_dict(response.json())
 
         return response_200
-    return None
+    if client.raise_on_unexpected_status:
+        raise errors.UnexpectedStatus(response.status_code, response.content)
+    else:
+        return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[TrainingSetVersion]:
+def _build_response(
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[TrainingSetVersion]:
     return Response(
-        status_code=response.status_code,
+        status_code=HTTPStatus(response.status_code),
         content=response.content,
         headers=response.headers,
-        parsed=_parse_response(response=response),
+        parsed=_parse_response(client=client, response=response),
     )
 
 
 def sync_detailed(
     training_set_name: str,
     *,
-    client: Client,
+    client: Union[AuthenticatedClient, Client],
     json_body: CreateTrainingSetVersionRequest,
 ) -> Response[TrainingSetVersion]:
+    """Create TrainingSetVersion
+
+    Args:
+        training_set_name (str):
+        json_body (CreateTrainingSetVersionRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[TrainingSetVersion]
+    """
+
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
-        client=client,
         json_body=json_body,
     )
 
-    response = httpx.post(
+    response = client.get_httpx_client().request(
         **kwargs,
     )
 
-    return _build_response(response=response)
+    return _build_response(client=client, response=response)
 
 
 def sync(
     training_set_name: str,
     *,
-    client: Client,
+    client: Union[AuthenticatedClient, Client],
     json_body: CreateTrainingSetVersionRequest,
 ) -> Optional[TrainingSetVersion]:
-    """ """
+    """Create TrainingSetVersion
+
+    Args:
+        training_set_name (str):
+        json_body (CreateTrainingSetVersionRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        TrainingSetVersion
+    """
 
     return sync_detailed(
         training_set_name=training_set_name,
@@ -85,28 +116,52 @@ def sync(
 async def asyncio_detailed(
     training_set_name: str,
     *,
-    client: Client,
+    client: Union[AuthenticatedClient, Client],
     json_body: CreateTrainingSetVersionRequest,
 ) -> Response[TrainingSetVersion]:
+    """Create TrainingSetVersion
+
+    Args:
+        training_set_name (str):
+        json_body (CreateTrainingSetVersionRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[TrainingSetVersion]
+    """
+
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
-        client=client,
         json_body=json_body,
     )
 
-    async with httpx.AsyncClient() as _client:
-        response = await _client.post(**kwargs)
+    response = await client.get_async_httpx_client().request(**kwargs)
 
-    return _build_response(response=response)
+    return _build_response(client=client, response=response)
 
 
 async def asyncio(
     training_set_name: str,
     *,
-    client: Client,
+    client: Union[AuthenticatedClient, Client],
     json_body: CreateTrainingSetVersionRequest,
 ) -> Optional[TrainingSetVersion]:
-    """ """
+    """Create TrainingSetVersion
+
+    Args:
+        training_set_name (str):
+        json_body (CreateTrainingSetVersionRequest):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        TrainingSetVersion
+    """
 
     return (
         await asyncio_detailed(

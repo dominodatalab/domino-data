@@ -1,25 +1,27 @@
 """ Contains some shared types for properties """
 
-from typing import BinaryIO, Generic, MutableMapping, Optional, TextIO, Tuple, TypeVar, Union
+from typing import BinaryIO, Generic, Literal, MutableMapping, Optional, Tuple, TypeVar
 
-import attr
+from http import HTTPStatus
+
+from attrs import define
 
 
 class Unset:
-    def __bool__(self) -> bool:
+    def __bool__(self) -> Literal[False]:
         return False
 
 
 UNSET: Unset = Unset()
 
-FileJsonType = Tuple[Optional[str], Union[BinaryIO, TextIO], Optional[str]]
+FileJsonType = Tuple[Optional[str], BinaryIO, Optional[str]]
 
 
-@attr.s(auto_attribs=True)
+@define
 class File:
     """Contains information for file uploads"""
 
-    payload: Union[BinaryIO, TextIO]
+    payload: BinaryIO
     file_name: Optional[str] = None
     mime_type: Optional[str] = None
 
@@ -31,11 +33,11 @@ class File:
 T = TypeVar("T")
 
 
-@attr.s(auto_attribs=True)
+@define
 class Response(Generic[T]):
     """A response from an endpoint"""
 
-    status_code: int
+    status_code: HTTPStatus
     content: bytes
     headers: MutableMapping[str, str]
     parsed: Optional[T]

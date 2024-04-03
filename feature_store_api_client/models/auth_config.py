@@ -1,15 +1,19 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.auth_config_fields import AuthConfigFields
-from ..models.auth_config_meta import AuthConfigMeta
 from ..models.auth_type import AuthType
+
+if TYPE_CHECKING:
+    from ..models.auth_config_fields import AuthConfigFields
+    from ..models.auth_config_meta import AuthConfigMeta
+
 
 T = TypeVar("T", bound="AuthConfig")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class AuthConfig:
     """
     Attributes:
@@ -19,9 +23,9 @@ class AuthConfig:
     """
 
     auth_type: AuthType
-    fields: AuthConfigFields
-    meta: AuthConfigMeta
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    fields: "AuthConfigFields"
+    meta: "AuthConfigMeta"
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         auth_type = self.auth_type.value
@@ -44,6 +48,9 @@ class AuthConfig:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.auth_config_fields import AuthConfigFields
+        from ..models.auth_config_meta import AuthConfigMeta
+
         d = src_dict.copy()
         auth_type = AuthType(d.pop("authType"))
 

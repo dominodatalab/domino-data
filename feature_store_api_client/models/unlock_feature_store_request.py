@@ -1,13 +1,14 @@
 from typing import Any, Dict, List, Type, TypeVar
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..models.feature_store_sync_result import FeatureStoreSyncResult
 
 T = TypeVar("T", bound="UnlockFeatureStoreRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class UnlockFeatureStoreRequest:
     """
     Attributes:
@@ -17,7 +18,7 @@ class UnlockFeatureStoreRequest:
 
     feature_store_id: str
     sync_result: FeatureStoreSyncResult
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         feature_store_id = self.feature_store_id

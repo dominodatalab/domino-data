@@ -1,14 +1,18 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.datasource_config import DatasourceConfig
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.datasource_config import DatasourceConfig
+
 
 T = TypeVar("T", bound="ListRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class ListRequest:
     """
     Attributes:
@@ -21,14 +25,16 @@ class ListRequest:
 
     datasource_id: str
     prefix: str
-    config_overwrites: Union[Unset, DatasourceConfig] = UNSET
-    credential_overwrites: Union[Unset, DatasourceConfig] = UNSET
+    config_overwrites: Union[Unset, "DatasourceConfig"] = UNSET
+    credential_overwrites: Union[Unset, "DatasourceConfig"] = UNSET
     page_size: Union[Unset, int] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         datasource_id = self.datasource_id
+
         prefix = self.prefix
+
         config_overwrites: Union[Unset, Dict[str, Any]] = UNSET
         if not isinstance(self.config_overwrites, Unset):
             config_overwrites = self.config_overwrites.to_dict()
@@ -58,6 +64,8 @@ class ListRequest:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.datasource_config import DatasourceConfig
+
         d = src_dict.copy()
         datasource_id = d.pop("datasourceId")
 

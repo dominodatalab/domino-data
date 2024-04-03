@@ -1,14 +1,18 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.datasource_config import DatasourceConfig
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.datasource_config import DatasourceConfig
+
 
 T = TypeVar("T", bound="KeyRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class KeyRequest:
     """
     Attributes:
@@ -22,14 +26,17 @@ class KeyRequest:
     datasource_id: str
     is_read_write: bool
     object_key: str
-    config_overwrites: Union[Unset, DatasourceConfig] = UNSET
-    credential_overwrites: Union[Unset, DatasourceConfig] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    config_overwrites: Union[Unset, "DatasourceConfig"] = UNSET
+    credential_overwrites: Union[Unset, "DatasourceConfig"] = UNSET
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         datasource_id = self.datasource_id
+
         is_read_write = self.is_read_write
+
         object_key = self.object_key
+
         config_overwrites: Union[Unset, Dict[str, Any]] = UNSET
         if not isinstance(self.config_overwrites, Unset):
             config_overwrites = self.config_overwrites.to_dict()
@@ -56,6 +63,8 @@ class KeyRequest:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.datasource_config import DatasourceConfig
+
         d = src_dict.copy()
         datasource_id = d.pop("datasourceId")
 

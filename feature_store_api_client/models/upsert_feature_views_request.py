@@ -1,25 +1,28 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.feature_view_request import FeatureViewRequest
+if TYPE_CHECKING:
+    from ..models.feature_view_request import FeatureViewRequest
+
 
 T = TypeVar("T", bound="UpsertFeatureViewsRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class UpsertFeatureViewsRequest:
     """
     Attributes:
-        feature_views (List[FeatureViewRequest]):
+        feature_views (List['FeatureViewRequest']):
         git_commit_hash (str):
         project_id (str):
     """
 
-    feature_views: List[FeatureViewRequest]
+    feature_views: List["FeatureViewRequest"]
     git_commit_hash: str
     project_id: str
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         feature_views = []
@@ -45,6 +48,8 @@ class UpsertFeatureViewsRequest:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.feature_view_request import FeatureViewRequest
+
         d = src_dict.copy()
         feature_views = []
         _feature_views = d.pop("featureViews")

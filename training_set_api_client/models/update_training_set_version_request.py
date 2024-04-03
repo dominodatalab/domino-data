@@ -1,26 +1,41 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.monitoring_meta import MonitoringMeta
-from ..models.update_training_set_version_request_meta import UpdateTrainingSetVersionRequestMeta
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.monitoring_meta import MonitoringMeta
+    from ..models.update_training_set_version_request_meta import (
+        UpdateTrainingSetVersionRequestMeta,
+    )
+
 
 T = TypeVar("T", bound="UpdateTrainingSetVersionRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class UpdateTrainingSetVersionRequest:
-    """ """
+    """
+    Attributes:
+        key_columns (List[str]):
+        target_columns (List[str]):
+        exclude_columns (List[str]):
+        monitoring_meta (MonitoringMeta):
+        meta (UpdateTrainingSetVersionRequestMeta):
+        pending (bool):
+        description (Union[Unset, str]):
+    """
 
     key_columns: List[str]
     target_columns: List[str]
     exclude_columns: List[str]
-    monitoring_meta: MonitoringMeta
-    meta: UpdateTrainingSetVersionRequestMeta
+    monitoring_meta: "MonitoringMeta"
+    meta: "UpdateTrainingSetVersionRequestMeta"
     pending: bool
     description: Union[Unset, str] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         key_columns = self.key_columns
@@ -55,6 +70,11 @@ class UpdateTrainingSetVersionRequest:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.monitoring_meta import MonitoringMeta
+        from ..models.update_training_set_version_request_meta import (
+            UpdateTrainingSetVersionRequestMeta,
+        )
+
         d = src_dict.copy()
         key_columns = cast(List[str], d.pop("keyColumns"))
 

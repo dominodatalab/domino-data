@@ -2,8 +2,8 @@ from enum import Enum
 
 
 class OfflineStoreType(str, Enum):
-    FILE = "File"
     BIGQUERY = "BigQuery"
+    FILE = "File"
     REDSHIFT = "Redshift"
     SNOWFLAKE = "Snowflake"
 

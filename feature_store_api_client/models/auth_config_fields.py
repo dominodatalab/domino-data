@@ -1,19 +1,23 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.field import Field
+if TYPE_CHECKING:
+    from ..models.field import Field
+
 
 T = TypeVar("T", bound="AuthConfigFields")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class AuthConfigFields:
     """ """
 
-    additional_properties: Dict[str, Field] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, "Field"] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        pass
 
         field_dict: Dict[str, Any] = {}
         for prop_name, prop in self.additional_properties.items():
@@ -25,6 +29,8 @@ class AuthConfigFields:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.field import Field
+
         d = src_dict.copy()
         auth_config_fields = cls()
 
@@ -41,10 +47,10 @@ class AuthConfigFields:
     def additional_keys(self) -> List[str]:
         return list(self.additional_properties.keys())
 
-    def __getitem__(self, key: str) -> Field:
+    def __getitem__(self, key: str) -> "Field":
         return self.additional_properties[key]
 
-    def __setitem__(self, key: str, value: Field) -> None:
+    def __setitem__(self, key: str, value: "Field") -> None:
         self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:

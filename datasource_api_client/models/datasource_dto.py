@@ -1,19 +1,23 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.datasource_config import DatasourceConfig
-from ..models.datasource_dto_added_by import DatasourceDtoAddedBy
 from ..models.datasource_dto_auth_type import DatasourceDtoAuthType
 from ..models.datasource_dto_data_source_type import DatasourceDtoDataSourceType
 from ..models.datasource_dto_status import DatasourceDtoStatus
-from ..models.datasource_owner_info import DatasourceOwnerInfo
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.datasource_config import DatasourceConfig
+    from ..models.datasource_dto_added_by import DatasourceDtoAddedBy
+    from ..models.datasource_owner_info import DatasourceOwnerInfo
+
 
 T = TypeVar("T", bound="DatasourceDto")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class DatasourceDto:
     """
     Attributes:
@@ -29,23 +33,23 @@ class DatasourceDto:
         owner_info (DatasourceOwnerInfo):
         project_ids (List[str]):
         status (DatasourceDtoStatus):
-        description (Union[Unset, None, str]):
+        description (Union[None, Unset, str]):
     """
 
-    added_by: DatasourceDtoAddedBy
+    added_by: "DatasourceDtoAddedBy"
     auth_type: DatasourceDtoAuthType
-    config: DatasourceConfig
+    config: "DatasourceConfig"
     data_source_type: DatasourceDtoDataSourceType
     id: str
     last_updated: int
     last_updated_by: str
     name: str
     owner_id: str
-    owner_info: DatasourceOwnerInfo
+    owner_info: "DatasourceOwnerInfo"
     project_ids: List[str]
     status: DatasourceDtoStatus
-    description: Union[Unset, None, str] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    description: Union[None, Unset, str] = UNSET
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         added_by = self.added_by.to_dict()
@@ -57,17 +61,26 @@ class DatasourceDto:
         data_source_type = self.data_source_type.value
 
         id = self.id
+
         last_updated = self.last_updated
+
         last_updated_by = self.last_updated_by
+
         name = self.name
+
         owner_id = self.owner_id
+
         owner_info = self.owner_info.to_dict()
 
         project_ids = self.project_ids
 
         status = self.status.value
 
-        description = self.description
+        description: Union[None, Unset, str]
+        if isinstance(self.description, Unset):
+            description = UNSET
+        else:
+            description = self.description
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -94,6 +107,10 @@ class DatasourceDto:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.datasource_config import DatasourceConfig
+        from ..models.datasource_dto_added_by import DatasourceDtoAddedBy
+        from ..models.datasource_owner_info import DatasourceOwnerInfo
+
         d = src_dict.copy()
         added_by = DatasourceDtoAddedBy.from_dict(d.pop("addedBy"))
 
@@ -119,7 +136,14 @@ class DatasourceDto:
 
         status = DatasourceDtoStatus(d.pop("status"))
 
-        description = d.pop("description", UNSET)
+        def _parse_description(data: object) -> Union[None, Unset, str]:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(Union[None, Unset, str], data)
+
+        description = _parse_description(d.pop("description", UNSET))
 
         datasource_dto = cls(
             added_by=added_by,

@@ -1,27 +1,43 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.create_training_set_version_request_meta import CreateTrainingSetVersionRequestMeta
-from ..models.monitoring_meta import MonitoringMeta
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.create_training_set_version_request_meta import (
+        CreateTrainingSetVersionRequestMeta,
+    )
+    from ..models.monitoring_meta import MonitoringMeta
+
 
 T = TypeVar("T", bound="CreateTrainingSetVersionRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class CreateTrainingSetVersionRequest:
-    """ """
+    """
+    Attributes:
+        project_id (str):
+        key_columns (List[str]):
+        target_columns (List[str]):
+        exclude_columns (List[str]):
+        all_columns (List[str]):
+        monitoring_meta (MonitoringMeta):
+        meta (CreateTrainingSetVersionRequestMeta):
+        description (Union[Unset, str]):
+    """
 
     project_id: str
     key_columns: List[str]
     target_columns: List[str]
     exclude_columns: List[str]
     all_columns: List[str]
-    monitoring_meta: MonitoringMeta
-    meta: CreateTrainingSetVersionRequestMeta
+    monitoring_meta: "MonitoringMeta"
+    meta: "CreateTrainingSetVersionRequestMeta"
     description: Union[Unset, str] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         project_id = self.project_id
@@ -59,6 +75,11 @@ class CreateTrainingSetVersionRequest:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.create_training_set_version_request_meta import (
+            CreateTrainingSetVersionRequestMeta,
+        )
+        from ..models.monitoring_meta import MonitoringMeta
+
         d = src_dict.copy()
         project_id = d.pop("projectId")
 

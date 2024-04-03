@@ -29,3 +29,33 @@ from .offline_store_config_fields import OfflineStoreConfigFields
 from .offline_store_type import OfflineStoreType
 from .unlock_feature_store_request import UnlockFeatureStoreRequest
 from .upsert_feature_views_request import UpsertFeatureViewsRequest
+
+__all__ = (
+    "AuthConfig",
+    "AuthConfigFields",
+    "AuthConfigMeta",
+    "AuthFieldName",
+    "AuthType",
+    "ConfigFieldName",
+    "CreateFeatureStoreRequest",
+    "CreateFeatureStoreRequestOfflineStoreConfig",
+    "Entity",
+    "Feature",
+    "FeatureStore",
+    "FeatureStoreOfflineStoreConfig",
+    "FeatureStoreSyncResult",
+    "FeatureTags",
+    "FeatureView",
+    "FeatureViewRequest",
+    "FeatureViewRequestTags",
+    "FeatureViewTags",
+    "Field",
+    "GitProviderName",
+    "LockFeatureStoreRequest",
+    "Metadata",
+    "OfflineStoreConfig",
+    "OfflineStoreConfigFields",
+    "OfflineStoreType",
+    "UnlockFeatureStoreRequest",
+    "UpsertFeatureViewsRequest",
+)

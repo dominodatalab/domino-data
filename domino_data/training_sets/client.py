@@ -70,15 +70,16 @@ def get_training_set(name: str) -> model.TrainingSet:
 
     _validate_trainingset_name(name)
 
-    response = get_training_set_name.sync_detailed(
-        client=_get_client(),
-        training_set_name=name,
-    )
+    with _get_client() as client:
+        response = get_training_set_name.sync_detailed(
+            client=client,
+            training_set_name=name,
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not get TrainingSet")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not get TrainingSet")
 
-    return _to_TrainingSet(response.parsed)
+        return _to_TrainingSet(response.parsed)
 
 
 def list_training_sets(
@@ -104,21 +105,22 @@ def list_training_sets(
 
     project_id = _get_project_id()
 
-    response = post_find.sync_detailed(
-        client=_get_client(),
-        json_body=TrainingSetFilter(
-            project_id=project_id,
-            meta=TrainingSetFilterMeta.from_dict(meta),
-        ),
-        offset=offset,
-        limit=limit,
-        asc=asc,
-    )
+    with _get_client() as client:
+        response = post_find.sync_detailed(
+            client=client,
+            json_body=TrainingSetFilter(
+                project_id=project_id,
+                meta=TrainingSetFilterMeta.from_dict(meta),
+            ),
+            offset=offset,
+            limit=limit,
+            asc=asc,
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not list TrainingSets")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not list TrainingSets")
 
-    return [_to_TrainingSet(ts) for ts in response.parsed]
+        return [_to_TrainingSet(ts) for ts in response.parsed]
 
 
 def update_training_set(
@@ -135,19 +137,20 @@ def update_training_set(
 
     _validate_trainingset_name(updated.name)
 
-    response = put_training_set_name.sync_detailed(
-        training_set_name=updated.name,
-        client=_get_client(),
-        json_body=UpdateTrainingSetRequest(
-            meta=UpdateTrainingSetRequestMeta.from_dict(updated.meta),
-            description=updated.description,
-        ),
-    )
+    with _get_client() as client:
+        response = put_training_set_name.sync_detailed(
+            training_set_name=updated.name,
+            client=client,
+            json_body=UpdateTrainingSetRequest(
+                meta=UpdateTrainingSetRequestMeta.from_dict(updated.meta),
+                description=updated.description,
+            ),
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not update TrainingSets")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not update TrainingSets")
 
-    return _to_TrainingSet(response.parsed)
+        return _to_TrainingSet(response.parsed)
 
 
 def delete_training_set(name: str) -> bool:
@@ -164,12 +167,13 @@ def delete_training_set(name: str) -> bool:
 
     _validate_trainingset_name(name)
 
-    response = delete_training_set_name.sync_detailed(training_set_name=name, client=_get_client())
+    with _get_client() as client:
+        response = delete_training_set_name.sync_detailed(training_set_name=name, client=client)
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not delete TrainingSet")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not delete TrainingSet")
 
-    return True
+        return True
 
 
 def create_training_set_version(
@@ -233,36 +237,39 @@ def create_training_set_version(
 
     project_id = _get_project_id()
 
-    response = post_training_set_name.sync_detailed(
-        client=_get_client(),
-        training_set_name=training_set_name,
-        json_body=CreateTrainingSetVersionRequest(
-            project_id=project_id,
-            key_columns=key_columns,
-            target_columns=target_columns,
-            exclude_columns=exclude_columns,
-            all_columns=all_columns,
-            monitoring_meta=MonitoringMeta(
-                timestamp_columns=monitoring_meta.timestamp_columns,
-                categorical_columns=monitoring_meta.categorical_columns,
-                ordinal_columns=monitoring_meta.ordinal_columns,
+    with _get_client() as client:
+        response = post_training_set_name.sync_detailed(
+            client=client,
+            training_set_name=training_set_name,
+            json_body=CreateTrainingSetVersionRequest(
+                project_id=project_id,
+                key_columns=key_columns,
+                target_columns=target_columns,
+                exclude_columns=exclude_columns,
+                all_columns=all_columns,
+                monitoring_meta=MonitoringMeta(
+                    timestamp_columns=monitoring_meta.timestamp_columns,
+                    categorical_columns=monitoring_meta.categorical_columns,
+                    ordinal_columns=monitoring_meta.ordinal_columns,
+                ),
+                meta=CreateTrainingSetVersionRequestMeta.from_dict(meta),
+                description=description,
             ),
-            meta=CreateTrainingSetVersionRequestMeta.from_dict(meta),
-            description=description,
-        ),
-    )
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not create Training Set version")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not create Training Set version")
 
-    tsv = _to_TrainingSetVersion(response.parsed)
+        tsv = _to_TrainingSetVersion(response.parsed)
 
-    os.makedirs(tsv.absolute_container_path)
-    df.to_parquet(os.path.join(tsv.absolute_container_path, "data.parquet"))
-    os.chmod(tsv.absolute_container_path, S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR | S_IXGRP | S_IXOTH)
+        os.makedirs(tsv.absolute_container_path)
+        df.to_parquet(os.path.join(tsv.absolute_container_path, "data.parquet"))
+        os.chmod(
+            tsv.absolute_container_path, S_IRUSR | S_IRGRP | S_IROTH | S_IXUSR | S_IXGRP | S_IXOTH
+        )
 
-    tsv.pending = False
-    return update_training_set_version(tsv)
+        tsv.pending = False
+        return update_training_set_version(tsv)
 
 
 def get_training_set_version(training_set_name: str, number: int) -> model.TrainingSetVersion:
@@ -278,16 +285,17 @@ def get_training_set_version(training_set_name: str, number: int) -> model.Train
 
     _validate_trainingset_name(training_set_name)
 
-    response = get_training_set_name_number.sync_detailed(
-        client=_get_client(),
-        training_set_name=training_set_name,
-        number=number,
-    )
+    with _get_client() as client:
+        response = get_training_set_name_number.sync_detailed(
+            client=client,
+            training_set_name=training_set_name,
+            number=number,
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not get TrainingSetVersion")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not get TrainingSetVersion")
 
-    return _to_TrainingSetVersion(response.parsed)
+        return _to_TrainingSetVersion(response.parsed)
 
 
 def update_training_set_version(version: model.TrainingSetVersion) -> model.TrainingSetVersion:
@@ -302,29 +310,30 @@ def update_training_set_version(version: model.TrainingSetVersion) -> model.Trai
 
     _validate_trainingset_name(version.training_set_name)
 
-    response = put_training_set_name_number.sync_detailed(
-        training_set_name=version.training_set_name,
-        number=version.number,
-        client=_get_client(),
-        json_body=UpdateTrainingSetVersionRequest(
-            key_columns=version.key_columns,
-            target_columns=version.target_columns,
-            exclude_columns=version.exclude_columns,
-            monitoring_meta=MonitoringMeta(
-                timestamp_columns=version.monitoring_meta.timestamp_columns,
-                categorical_columns=version.monitoring_meta.categorical_columns,
-                ordinal_columns=version.monitoring_meta.ordinal_columns,
+    with _get_client() as client:
+        response = put_training_set_name_number.sync_detailed(
+            training_set_name=version.training_set_name,
+            number=version.number,
+            client=client,
+            json_body=UpdateTrainingSetVersionRequest(
+                key_columns=version.key_columns,
+                target_columns=version.target_columns,
+                exclude_columns=version.exclude_columns,
+                monitoring_meta=MonitoringMeta(
+                    timestamp_columns=version.monitoring_meta.timestamp_columns,
+                    categorical_columns=version.monitoring_meta.categorical_columns,
+                    ordinal_columns=version.monitoring_meta.ordinal_columns,
+                ),
+                meta=UpdateTrainingSetVersionRequestMeta.from_dict(version.meta),
+                pending=version.pending,
+                description=version.description,
             ),
-            meta=UpdateTrainingSetVersionRequestMeta.from_dict(version.meta),
-            pending=version.pending,
-            description=version.description,
-        ),
-    )
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not update TrainingSetVersion")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not update TrainingSetVersion")
 
-    return _to_TrainingSetVersion(response.parsed)
+        return _to_TrainingSetVersion(response.parsed)
 
 
 def delete_training_set_version(training_set_name: str, number: int) -> bool:
@@ -342,20 +351,21 @@ def delete_training_set_version(training_set_name: str, number: int) -> bool:
 
     tsv = get_training_set_version(training_set_name, number)
 
-    response = delete_training_set_name_number.sync_detailed(
-        training_set_name=training_set_name,
-        number=number,
-        client=_get_client(),
-    )
+    with _get_client() as client:
+        response = delete_training_set_name_number.sync_detailed(
+            training_set_name=training_set_name,
+            number=number,
+            client=client,
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not delete TrainingSetVersion")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not delete TrainingSetVersion")
 
-    stat = os.stat(tsv.absolute_container_path)
-    os.chmod(tsv.absolute_container_path, stat.st_mode | S_IWUSR)
-    shutil.rmtree(tsv.absolute_container_path)
+        stat = os.stat(tsv.absolute_container_path)
+        os.chmod(tsv.absolute_container_path, stat.st_mode | S_IWUSR)
+        shutil.rmtree(tsv.absolute_container_path)
 
-    return True
+        return True
 
 
 def list_training_set_versions(
@@ -388,25 +398,26 @@ def list_training_set_versions(
 
     project_id = _get_project_id()
 
-    response = post_version_find.sync_detailed(
-        client=_get_client(),
-        json_body=TrainingSetVersionFilter(
-            training_set_meta=TrainingSetVersionFilterTrainingSetMeta.from_dict(
-                training_set_meta,
+    with _get_client() as client:
+        response = post_version_find.sync_detailed(
+            client=client,
+            json_body=TrainingSetVersionFilter(
+                training_set_meta=TrainingSetVersionFilterTrainingSetMeta.from_dict(
+                    training_set_meta,
+                ),
+                meta=TrainingSetVersionFilterMeta.from_dict(meta),
+                project_id=project_id,
+                training_set_name=training_set_name,
             ),
-            meta=TrainingSetVersionFilterMeta.from_dict(meta),
-            project_id=project_id,
-            training_set_name=training_set_name,
-        ),
-        offset=offset,
-        limit=limit,
-        asc=asc,
-    )
+            offset=offset,
+            limit=limit,
+            asc=asc,
+        )
 
-    if response.status_code != 200:
-        _raise_response_exn(response, "could not find TrainingSetVersion")
+        if response.status_code != 200:
+            _raise_response_exn(response, "could not find TrainingSetVersion")
 
-    return [_to_TrainingSetVersion(tsv) for tsv in response.parsed]
+        return [_to_TrainingSetVersion(tsv) for tsv in response.parsed]
 
 
 def _get_client() -> AuthenticatedClient:
@@ -420,7 +431,7 @@ def _get_client() -> AuthenticatedClient:
         api_key=api_key,
         token_file=token_file,
         token_url=token_url,
-    )
+    ).with_auth_headers()
 
 
 def _to_TrainingSet(ts: TrainingSet) -> model.TrainingSet:

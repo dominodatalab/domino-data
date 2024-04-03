@@ -1,18 +1,22 @@
-from typing import Any, Dict, List, Type, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, cast
 
 import datetime
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
-from ..models.feature_store_offline_store_config import FeatureStoreOfflineStoreConfig
 from ..models.git_provider_name import GitProviderName
 from ..models.offline_store_type import OfflineStoreType
+
+if TYPE_CHECKING:
+    from ..models.feature_store_offline_store_config import FeatureStoreOfflineStoreConfig
+
 
 T = TypeVar("T", bound="FeatureStore")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class FeatureStore:
     """
     Attributes:
@@ -31,12 +35,12 @@ class FeatureStore:
     owner_id: str
     creation_time: datetime.datetime
     offline_store_type: OfflineStoreType
-    offline_store_config: FeatureStoreOfflineStoreConfig
+    offline_store_config: "FeatureStoreOfflineStoreConfig"
     git_repo: str
     git_service_provider: GitProviderName
     project_ids: List[str]
     last_updated_time: datetime.datetime
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
@@ -74,6 +78,8 @@ class FeatureStore:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.feature_store_offline_store_config import FeatureStoreOfflineStoreConfig
+
         d = src_dict.copy()
         id = d.pop("id")
 

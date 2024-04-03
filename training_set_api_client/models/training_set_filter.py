@@ -1,20 +1,28 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.training_set_filter_meta import TrainingSetFilterMeta
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.training_set_filter_meta import TrainingSetFilterMeta
+
 
 T = TypeVar("T", bound="TrainingSetFilter")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class TrainingSetFilter:
-    """ """
+    """
+    Attributes:
+        project_id (str):
+        meta (Union[Unset, TrainingSetFilterMeta]):
+    """
 
     project_id: str
-    meta: Union[Unset, TrainingSetFilterMeta] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    meta: Union[Unset, "TrainingSetFilterMeta"] = UNSET
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         project_id = self.project_id
@@ -36,6 +44,8 @@ class TrainingSetFilter:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.training_set_filter_meta import TrainingSetFilterMeta
+
         d = src_dict.copy()
         project_id = d.pop("projectId")
 

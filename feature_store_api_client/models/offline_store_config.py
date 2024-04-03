@@ -1,15 +1,19 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..models.auth_type import AuthType
-from ..models.offline_store_config_fields import OfflineStoreConfigFields
 from ..models.offline_store_type import OfflineStoreType
+
+if TYPE_CHECKING:
+    from ..models.offline_store_config_fields import OfflineStoreConfigFields
+
 
 T = TypeVar("T", bound="OfflineStoreConfig")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class OfflineStoreConfig:
     """
     Attributes:
@@ -20,8 +24,8 @@ class OfflineStoreConfig:
 
     auth_types: List[AuthType]
     offline_store_type: OfflineStoreType
-    fields: OfflineStoreConfigFields
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    fields: "OfflineStoreConfigFields"
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         auth_types = []
@@ -48,6 +52,8 @@ class OfflineStoreConfig:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.offline_store_config_fields import OfflineStoreConfigFields
+
         d = src_dict.copy()
         auth_types = []
         _auth_types = d.pop("authTypes")
