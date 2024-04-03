@@ -13,6 +13,7 @@ from datasource_api_client.client import Client
 
 
 @backoff.on_exception(backoff.expo, httpx.HTTPStatusError, max_time=2)
+@backoff.on_exception(backoff.expo, httpx.ReadTimeout, max_tries=2)
 def get_jwt_token(url: str) -> str:
     """Gets a domino token from local sidecar API.
 
