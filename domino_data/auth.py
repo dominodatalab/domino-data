@@ -71,7 +71,8 @@ class AuthenticatedClient(Client):
             self._client.headers.update(auth_headers)
         if self._async_client is not None:
             self._async_client.headers.update(auth_headers)
-        return attr.evolve(self, headers={**self._headers, **auth_headers})
+        self._headers.update(auth_headers)
+        return self
 
 
 @attr.s(auto_attribs=True)
