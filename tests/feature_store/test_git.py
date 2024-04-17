@@ -1,4 +1,5 @@
 """Test feature store git operations"""
+
 from unittest.mock import MagicMock
 
 import pytest as pytest

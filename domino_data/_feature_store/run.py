@@ -1,4 +1,5 @@
 """Containing script to sync feature store from feast to domino"""
+
 import argparse
 import sys
 

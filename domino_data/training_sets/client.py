@@ -1,6 +1,5 @@
 """Domino TrainingSet client library."""
 
-
 from typing import List, Mapping, Optional
 
 import json
