@@ -1,4 +1,5 @@
 """Test Domino customized Pinecone OpenAPI Configuration"""
+
 import os
 
 from domino_data.vectordb import (

@@ -1,4 +1,5 @@
 """Generator for Datasource Enums and Config entities."""
+
 from typing import Any, Dict
 
 import argparse

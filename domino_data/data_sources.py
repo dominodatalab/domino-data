@@ -1,4 +1,5 @@
 """Datasource module."""
+
 from typing import Any, Dict, List, Optional, cast
 
 import configparser
