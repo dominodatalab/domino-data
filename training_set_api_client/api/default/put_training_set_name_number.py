@@ -15,21 +15,25 @@ def _get_kwargs(
     training_set_name: str,
     number: int,
     *,
-    json_body: UpdateTrainingSetVersionRequest,
+    body: UpdateTrainingSetVersionRequest,
 ) -> Dict[str, Any]:
+    headers: Dict[str, Any] = {}
 
-    pass
-
-    json_json_body = json_body.to_dict()
-
-    return {
+    _kwargs: Dict[str, Any] = {
         "method": "put",
-        "url": "/{trainingSetName}/{number}".format(
-            trainingSetName=training_set_name,
+        "url": "/{training_set_name}/{number}".format(
+            training_set_name=training_set_name,
             number=number,
         ),
-        "json": json_json_body,
     }
+
+    _body = body.to_dict()
+
+    _kwargs["json"] = _body
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
+    return _kwargs
 
 
 def _parse_response(
@@ -61,14 +65,14 @@ def sync_detailed(
     number: int,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetVersionRequest,
+    body: UpdateTrainingSetVersionRequest,
 ) -> Response[TrainingSetVersion]:
     """Update TrainingSetVersion
 
     Args:
         training_set_name (str):
         number (int):
-        json_body (UpdateTrainingSetVersionRequest):
+        body (UpdateTrainingSetVersionRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -81,7 +85,7 @@ def sync_detailed(
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
         number=number,
-        json_body=json_body,
+        body=body,
     )
 
     response = client.get_httpx_client().request(
@@ -96,14 +100,14 @@ def sync(
     number: int,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetVersionRequest,
+    body: UpdateTrainingSetVersionRequest,
 ) -> Optional[TrainingSetVersion]:
     """Update TrainingSetVersion
 
     Args:
         training_set_name (str):
         number (int):
-        json_body (UpdateTrainingSetVersionRequest):
+        body (UpdateTrainingSetVersionRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -117,7 +121,7 @@ def sync(
         training_set_name=training_set_name,
         number=number,
         client=client,
-        json_body=json_body,
+        body=body,
     ).parsed
 
 
@@ -126,14 +130,14 @@ async def asyncio_detailed(
     number: int,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetVersionRequest,
+    body: UpdateTrainingSetVersionRequest,
 ) -> Response[TrainingSetVersion]:
     """Update TrainingSetVersion
 
     Args:
         training_set_name (str):
         number (int):
-        json_body (UpdateTrainingSetVersionRequest):
+        body (UpdateTrainingSetVersionRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -146,7 +150,7 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
         number=number,
-        json_body=json_body,
+        body=body,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -159,14 +163,14 @@ async def asyncio(
     number: int,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetVersionRequest,
+    body: UpdateTrainingSetVersionRequest,
 ) -> Optional[TrainingSetVersion]:
     """Update TrainingSetVersion
 
     Args:
         training_set_name (str):
         number (int):
-        json_body (UpdateTrainingSetVersionRequest):
+        body (UpdateTrainingSetVersionRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -181,6 +185,6 @@ async def asyncio(
             training_set_name=training_set_name,
             number=number,
             client=client,
-            json_body=json_body,
+            body=body,
         )
     ).parsed

@@ -56,13 +56,19 @@ class TrainingSetVersion:
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
+
         training_set_id = self.training_set_id
+
         training_set_name = self.training_set_name
+
         number = self.number
+
         creation_time = self.creation_time.isoformat()
 
         path = self.path
+
         container_path = self.container_path
+
         key_columns = self.key_columns
 
         target_columns = self.target_columns
@@ -76,6 +82,7 @@ class TrainingSetVersion:
         meta = self.meta.to_dict()
 
         pending = self.pending
+
         description = self.description
 
         field_dict: Dict[str, Any] = {}

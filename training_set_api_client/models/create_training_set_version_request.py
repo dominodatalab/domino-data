@@ -41,6 +41,7 @@ class CreateTrainingSetVersionRequest:
 
     def to_dict(self) -> Dict[str, Any]:
         project_id = self.project_id
+
         key_columns = self.key_columns
 
         target_columns = self.target_columns

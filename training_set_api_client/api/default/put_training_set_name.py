@@ -14,20 +14,24 @@ from ...types import Response
 def _get_kwargs(
     training_set_name: str,
     *,
-    json_body: UpdateTrainingSetRequest,
+    body: UpdateTrainingSetRequest,
 ) -> Dict[str, Any]:
+    headers: Dict[str, Any] = {}
 
-    pass
-
-    json_json_body = json_body.to_dict()
-
-    return {
+    _kwargs: Dict[str, Any] = {
         "method": "put",
-        "url": "/{trainingSetName}".format(
-            trainingSetName=training_set_name,
+        "url": "/{training_set_name}".format(
+            training_set_name=training_set_name,
         ),
-        "json": json_json_body,
     }
+
+    _body = body.to_dict()
+
+    _kwargs["json"] = _body
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
+    return _kwargs
 
 
 def _parse_response(
@@ -58,13 +62,13 @@ def sync_detailed(
     training_set_name: str,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetRequest,
+    body: UpdateTrainingSetRequest,
 ) -> Response[TrainingSet]:
     """Update TrainingSet
 
     Args:
         training_set_name (str):
-        json_body (UpdateTrainingSetRequest):
+        body (UpdateTrainingSetRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -76,7 +80,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
-        json_body=json_body,
+        body=body,
     )
 
     response = client.get_httpx_client().request(
@@ -90,13 +94,13 @@ def sync(
     training_set_name: str,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetRequest,
+    body: UpdateTrainingSetRequest,
 ) -> Optional[TrainingSet]:
     """Update TrainingSet
 
     Args:
         training_set_name (str):
-        json_body (UpdateTrainingSetRequest):
+        body (UpdateTrainingSetRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -109,7 +113,7 @@ def sync(
     return sync_detailed(
         training_set_name=training_set_name,
         client=client,
-        json_body=json_body,
+        body=body,
     ).parsed
 
 
@@ -117,13 +121,13 @@ async def asyncio_detailed(
     training_set_name: str,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetRequest,
+    body: UpdateTrainingSetRequest,
 ) -> Response[TrainingSet]:
     """Update TrainingSet
 
     Args:
         training_set_name (str):
-        json_body (UpdateTrainingSetRequest):
+        body (UpdateTrainingSetRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -135,7 +139,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         training_set_name=training_set_name,
-        json_body=json_body,
+        body=body,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -147,13 +151,13 @@ async def asyncio(
     training_set_name: str,
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: UpdateTrainingSetRequest,
+    body: UpdateTrainingSetRequest,
 ) -> Optional[TrainingSet]:
     """Update TrainingSet
 
     Args:
         training_set_name (str):
-        json_body (UpdateTrainingSetRequest):
+        body (UpdateTrainingSetRequest):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -167,6 +171,6 @@ async def asyncio(
         await asyncio_detailed(
             training_set_name=training_set_name,
             client=client,
-            json_body=json_body,
+            body=body,
         )
     ).parsed

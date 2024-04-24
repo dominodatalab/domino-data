@@ -49,6 +49,7 @@ class UpdateTrainingSetVersionRequest:
         meta = self.meta.to_dict()
 
         pending = self.pending
+
         description = self.description
 
         field_dict: Dict[str, Any] = {}

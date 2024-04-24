@@ -32,11 +32,17 @@ class Field:
 
     def to_dict(self) -> Dict[str, Any]:
         is_optional = self.is_optional
+
         is_overridable = self.is_overridable
+
         name = self.name
+
         alias = self.alias
+
         is_secret = self.is_secret
+
         regexp = self.regexp
+
         regexp_error_message = self.regexp_error_message
 
         field_dict: Dict[str, Any] = {}

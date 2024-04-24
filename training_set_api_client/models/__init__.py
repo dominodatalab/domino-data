@@ -1,4 +1,4 @@
-""" Contains all the data models used in inputs/outputs """
+"""Contains all the data models used in inputs/outputs"""
 
 from .create_training_set_version_request import CreateTrainingSetVersionRequest
 from .create_training_set_version_request_meta import CreateTrainingSetVersionRequestMeta

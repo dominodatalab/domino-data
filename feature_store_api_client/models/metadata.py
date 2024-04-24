@@ -20,6 +20,7 @@ class Metadata:
 
     def to_dict(self) -> Dict[str, Any]:
         created_at_millis = self.created_at_millis
+
         last_updated_millis = self.last_updated_millis
 
         field_dict: Dict[str, Any] = {}

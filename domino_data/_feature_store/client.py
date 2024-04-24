@@ -68,7 +68,7 @@ class FeatureStoreClient:
         )
         response = post_featureview.sync_detailed(
             client=self._get_client(),
-            json_body=request,
+            body=request,
         )
 
         if response.status_code != 200:
@@ -88,7 +88,7 @@ class FeatureStoreClient:
         """
         response = post_lock.sync_detailed(
             client=self._get_client(),
-            json_body=lock_request,
+            body=lock_request,
         )
         if response.status_code != 200:
             _raise_response_exn(response, "could not lock feature store")
@@ -108,7 +108,7 @@ class FeatureStoreClient:
         """
         response = post_unlock.sync_detailed(
             client=self._get_client(),
-            json_body=unlock_request,
+            body=unlock_request,
         )
         if response.status_code != 200:
             _raise_response_exn(response, "could not unlock feature store")

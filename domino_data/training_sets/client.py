@@ -108,7 +108,7 @@ def list_training_sets(
     with _get_client() as client:
         response = post_find.sync_detailed(
             client=client,
-            json_body=TrainingSetFilter(
+            body=TrainingSetFilter(
                 project_id=project_id,
                 meta=TrainingSetFilterMeta.from_dict(meta),
             ),
@@ -141,7 +141,7 @@ def update_training_set(
         response = put_training_set_name.sync_detailed(
             training_set_name=updated.name,
             client=client,
-            json_body=UpdateTrainingSetRequest(
+            body=UpdateTrainingSetRequest(
                 meta=UpdateTrainingSetRequestMeta.from_dict(updated.meta),
                 description=updated.description,
             ),
@@ -241,7 +241,7 @@ def create_training_set_version(
         response = post_training_set_name.sync_detailed(
             client=client,
             training_set_name=training_set_name,
-            json_body=CreateTrainingSetVersionRequest(
+            body=CreateTrainingSetVersionRequest(
                 project_id=project_id,
                 key_columns=key_columns,
                 target_columns=target_columns,
@@ -315,7 +315,7 @@ def update_training_set_version(version: model.TrainingSetVersion) -> model.Trai
             training_set_name=version.training_set_name,
             number=version.number,
             client=client,
-            json_body=UpdateTrainingSetVersionRequest(
+            body=UpdateTrainingSetVersionRequest(
                 key_columns=version.key_columns,
                 target_columns=version.target_columns,
                 exclude_columns=version.exclude_columns,
@@ -401,7 +401,7 @@ def list_training_set_versions(
     with _get_client() as client:
         response = post_version_find.sync_detailed(
             client=client,
-            json_body=TrainingSetVersionFilter(
+            body=TrainingSetVersionFilter(
                 training_set_meta=TrainingSetVersionFilterTrainingSetMeta.from_dict(
                     training_set_meta,
                 ),

@@ -36,21 +36,21 @@ class FeatureViewRequest:
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
+
         entities = []
         for entities_item_data in self.entities:
             entities_item = entities_item_data.to_dict()
-
             entities.append(entities_item)
 
         features = []
         for features_item_data in self.features:
             features_item = features_item_data.to_dict()
-
             features.append(features_item)
 
         tags = self.tags.to_dict()
 
         description = self.description
+
         ttl = self.ttl
 
         field_dict: Dict[str, Any] = {}

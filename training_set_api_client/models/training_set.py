@@ -37,8 +37,11 @@ class TrainingSet:
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
+
         project_id = self.project_id
+
         name = self.name
+
         creation_time = self.creation_time.isoformat()
 
         meta = self.meta.to_dict()

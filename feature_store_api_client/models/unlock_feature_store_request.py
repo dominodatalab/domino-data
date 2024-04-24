@@ -22,6 +22,7 @@ class UnlockFeatureStoreRequest:
 
     def to_dict(self) -> Dict[str, Any]:
         feature_store_id = self.feature_store_id
+
         sync_result = self.sync_result.value
 
         field_dict: Dict[str, Any] = {}

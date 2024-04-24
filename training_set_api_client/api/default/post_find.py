@@ -13,15 +13,15 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    json_body: TrainingSetFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
+    body: TrainingSetFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
 ) -> Dict[str, Any]:
-
-    pass
+    headers: Dict[str, Any] = {}
 
     params: Dict[str, Any] = {}
+
     params["offset"] = offset
 
     params["limit"] = limit
@@ -30,14 +30,19 @@ def _get_kwargs(
 
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
-    json_json_body = json_body.to_dict()
-
-    return {
+    _kwargs: Dict[str, Any] = {
         "method": "post",
         "url": "/find",
-        "json": json_json_body,
         "params": params,
     }
+
+    _body = body.to_dict()
+
+    _kwargs["json"] = _body
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
+    return _kwargs
 
 
 def _parse_response(
@@ -72,18 +77,18 @@ def _build_response(
 def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: TrainingSetFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
+    body: TrainingSetFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
 ) -> Response[List["TrainingSet"]]:
     """List TrainingSets
 
     Args:
-        offset (Union[Unset, None, int]):
-        limit (Union[Unset, None, int]):
-        asc (Union[Unset, None, bool]):
-        json_body (TrainingSetFilter):
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetFilter):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -94,7 +99,7 @@ def sync_detailed(
     """
 
     kwargs = _get_kwargs(
-        json_body=json_body,
+        body=body,
         offset=offset,
         limit=limit,
         asc=asc,
@@ -110,18 +115,18 @@ def sync_detailed(
 def sync(
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: TrainingSetFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
+    body: TrainingSetFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
 ) -> Optional[List["TrainingSet"]]:
     """List TrainingSets
 
     Args:
-        offset (Union[Unset, None, int]):
-        limit (Union[Unset, None, int]):
-        asc (Union[Unset, None, bool]):
-        json_body (TrainingSetFilter):
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetFilter):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -133,7 +138,7 @@ def sync(
 
     return sync_detailed(
         client=client,
-        json_body=json_body,
+        body=body,
         offset=offset,
         limit=limit,
         asc=asc,
@@ -143,18 +148,18 @@ def sync(
 async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: TrainingSetFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
+    body: TrainingSetFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
 ) -> Response[List["TrainingSet"]]:
     """List TrainingSets
 
     Args:
-        offset (Union[Unset, None, int]):
-        limit (Union[Unset, None, int]):
-        asc (Union[Unset, None, bool]):
-        json_body (TrainingSetFilter):
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetFilter):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -165,7 +170,7 @@ async def asyncio_detailed(
     """
 
     kwargs = _get_kwargs(
-        json_body=json_body,
+        body=body,
         offset=offset,
         limit=limit,
         asc=asc,
@@ -179,18 +184,18 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
-    json_body: TrainingSetFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
+    body: TrainingSetFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
 ) -> Optional[List["TrainingSet"]]:
     """List TrainingSets
 
     Args:
-        offset (Union[Unset, None, int]):
-        limit (Union[Unset, None, int]):
-        asc (Union[Unset, None, bool]):
-        json_body (TrainingSetFilter):
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetFilter):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -203,7 +208,7 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
-            json_body=json_body,
+            body=body,
             offset=offset,
             limit=limit,
             asc=asc,

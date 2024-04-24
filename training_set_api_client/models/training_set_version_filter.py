@@ -33,6 +33,7 @@ class TrainingSetVersionFilter:
 
     def to_dict(self) -> Dict[str, Any]:
         project_id = self.project_id
+
         training_set_meta = self.training_set_meta.to_dict()
 
         meta = self.meta.to_dict()

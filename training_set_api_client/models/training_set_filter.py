@@ -26,6 +26,7 @@ class TrainingSetFilter:
 
     def to_dict(self) -> Dict[str, Any]:
         project_id = self.project_id
+
         meta: Union[Unset, Dict[str, Any]] = UNSET
         if not isinstance(self.meta, Unset):
             meta = self.meta.to_dict()

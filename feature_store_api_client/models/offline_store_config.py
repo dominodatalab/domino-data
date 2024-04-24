@@ -31,7 +31,6 @@ class OfflineStoreConfig:
         auth_types = []
         for auth_types_item_data in self.auth_types:
             auth_types_item = auth_types_item_data.value
-
             auth_types.append(auth_types_item)
 
         offline_store_type = self.offline_store_type.value

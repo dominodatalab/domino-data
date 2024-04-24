@@ -26,7 +26,9 @@ class Feature:
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
+
         dtype = self.dtype
+
         tags = self.tags.to_dict()
 
         field_dict: Dict[str, Any] = {}

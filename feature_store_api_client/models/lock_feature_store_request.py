@@ -26,8 +26,11 @@ class LockFeatureStoreRequest:
 
     def to_dict(self) -> Dict[str, Any]:
         feature_store_id = self.feature_store_id
+
         project_name = self.project_name
+
         user_name = self.user_name
+
         run_id = self.run_id
 
         field_dict: Dict[str, Any] = {}

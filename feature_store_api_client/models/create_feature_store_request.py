@@ -35,11 +35,13 @@ class CreateFeatureStoreRequest:
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
+
         offline_store_type = self.offline_store_type.value
 
         offline_store_config = self.offline_store_config.to_dict()
 
         git_repo = self.git_repo
+
         git_service_provider = self.git_service_provider.value
 
         field_dict: Dict[str, Any] = {}

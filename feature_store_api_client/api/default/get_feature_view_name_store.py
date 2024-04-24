@@ -13,15 +13,14 @@ from ...types import Response
 def _get_kwargs(
     feature_view_name: str,
 ) -> Dict[str, Any]:
-
-    pass
-
-    return {
+    _kwargs: Dict[str, Any] = {
         "method": "get",
-        "url": "/{featureViewName}/store".format(
-            featureViewName=feature_view_name,
+        "url": "/{feature_view_name}/store".format(
+            feature_view_name=feature_view_name,
         ),
     }
+
+    return _kwargs
 
 
 def _parse_response(

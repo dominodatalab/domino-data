@@ -24,7 +24,9 @@ class Entity:
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
+
         value_type = self.value_type
+
         join_key = self.join_key
 
         field_dict: Dict[str, Any] = {}

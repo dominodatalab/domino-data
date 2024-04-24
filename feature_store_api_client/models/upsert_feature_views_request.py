@@ -28,10 +28,10 @@ class UpsertFeatureViewsRequest:
         feature_views = []
         for feature_views_item_data in self.feature_views:
             feature_views_item = feature_views_item_data.to_dict()
-
             feature_views.append(feature_views_item)
 
         git_commit_hash = self.git_commit_hash
+
         project_id = self.project_id
 
         field_dict: Dict[str, Any] = {}

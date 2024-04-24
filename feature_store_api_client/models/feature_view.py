@@ -43,20 +43,21 @@ class FeatureView:
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
+
         name = self.name
+
         feature_store_id = self.feature_store_id
+
         metadata = self.metadata.to_dict()
 
         entities = []
         for entities_item_data in self.entities:
             entities_item = entities_item_data.to_dict()
-
             entities.append(entities_item)
 
         features = []
         for features_item_data in self.features:
             features_item = features_item_data.to_dict()
-
             features.append(features_item)
 
         tags = self.tags.to_dict()

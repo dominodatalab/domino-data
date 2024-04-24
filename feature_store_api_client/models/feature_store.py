@@ -44,7 +44,9 @@ class FeatureStore:
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
+
         owner_id = self.owner_id
+
         creation_time = self.creation_time.isoformat()
 
         offline_store_type = self.offline_store_type.value
@@ -52,6 +54,7 @@ class FeatureStore:
         offline_store_config = self.offline_store_config.to_dict()
 
         git_repo = self.git_repo
+
         git_service_provider = self.git_service_provider.value
 
         project_ids = self.project_ids

@@ -13,16 +13,15 @@ def _get_kwargs(
     training_set_name: str,
     number: int,
 ) -> Dict[str, Any]:
-
-    pass
-
-    return {
+    _kwargs: Dict[str, Any] = {
         "method": "delete",
-        "url": "/{trainingSetName}/{number}".format(
-            trainingSetName=training_set_name,
+        "url": "/{training_set_name}/{number}".format(
+            training_set_name=training_set_name,
             number=number,
         ),
     }
+
+    return _kwargs
 
 
 def _parse_response(
