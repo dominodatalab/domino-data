@@ -1,32 +1,47 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union
 
 import datetime
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
-from ..models.training_set_meta import TrainingSetMeta
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.training_set_meta import TrainingSetMeta
+
 
 T = TypeVar("T", bound="TrainingSet")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class TrainingSet:
-    """ """
+    """
+    Attributes:
+        id (str):
+        project_id (str):
+        name (str):
+        creation_time (datetime.datetime):
+        meta (TrainingSetMeta):
+        description (Union[Unset, str]):
+    """
 
     id: str
     project_id: str
     name: str
     creation_time: datetime.datetime
-    meta: TrainingSetMeta
+    meta: "TrainingSetMeta"
     description: Union[Unset, str] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
+
         project_id = self.project_id
+
         name = self.name
+
         creation_time = self.creation_time.isoformat()
 
         meta = self.meta.to_dict()
@@ -51,6 +66,8 @@ class TrainingSet:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.training_set_meta import TrainingSetMeta
+
         d = src_dict.copy()
         id = d.pop("id")
 

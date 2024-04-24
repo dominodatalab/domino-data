@@ -1,28 +1,39 @@
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.training_set_version_filter_meta import TrainingSetVersionFilterMeta
-from ..models.training_set_version_filter_training_set_meta import (
-    TrainingSetVersionFilterTrainingSetMeta,
-)
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.training_set_version_filter_meta import TrainingSetVersionFilterMeta
+    from ..models.training_set_version_filter_training_set_meta import (
+        TrainingSetVersionFilterTrainingSetMeta,
+    )
+
 
 T = TypeVar("T", bound="TrainingSetVersionFilter")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class TrainingSetVersionFilter:
-    """ """
+    """
+    Attributes:
+        project_id (str):
+        training_set_meta (TrainingSetVersionFilterTrainingSetMeta):
+        meta (TrainingSetVersionFilterMeta):
+        training_set_name (Union[Unset, str]):
+    """
 
     project_id: str
-    training_set_meta: TrainingSetVersionFilterTrainingSetMeta
-    meta: TrainingSetVersionFilterMeta
+    training_set_meta: "TrainingSetVersionFilterTrainingSetMeta"
+    meta: "TrainingSetVersionFilterMeta"
     training_set_name: Union[Unset, str] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         project_id = self.project_id
+
         training_set_meta = self.training_set_meta.to_dict()
 
         meta = self.meta.to_dict()
@@ -45,6 +56,11 @@ class TrainingSetVersionFilter:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.training_set_version_filter_meta import TrainingSetVersionFilterMeta
+        from ..models.training_set_version_filter_training_set_meta import (
+            TrainingSetVersionFilterTrainingSetMeta,
+        )
+
         d = src_dict.copy()
         project_id = d.pop("projectId")
 

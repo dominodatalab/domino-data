@@ -45,25 +45,34 @@ class AuthenticatedClient(Client):
                 "One of two authentication methods must be supplied (API Key or JWT Location)"  # noqa
             )
 
-    def get_headers(self) -> Dict[str, str]:
-        """Get headers with either JWT or API Key."""
+    def _get_auth_headers(self) -> Dict[str, str]:
+        """Get auth headers with either JWT or API Key."""
         if self.token_url is not None:
             try:
                 jwt = get_jwt_token(self.token_url)
             except httpx.HTTPStatusError:
                 pass
             else:
-                return {"Authorization": f"Bearer {jwt}", **self.headers}
+                return {"Authorization": f"Bearer {jwt}"}
 
         if self.token_file and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
-            return {"Authorization": f"Bearer {jwt}", **self.headers}
+            return {"Authorization": f"Bearer {jwt}"}
 
         if self.api_key:
-            return {"X-Domino-Api-Key": self.api_key, **self.headers}
+            return {"X-Domino-Api-Key": self.api_key}
 
-        return self.headers
+        return {}
+
+    def with_auth_headers(self) -> "AuthenticatedClient":
+        auth_headers = self._get_auth_headers()
+        if self._client is not None:
+            self._client.headers.update(auth_headers)
+        if self._async_client is not None:
+            self._async_client.headers.update(auth_headers)
+        self._headers.update(auth_headers)
+        return self
 
 
 @attr.s(auto_attribs=True)
@@ -73,13 +82,14 @@ class ProxyClient(AuthenticatedClient):
     client_source: Optional[str] = attr.ib()
     run_id: Optional[str] = attr.ib()
 
-    def get_headers(self) -> Dict[str, str]:
+    def _get_auth_headers(self) -> Dict[str, str]:
+        headers = {}
         if self.api_key:
-            self.headers["X-Domino-Api-Key"] = self.api_key
+            headers["X-Domino-Api-Key"] = self.api_key
         if self.client_source:
-            self.headers["X-Domino-Client-Source"] = self.client_source
+            headers["X-Domino-Client-Source"] = self.client_source
         if self.run_id:
-            self.headers["X-Domino-Run-Id"] = self.run_id
+            headers["X-Domino-Run-Id"] = self.run_id
 
         if self.token_url is not None:
             try:
@@ -87,15 +97,15 @@ class ProxyClient(AuthenticatedClient):
             except httpx.HTTPStatusError:
                 pass
             else:
-                self.headers["X-Domino-Jwt"] = jwt
-                return self.headers
+                headers["X-Domino-Jwt"] = jwt
+                return headers
 
         if self.token_file and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
-            self.headers["X-Domino-Jwt"] = jwt
+            headers["X-Domino-Jwt"] = jwt
 
-        return self.headers
+        return headers
 
 
 @attr.s(auto_attribs=True)

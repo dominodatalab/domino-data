@@ -1,13 +1,14 @@
 from typing import Any, Dict, List, Type, TypeVar, Union
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="LockFeatureStoreRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class LockFeatureStoreRequest:
     """
     Attributes:
@@ -21,12 +22,15 @@ class LockFeatureStoreRequest:
     project_name: Union[Unset, str] = UNSET
     user_name: Union[Unset, str] = UNSET
     run_id: Union[Unset, str] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         feature_store_id = self.feature_store_id
+
         project_name = self.project_name
+
         user_name = self.user_name
+
         run_id = self.run_id
 
         field_dict: Dict[str, Any] = {}

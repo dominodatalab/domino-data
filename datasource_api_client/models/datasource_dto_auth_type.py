@@ -2,16 +2,16 @@ from enum import Enum
 
 
 class DatasourceDtoAuthType(str, Enum):
-    AZUREBASIC = "AzureBasic"
-    BASIC = "Basic"
     AWSIAMBASIC = "AWSIAMBasic"
     AWSIAMBASICNOOVERRIDE = "AWSIAMBasicNoOverride"
     AWSIAMROLE = "AWSIAMRole"
     AWSIAMROLEWITHUSERNAME = "AWSIAMRoleWithUsername"
+    AZUREBASIC = "AzureBasic"
+    BASIC = "Basic"
+    CLIENTIDSECRET = "ClientIdSecret"
     GCPBASIC = "GCPBasic"
     OAUTH = "OAuth"
     OAUTHTOKEN = "OAuthToken"
-    CLIENTIDSECRET = "ClientIdSecret"
     PERSONALTOKEN = "PersonalToken"
 
     def __str__(self) -> str:

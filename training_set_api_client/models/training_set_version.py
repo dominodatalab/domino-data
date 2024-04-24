@@ -1,20 +1,41 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
 
 import datetime
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 from dateutil.parser import isoparse
 
-from ..models.monitoring_meta import MonitoringMeta
-from ..models.training_set_version_meta import TrainingSetVersionMeta
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.monitoring_meta import MonitoringMeta
+    from ..models.training_set_version_meta import TrainingSetVersionMeta
+
 
 T = TypeVar("T", bound="TrainingSetVersion")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class TrainingSetVersion:
-    """ """
+    """
+    Attributes:
+        id (str):
+        training_set_id (str):
+        training_set_name (str):
+        number (int):
+        creation_time (datetime.datetime):
+        path (str): relative file path
+        container_path (str): path in an execution relative to TrainingSet mount point
+        key_columns (List[str]):
+        target_columns (List[str]):
+        exclude_columns (List[str]):
+        all_columns (List[str]):
+        monitoring_meta (MonitoringMeta):
+        meta (TrainingSetVersionMeta):
+        pending (bool):
+        description (Union[Unset, str]):
+    """
 
     id: str
     training_set_id: str
@@ -27,21 +48,27 @@ class TrainingSetVersion:
     target_columns: List[str]
     exclude_columns: List[str]
     all_columns: List[str]
-    monitoring_meta: MonitoringMeta
-    meta: TrainingSetVersionMeta
+    monitoring_meta: "MonitoringMeta"
+    meta: "TrainingSetVersionMeta"
     pending: bool
     description: Union[Unset, str] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
+
         training_set_id = self.training_set_id
+
         training_set_name = self.training_set_name
+
         number = self.number
+
         creation_time = self.creation_time.isoformat()
 
         path = self.path
+
         container_path = self.container_path
+
         key_columns = self.key_columns
 
         target_columns = self.target_columns
@@ -55,6 +82,7 @@ class TrainingSetVersion:
         meta = self.meta.to_dict()
 
         pending = self.pending
+
         description = self.description
 
         field_dict: Dict[str, Any] = {}
@@ -84,6 +112,9 @@ class TrainingSetVersion:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.monitoring_meta import MonitoringMeta
+        from ..models.training_set_version_meta import TrainingSetVersionMeta
+
         d = src_dict.copy()
         id = d.pop("id")
 

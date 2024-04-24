@@ -1,18 +1,24 @@
 from typing import Any, Dict, List, Type, TypeVar, cast
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
 T = TypeVar("T", bound="MonitoringMeta")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class MonitoringMeta:
-    """ """
+    """
+    Attributes:
+        timestamp_columns (List[str]):
+        categorical_columns (List[str]):
+        ordinal_columns (List[str]):
+    """
 
     timestamp_columns: List[str]
     categorical_columns: List[str]
     ordinal_columns: List[str]
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         timestamp_columns = self.timestamp_columns

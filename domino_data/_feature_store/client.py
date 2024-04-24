@@ -25,7 +25,7 @@ from .exceptions import ServerException
 class FeatureStoreClient:
     """API client and bindings."""
 
-    client: Client = field(init=False, repr=False)
+    client: AuthenticatedClient = field(init=False, repr=False)
 
     api_key: Optional[str] = field(factory=lambda: os.getenv("DOMINO_USER_API_KEY"))
     token_file: Optional[str] = field(factory=lambda: os.getenv("DOMINO_TOKEN_FILE"))
@@ -34,16 +34,16 @@ class FeatureStoreClient:
         domino_host = os.getenv("DOMINO_API_HOST", os.getenv("DOMINO_USER_HOST", ""))
         token_url = os.getenv("DOMINO_API_PROXY")
 
-        self.client = cast(
-            Client,
-            AuthenticatedClient(
-                base_url=f"{domino_host}/featurestore",
-                api_key=self.api_key,
-                token_file=self.token_file,
-                token_url=token_url,
-                headers={"Accept": "application/json"},
-            ),
+        self.client = AuthenticatedClient(
+            base_url=f"{domino_host}/featurestore",
+            api_key=self.api_key,
+            token_file=self.token_file,
+            token_url=token_url,
+            headers={"Accept": "application/json"},
         )
+
+    def _get_client(self) -> Client:
+        return cast(Client, self.client.with_auth_headers())
 
     def post_feature_views(
         self,
@@ -67,8 +67,8 @@ class FeatureStoreClient:
             project_id=project_id,
         )
         response = post_featureview.sync_detailed(
-            client=self.client,
-            json_body=request,
+            client=self._get_client(),
+            body=request,
         )
 
         if response.status_code != 200:
@@ -87,8 +87,8 @@ class FeatureStoreClient:
             ServerException: if lock fails
         """
         response = post_lock.sync_detailed(
-            client=self.client,
-            json_body=lock_request,
+            client=self._get_client(),
+            body=lock_request,
         )
         if response.status_code != 200:
             _raise_response_exn(response, "could not lock feature store")
@@ -107,8 +107,8 @@ class FeatureStoreClient:
             ServerException: if unlock fails
         """
         response = post_unlock.sync_detailed(
-            client=self.client,
-            json_body=unlock_request,
+            client=self._get_client(),
+            body=unlock_request,
         )
         if response.status_code != 200:
             _raise_response_exn(response, "could not unlock feature store")

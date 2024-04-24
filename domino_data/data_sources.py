@@ -608,7 +608,7 @@ class DataSourceClient:
             run_id=run_id,
             token_file=self.token_file,
             token_url=self.token_url,
-            timeout=5.0,
+            timeout=httpx.Timeout(5.0),
             verify_ssl=True,
         )
         self.domino = AuthenticatedClient(
@@ -617,7 +617,7 @@ class DataSourceClient:
             token_file=self.token_file,
             token_url=self.token_url,
             headers=ACCEPT_HEADERS,
-            timeout=20.0,
+            timeout=httpx.Timeout(20.0),
             verify_ssl=True,
         )
 
@@ -651,10 +651,10 @@ class DataSourceClient:
         """
         logger.info("get_datasource", datasource_name=name)
 
-        run_id = os.getenv(DOMINO_RUN_ID)
+        run_id = os.getenv(DOMINO_RUN_ID, "")
         response = get_datasource_by_name.sync_detailed(
             name,
-            client=self.domino,
+            client=self.domino.with_auth_headers(),
             run_id=run_id,
         )
         if response.status_code == 200:
@@ -701,8 +701,8 @@ class DataSourceClient:
         logger.info("list_keys", datasource_id=datasource_id, prefix=prefix, page_size=page_size)
 
         response = list_keys.sync_detailed(
-            client=self.proxy_http,
-            json_body=ListRequest(
+            client=self.proxy_http.with_auth_headers(),
+            body=ListRequest(
                 datasource_id=datasource_id,
                 prefix=prefix,
                 page_size=page_size,
@@ -748,8 +748,8 @@ class DataSourceClient:
         logger.info("get_key_url", datasource_id=datasource_id, object_key=object_key)
 
         response = get_key_url.sync_detailed(
-            client=self.proxy_http,
-            json_body=KeyRequest(
+            client=self.proxy_http.with_auth_headers(),
+            body=KeyRequest(
                 datasource_id=datasource_id,
                 object_key=object_key,
                 is_read_write=is_read_write,
@@ -793,7 +793,7 @@ class DataSourceClient:
 
         try:
             log_metric.sync_detailed(
-                client=self.proxy_http,
+                client=self.proxy_http.with_auth_headers(),
                 t=type_,
                 b=bytes_processed,
                 m=mode,

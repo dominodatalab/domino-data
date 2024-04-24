@@ -1,17 +1,21 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.create_feature_store_request_offline_store_config import (
-    CreateFeatureStoreRequestOfflineStoreConfig,
-)
 from ..models.git_provider_name import GitProviderName
 from ..models.offline_store_type import OfflineStoreType
+
+if TYPE_CHECKING:
+    from ..models.create_feature_store_request_offline_store_config import (
+        CreateFeatureStoreRequestOfflineStoreConfig,
+    )
+
 
 T = TypeVar("T", bound="CreateFeatureStoreRequest")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class CreateFeatureStoreRequest:
     """
     Attributes:
@@ -24,18 +28,20 @@ class CreateFeatureStoreRequest:
 
     name: str
     offline_store_type: OfflineStoreType
-    offline_store_config: CreateFeatureStoreRequestOfflineStoreConfig
+    offline_store_config: "CreateFeatureStoreRequestOfflineStoreConfig"
     git_repo: str
     git_service_provider: GitProviderName
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
+
         offline_store_type = self.offline_store_type.value
 
         offline_store_config = self.offline_store_config.to_dict()
 
         git_repo = self.git_repo
+
         git_service_provider = self.git_service_provider.value
 
         field_dict: Dict[str, Any] = {}
@@ -54,6 +60,10 @@ class CreateFeatureStoreRequest:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.create_feature_store_request_offline_store_config import (
+            CreateFeatureStoreRequestOfflineStoreConfig,
+        )
+
         d = src_dict.copy()
         name = d.pop("name")
 

@@ -1,8 +1,11 @@
 from typing import Any, Dict, List, Optional, Union
 
+from http import HTTPStatus
+
 import httpx
 
-from ...client import Client
+from ... import errors
+from ...client import AuthenticatedClient, Client
 from ...models.training_set_version import TrainingSetVersion
 from ...models.training_set_version_filter import TrainingSetVersionFilter
 from ...types import UNSET, Response, Unset
@@ -10,39 +13,42 @@ from ...types import UNSET, Response, Unset
 
 def _get_kwargs(
     *,
-    client: Client,
-    json_body: TrainingSetVersionFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
+    body: TrainingSetVersionFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
 ) -> Dict[str, Any]:
-    url = "{}/version/find".format(client.base_url)
+    headers: Dict[str, Any] = {}
 
-    headers: Dict[str, Any] = client.get_headers()
-    cookies: Dict[str, Any] = client.get_cookies()
+    params: Dict[str, Any] = {}
 
-    params: Dict[str, Any] = {
-        "offset": offset,
-        "limit": limit,
-        "asc": asc,
-    }
+    params["offset"] = offset
+
+    params["limit"] = limit
+
+    params["asc"] = asc
+
     params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
-    json_json_body = json_body.to_dict()
-
-    return {
-        "url": url,
-        "headers": headers,
-        "cookies": cookies,
-        "timeout": client.get_timeout(),
-        "json": json_json_body,
+    _kwargs: Dict[str, Any] = {
+        "method": "post",
+        "url": "/version/find",
         "params": params,
-        "verify": client.verify_ssl,
     }
 
+    _body = body.to_dict()
 
-def _parse_response(*, response: httpx.Response) -> Optional[List[TrainingSetVersion]]:
-    if response.status_code == 200:
+    _kwargs["json"] = _body
+    headers["Content-Type"] = "application/json"
+
+    _kwargs["headers"] = headers
+    return _kwargs
+
+
+def _parse_response(
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Optional[List["TrainingSetVersion"]]:
+    if response.status_code == HTTPStatus.OK:
         response_200 = []
         _response_200 = response.json()
         for response_200_item_data in _response_200:
@@ -51,54 +57,88 @@ def _parse_response(*, response: httpx.Response) -> Optional[List[TrainingSetVer
             response_200.append(response_200_item)
 
         return response_200
-    return None
+    if client.raise_on_unexpected_status:
+        raise errors.UnexpectedStatus(response.status_code, response.content)
+    else:
+        return None
 
 
-def _build_response(*, response: httpx.Response) -> Response[List[TrainingSetVersion]]:
+def _build_response(
+    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
+) -> Response[List["TrainingSetVersion"]]:
     return Response(
-        status_code=response.status_code,
+        status_code=HTTPStatus(response.status_code),
         content=response.content,
         headers=response.headers,
-        parsed=_parse_response(response=response),
+        parsed=_parse_response(client=client, response=response),
     )
 
 
 def sync_detailed(
     *,
-    client: Client,
-    json_body: TrainingSetVersionFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
-) -> Response[List[TrainingSetVersion]]:
+    client: Union[AuthenticatedClient, Client],
+    body: TrainingSetVersionFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
+) -> Response[List["TrainingSetVersion"]]:
+    """List TrainingSetVersions
+
+    Args:
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetVersionFilter):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[List['TrainingSetVersion']]
+    """
+
     kwargs = _get_kwargs(
-        client=client,
-        json_body=json_body,
+        body=body,
         offset=offset,
         limit=limit,
         asc=asc,
     )
 
-    response = httpx.post(
+    response = client.get_httpx_client().request(
         **kwargs,
     )
 
-    return _build_response(response=response)
+    return _build_response(client=client, response=response)
 
 
 def sync(
     *,
-    client: Client,
-    json_body: TrainingSetVersionFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
-) -> Optional[List[TrainingSetVersion]]:
-    """ """
+    client: Union[AuthenticatedClient, Client],
+    body: TrainingSetVersionFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
+) -> Optional[List["TrainingSetVersion"]]:
+    """List TrainingSetVersions
+
+    Args:
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetVersionFilter):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        List['TrainingSetVersion']
+    """
 
     return sync_detailed(
         client=client,
-        json_body=json_body,
+        body=body,
         offset=offset,
         limit=limit,
         asc=asc,
@@ -107,40 +147,68 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Client,
-    json_body: TrainingSetVersionFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
-) -> Response[List[TrainingSetVersion]]:
+    client: Union[AuthenticatedClient, Client],
+    body: TrainingSetVersionFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
+) -> Response[List["TrainingSetVersion"]]:
+    """List TrainingSetVersions
+
+    Args:
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetVersionFilter):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        Response[List['TrainingSetVersion']]
+    """
+
     kwargs = _get_kwargs(
-        client=client,
-        json_body=json_body,
+        body=body,
         offset=offset,
         limit=limit,
         asc=asc,
     )
 
-    async with httpx.AsyncClient() as _client:
-        response = await _client.post(**kwargs)
+    response = await client.get_async_httpx_client().request(**kwargs)
 
-    return _build_response(response=response)
+    return _build_response(client=client, response=response)
 
 
 async def asyncio(
     *,
-    client: Client,
-    json_body: TrainingSetVersionFilter,
-    offset: Union[Unset, None, int] = UNSET,
-    limit: Union[Unset, None, int] = UNSET,
-    asc: Union[Unset, None, bool] = UNSET,
-) -> Optional[List[TrainingSetVersion]]:
-    """ """
+    client: Union[AuthenticatedClient, Client],
+    body: TrainingSetVersionFilter,
+    offset: Union[Unset, int] = UNSET,
+    limit: Union[Unset, int] = UNSET,
+    asc: Union[Unset, bool] = UNSET,
+) -> Optional[List["TrainingSetVersion"]]:
+    """List TrainingSetVersions
+
+    Args:
+        offset (Union[Unset, int]):
+        limit (Union[Unset, int]):
+        asc (Union[Unset, bool]):
+        body (TrainingSetVersionFilter):
+
+    Raises:
+        errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
+        httpx.TimeoutException: If the request takes longer than Client.timeout.
+
+    Returns:
+        List['TrainingSetVersion']
+    """
 
     return (
         await asyncio_detailed(
             client=client,
-            json_body=json_body,
+            body=body,
             offset=offset,
             limit=limit,
             asc=asc,

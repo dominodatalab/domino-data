@@ -1,13 +1,16 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.feature_tags import FeatureTags
+if TYPE_CHECKING:
+    from ..models.feature_tags import FeatureTags
+
 
 T = TypeVar("T", bound="Feature")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class Feature:
     """
     Attributes:
@@ -18,12 +21,14 @@ class Feature:
 
     name: str
     dtype: str
-    tags: FeatureTags
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    tags: "FeatureTags"
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         name = self.name
+
         dtype = self.dtype
+
         tags = self.tags.to_dict()
 
         field_dict: Dict[str, Any] = {}
@@ -40,6 +45,8 @@ class Feature:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.feature_tags import FeatureTags
+
         d = src_dict.copy()
         name = d.pop("name")
 

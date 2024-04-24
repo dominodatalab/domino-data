@@ -1,17 +1,21 @@
-from typing import Any, Dict, List, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
 
-import attr
+from attrs import define as _attrs_define
+from attrs import field as _attrs_field
 
-from ..models.entity import Entity
-from ..models.feature import Feature
-from ..models.feature_view_tags import FeatureViewTags
-from ..models.metadata import Metadata
 from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.entity import Entity
+    from ..models.feature import Feature
+    from ..models.feature_view_tags import FeatureViewTags
+    from ..models.metadata import Metadata
+
 
 T = TypeVar("T", bound="FeatureView")
 
 
-@attr.s(auto_attribs=True)
+@_attrs_define
 class FeatureView:
     """
     Attributes:
@@ -19,8 +23,8 @@ class FeatureView:
         name (str):
         feature_store_id (str):
         metadata (Metadata):
-        entities (List[Entity]):
-        features (List[Feature]):
+        entities (List['Entity']):
+        features (List['Feature']):
         tags (FeatureViewTags):
         project_ids (List[str]):
         ttl (Union[Unset, int]):
@@ -29,30 +33,31 @@ class FeatureView:
     id: str
     name: str
     feature_store_id: str
-    metadata: Metadata
-    entities: List[Entity]
-    features: List[Feature]
-    tags: FeatureViewTags
+    metadata: "Metadata"
+    entities: List["Entity"]
+    features: List["Feature"]
+    tags: "FeatureViewTags"
     project_ids: List[str]
     ttl: Union[Unset, int] = UNSET
-    additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         id = self.id
+
         name = self.name
+
         feature_store_id = self.feature_store_id
+
         metadata = self.metadata.to_dict()
 
         entities = []
         for entities_item_data in self.entities:
             entities_item = entities_item_data.to_dict()
-
             entities.append(entities_item)
 
         features = []
         for features_item_data in self.features:
             features_item = features_item_data.to_dict()
-
             features.append(features_item)
 
         tags = self.tags.to_dict()
@@ -82,6 +87,11 @@ class FeatureView:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.entity import Entity
+        from ..models.feature import Feature
+        from ..models.feature_view_tags import FeatureViewTags
+        from ..models.metadata import Metadata
+
         d = src_dict.copy()
         id = d.pop("id")
 
