@@ -591,7 +591,7 @@ class DataSourceClient:
         proxy_host = os.getenv(DOMINO_DATASOURCE_PROXY_HOST, "")
 
         client_source = os.getenv(DOMINO_CLIENT_SOURCE, "Python")
-        run_id = os.getenv(DOMINO_RUN_ID)
+        run_id = os.getenv(DOMINO_RUN_ID, "")
 
         logger.info(
             "initializing datasource client with hosts",
@@ -624,7 +624,7 @@ class DataSourceClient:
     def _set_proxy(self):
         client_source = os.getenv(DOMINO_CLIENT_SOURCE, "Python")
         flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
-        run_id = os.getenv(DOMINO_RUN_ID)
+        run_id = os.getenv(DOMINO_RUN_ID, "")
         self.proxy = flight.FlightClient(
             flight_host,
             middleware=[
