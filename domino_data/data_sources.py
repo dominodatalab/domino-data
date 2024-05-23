@@ -653,7 +653,7 @@ class DataSourceClient:
         """
         logger.info("get_datasource", datasource_name=name)
 
-        run_id = os.getenv(DOMINO_RUN_ID, "")
+        run_id = os.getenv(DOMINO_RUN_ID)
         response = get_datasource_by_name.sync_detailed(
             name,
             client=self.domino.with_auth_headers(),
