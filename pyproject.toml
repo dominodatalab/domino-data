@@ -50,7 +50,7 @@ pyarrow = ">=15.0.2"
 loguru = "^0.5.3"
 backoff = ">=1.11.1"
 bson = "^0.5.10"
-urllib3 = "^1.26.16"
+urllib3 = ">=1.26.19,<3"
 
 [tool.poetry.group.dev.dependencies]
 Sphinx = "^5.3.0"
