@@ -451,7 +451,6 @@ class ObjectStoreDatasource(Datasource):
                 key=key,
             )
             for key in keys
-            if not key.endswith("/")
         ]
 
     def get_key_url(self, object_key: str, is_read_write: bool = False) -> str:
