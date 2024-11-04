@@ -349,7 +349,9 @@ class Datasource:
             DatasourceDtoDataSourceType.ADLSCONFIG.value,
             DatasourceDtoDataSourceType.AZUREBLOBSTORAGECONFIG.value,
         ):
-            self._httpx = httpx.Client(headers=ADLS_HEADERS, verify=context, timeout=DEFAULT_TIMEOUT_CONFIG)
+            self._httpx = httpx.Client(
+                headers=ADLS_HEADERS, verify=context, timeout=DEFAULT_TIMEOUT_CONFIG
+            )
         elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
             self._httpx = httpx.Client(verify=False, timeout=DEFAULT_TIMEOUT_CONFIG)  # nosec
         else:
