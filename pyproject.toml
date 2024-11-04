@@ -83,7 +83,7 @@ feast = ">=0.36.0"
 GitPython = "^3.1.41"
 
 [tool.poetry.group.vectordbs.dependencies]
-pinecone-client = ">=2.2.4"
+pinecone-client = ">=2.2.4,<5"
 
 [tool.black]
 # https://github.com/psf/black
