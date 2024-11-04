@@ -7,6 +7,7 @@ from os.path import exists
 import attr
 import backoff
 import httpx
+from httpx._config import DEFAULT_TIMEOUT_CONFIG
 from pyarrow import flight
 
 from datasource_api_client.client import Client
@@ -26,7 +27,7 @@ def get_jwt_token(url: str) -> str:
     Raises:
         HTTPStatusError: if the API returns an error
     """
-    resp = httpx.get(f"{url}/access-token")
+    resp = httpx.get(f"{url}/access-token", timeout=DEFAULT_TIMEOUT_CONFIG)
     resp.raise_for_status()
     return resp.read().decode("ascii")
 
