@@ -11,6 +11,7 @@ import backoff
 import httpx
 import pandas
 import urllib3
+from httpx._config import DEFAULT_TIMEOUT_CONFIG
 from pyarrow import ArrowException, flight, parquet
 
 import domino_data.configuration_gen
@@ -348,11 +349,11 @@ class Datasource:
             DatasourceDtoDataSourceType.ADLSCONFIG.value,
             DatasourceDtoDataSourceType.AZUREBLOBSTORAGECONFIG.value,
         ):
-            self._httpx = httpx.Client(headers=ADLS_HEADERS, verify=context)
+            self._httpx = httpx.Client(headers=ADLS_HEADERS, verify=context, timeout=DEFAULT_TIMEOUT_CONFIG)
         elif self.datasource_type == DatasourceDtoDataSourceType.GENERICS3CONFIG.value:
-            self._httpx = httpx.Client(verify=False)  # nosec
+            self._httpx = httpx.Client(verify=False, timeout=DEFAULT_TIMEOUT_CONFIG)  # nosec
         else:
-            self._httpx = httpx.Client(verify=context)
+            self._httpx = httpx.Client(verify=context, timeout=DEFAULT_TIMEOUT_CONFIG)
         return self._httpx
 
     def pool_manager(self) -> urllib3.PoolManager:
