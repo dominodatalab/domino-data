@@ -8,8 +8,6 @@ Domino Data API
 
 This Python library lets you access tabular and file-based data using consistent access patterns and SQL-based access to tabular data.  Using this method, there is no need to restart a workload to install drivers. Connectors can be queried on the fly. Results are available as dataframe abstractions for popular libraries.
 
-.. NOTE:: This is a preview feature, not officially supported.
-
 Reference
 =========
 
