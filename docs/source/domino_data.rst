@@ -1,8 +1,6 @@
 Domino Data API
 ===============
 
-.. NOTE:: These APIs are a preview feature, not officially supported.
-
 Training Set
 ------------
 
