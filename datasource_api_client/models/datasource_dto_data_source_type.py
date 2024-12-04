@@ -7,6 +7,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     BIGQUERYCONFIG = "BigQueryConfig"
     CLICKHOUSECONFIG = "ClickHouseConfig"
     DATABRICKSCONFIG = "DatabricksConfig"
+    DATASETCONFIG = "DatasetConfig"
     DB2CONFIG = "DB2Config"
     DRUIDCONFIG = "DruidConfig"
     GCSCONFIG = "GCSConfig"
