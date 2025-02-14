@@ -66,6 +66,7 @@ class ConfigElem(Enum):
     CATALOG = "catalog"
     CLUSTER = "cluster"
     DATABASE = "database"
+    DATASETID = "datasetID"
     EXTRAPROPERTIES = "extraProperties"
     HOST = "host"
     HTTPPATH = "httpPath"
@@ -79,6 +80,7 @@ class ConfigElem(Enum):
     WAREHOUSE = "warehouse"
     CATALOGCODE = "catalogCode"
     ENVIRONMENT = "environment"
+    SNAPSHOPTID = "snapshotID"
 
 
 class CredElem(Enum):
@@ -160,6 +162,14 @@ class DatabricksConfig(Config):
     schema: Optional[str] = _config(elem=ConfigElem.SCHEMA)
 
     personal_access_token: Optional[str] = _cred(elem=CredElem.PERSONALACCESSTOKEN)
+
+
+@attr.s(auto_attribs=True)
+class DatasetConfig(Config):
+    """DatasetConfig datasource configuration."""
+
+    dataset_id: Optional[str] = _config(elem=ConfigElem.DATASETID)
+    snapshot_id: Optional[str] = _config(elem=ConfigElem.SNAPSHOPTID)
 
 
 @attr.s(auto_attribs=True)
@@ -411,6 +421,7 @@ DatasourceConfig = Union[
     BigQueryConfig,
     ClickHouseConfig,
     DatabricksConfig,
+    DatasetConfig,
     DB2Config,
     DruidConfig,
     GCSConfig,
@@ -445,6 +456,7 @@ DATASOURCES = {
     DatasourceDtoDataSourceType.BIGQUERYCONFIG: "TabularDatasource",
     DatasourceDtoDataSourceType.CLICKHOUSECONFIG: "TabularDatasource",
     DatasourceDtoDataSourceType.DATABRICKSCONFIG: "TabularDatasource",
+    DatasourceDtoDataSourceType.DATASETCONFIG: "ObjectStoreDatasource",
     DatasourceDtoDataSourceType.DB2CONFIG: "TabularDatasource",
     DatasourceDtoDataSourceType.DRUIDCONFIG: "TabularDatasource",
     DatasourceDtoDataSourceType.GCSCONFIG: "ObjectStoreDatasource",

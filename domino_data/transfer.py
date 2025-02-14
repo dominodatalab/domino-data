@@ -43,12 +43,14 @@ class BlobTransfer:
         url: str,
         destination: BinaryIO,
         max_workers: int = MAX_WORKERS,
+        headers: Optional[dict] = None,
         # Recommended chunk size by Amazon S3
         # See https://docs.aws.amazon.com/whitepapers/latest/s3-optimizing-performance-best-practices/use-byte-range-fetches.html  # noqa
         chunk_size: int = 16 * MB,
         http: Optional[urllib3.PoolManager] = None,
     ):
         self.url = url
+        self.headers = headers or {}
         self.http = http or urllib3.PoolManager()
         self.destination = destination
         self.content_size = self._get_content_size()
@@ -59,7 +61,9 @@ class BlobTransfer:
             pool.map(self._get_part, split_range(0, self.content_size, chunk_size))
 
     def _get_content_size(self) -> int:
-        res = self.http.request("GET", self.url, headers={"Range": "bytes=0-0"})
+        headers = self.headers.copy()
+        headers["Range"] = "bytes=0-0"
+        res = self.http.request("GET", self.url, headers=headers)
         return int(res.headers["Content-Range"].partition("/")[-1])
 
     def _get_part(self, block: Tuple[int, int]) -> None:
@@ -68,7 +72,8 @@ class BlobTransfer:
         Args:
             block: block of bytes to download
         """
-        headers = {"Range": f"bytes={block[0]}-{block[1]}"}
+        headers = self.headers.copy()
+        headers["Range"] = f"bytes={block[0]}-{block[1]}"
         res = self.http.request("GET", self.url, headers=headers, preload_content=False)
 
         buffer = io.BytesIO()

@@ -39,6 +39,7 @@ class FeatureStoreClient:
             api_key=self.api_key,
             token_file=self.token_file,
             token_url=token_url,
+            token=None,
             headers={"Accept": "application/json"},
         )
 
