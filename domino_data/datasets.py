@@ -1,6 +1,6 @@
 """Datasource module."""
 
-from typing import Any, List, Optional, cast
+from typing import Any, List, Optional
 
 import os
 from os.path import exists
