@@ -9,9 +9,9 @@ import attr
 import backoff
 import httpx
 import urllib3
-from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 
 import domino_data.configuration_gen
+from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 
 from .auth import AuthenticatedClient, get_jwt_token
 from .logging import logger
@@ -324,7 +324,7 @@ class DatasetClient:
             prefix=prefix,
             page_size=page_size,
             config={},
-            credential={}
+            credential={},
         )
 
     @backoff.on_exception(backoff.expo, UnauthenticatedError, max_time=60)
@@ -348,4 +348,10 @@ class DatasetClient:
         """
         logger.info("get_file_url", dataset_unique_name=dataset_unique_name, file_name=file_name)
 
-        return self.datasource_client.get_key_url(datasource_id=dataset_unique_name, object_key=file_name, is_read_write=False, config={}, credential={})
+        return self.datasource_client.get_key_url(
+            datasource_id=dataset_unique_name,
+            object_key=file_name,
+            is_read_write=False,
+            config={},
+            credential={},
+        )

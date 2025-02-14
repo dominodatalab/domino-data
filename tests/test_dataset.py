@@ -10,6 +10,7 @@ import pytest
 from domino_data import configuration_gen as ds_gen
 from domino_data import datasets as ds
 
+
 # Get Dataset
 @pytest.mark.vcr
 def test_get_dataset():
@@ -18,6 +19,7 @@ def test_get_dataset():
     dataset_test = client.get_dataset("dataset-test")
 
     assert isinstance(dataset_test, ds.Dataset)
+
 
 @pytest.mark.vcr
 def test_get_dataset_with_jwt(monkeypatch):
@@ -29,6 +31,7 @@ def test_get_dataset_with_jwt(monkeypatch):
     assert client.token_file is not None
 
     client.get_dataset("dataset-test")
+
 
 @pytest.mark.vcr
 def test_get_dataset_does_not_exist():
@@ -104,6 +107,7 @@ def test_get_file_url():
     url = client.get_file_url("dataset-test", "aFile")
 
     assert "aFile" in url
+
 
 @pytest.mark.vcr
 def test_get_file_url_not_found():
