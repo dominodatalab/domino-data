@@ -584,6 +584,7 @@ class DataSourceClient:
     api_key: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_USER_API_KEY))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_TOKEN_FILE))
     token_url: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_API_PROXY))
+    token: Optional[str] = attr.ib(default=None)
 
     def __attrs_post_init__(self):
         flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
@@ -610,6 +611,7 @@ class DataSourceClient:
             run_id=run_id,
             token_file=self.token_file,
             token_url=self.token_url,
+            token=self.token,
             timeout=httpx.Timeout(5.0),
             verify_ssl=True,
         )
@@ -618,6 +620,7 @@ class DataSourceClient:
             api_key=self.api_key,
             token_file=self.token_file,
             token_url=self.token_url,
+            token=self.token,
             headers=ACCEPT_HEADERS,
             timeout=httpx.Timeout(20.0),
             verify_ssl=True,
@@ -634,6 +637,7 @@ class DataSourceClient:
                     self.api_key,
                     self.token_file,
                     self.token_url,
+                    self.token,
                 ),
                 MetaMiddlewareFactory(client_source=client_source, run_id=run_id),
             ],

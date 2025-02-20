@@ -1,0 +1,48 @@
+{
+   "id":"61677736fa49a22d0025804d",
+   "name":"dataset-test",
+   "description":"Generic dataset data source for system tests",
+   "ownerId":"61677430fa49a22d00258025",
+   "ownerInfo":{
+      "ownerName":"system-test",
+      "ownerEmail":"systester@dominodatalab.com",
+      "isOwnerAdmin":false
+   },
+   "addedBy":{
+      "61677649fa49a22d00258039":"system-test"
+   },
+   "authType":"NoAuth",
+   "dataSourceType":"DatasetConfig",
+   "config":{
+      "snapshotID":"67acfad445df4d5f4d143e9d",
+      "datasetID":"67acfad445df4d5f4d143e9e"
+   },
+   "credentialType":"Individual",
+   "lastUpdated":1634250138905,
+   "lastUpdatedBy":"6167728efa49a22d0025801c",
+   "lastAccessed":{
+      "61677649fa49a22d00258039":1634170729467
+   },
+   "addedToProjectTimeMap":{
+      "61677649fa49a22d00258039":1634170729467
+   },
+   "isEveryone":false,
+   "userIds":[
+      "6167728efa49a22d0025801c"
+   ],
+   "projectIds":[
+      "61677649fa49a22d00258039"
+   ],
+   "adminInfo":{
+      "projectNames":{
+
+      },
+      "projectIdOwnerUsernameMap":{
+
+      },
+      "projectLastActiveMap":{
+         "61677649fa49a22d00258039":"2021-10-14T00:18:45.051Z"
+      }
+   },
+   "status":"Active"
+}

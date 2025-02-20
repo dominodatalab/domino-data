@@ -39,15 +39,18 @@ class AuthenticatedClient(Client):
     api_key: Optional[str] = attr.ib()
     token_file: Optional[str] = attr.ib()
     token_url: Optional[str] = attr.ib()
+    token: Optional[str] = attr.ib()
 
     def __attrs_post_init__(self):
-        if not (self.api_key or self.token_file or self.token_url):
+        if not (self.api_key or self.token_file or self.token_url or self.token):
             raise Exception(
                 "One of two authentication methods must be supplied (API Key or JWT Location)"  # noqa
             )
 
     def _get_auth_headers(self) -> Dict[str, str]:
         """Get auth headers with either JWT or API Key."""
+        if self.token is not None:
+            return {"Authorization": f"Bearer {self.token}"}
         if self.token_url is not None:
             try:
                 jwt = get_jwt_token(self.token_url)
@@ -91,6 +94,8 @@ class ProxyClient(AuthenticatedClient):
             headers["X-Domino-Client-Source"] = self.client_source
         if self.run_id:
             headers["X-Domino-Run-Id"] = self.run_id
+        if self.token is not None:
+            headers["Authorization"] = f"Bearer {self.token}"
 
         if self.token_url is not None:
             try:
@@ -116,9 +121,10 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     api_key: Optional[str] = attr.ib()
     token_file: Optional[str] = attr.ib()
     token_url: Optional[str] = attr.ib()
+    token: Optional[str] = attr.ib()
 
     def __attrs_post_init__(self):
-        if not (self.api_key or self.token_file or self.token_url):
+        if not (self.api_key or self.token_file or self.token_url or self.token):
             raise Exception(
                 "One of two authentication methods must be supplied (API Key or JWT Location)"  # noqa
             )
@@ -126,6 +132,8 @@ class AuthMiddlewareFactory(flight.ClientMiddlewareFactory):
     def start_call(self, _):
         """Called at the start of an RPC."""
         jwt = None
+        if self.token is not None:
+            return {"Authorization": f"Bearer {self.token}"}
 
         if self.token_url is not None:
             try:

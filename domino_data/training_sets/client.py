@@ -431,6 +431,7 @@ def _get_client() -> AuthenticatedClient:
         api_key=api_key,
         token_file=token_file,
         token_url=token_url,
+        token=None,
     ).with_auth_headers()
 
 

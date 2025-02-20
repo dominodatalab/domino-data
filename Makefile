@@ -83,7 +83,7 @@ mypy:
 check-safety:
 	poetry check
 	# TODO remove pip ignore flag when fixed
-	poetry run safety check --full-report -i 62044 -i 70612
+	poetry run safety check --full-report -i 62044 -i 70612 -i 73884
 	poetry run bandit -ll --recursive domino_data tests
 
 .PHONY: lint

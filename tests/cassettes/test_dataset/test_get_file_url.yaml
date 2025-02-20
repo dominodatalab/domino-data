@@ -1,0 +1,86 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/dataset-test
+  response:
+    content: '{"id":"61677736fa49a22d0025804d","name":"dataset-test","description":"Generic dataset data source for system tests","ownerId":"61677430fa49a22d00258025","ownerInfo":{"ownerName":"system-test","ownerEmail":"systester@dominodatalab.com","isOwnerAdmin":false},"addedBy":{"61677649fa49a22d00258039":"system-test"},"authType": "NoAuth","dataSourceType":"DatasetConfig","config":{"snapshotID":"67acfad445df4d5f4d143e9d","datasetID":"67acfad445df4d5f4d143e9e"},"credentialType":"Individual","lastUpdated":1634250138905,"lastUpdatedBy":"6167728efa49a22d0025801c","lastAccessed":{"61677649fa49a22d00258039":1634170729467},"addedToProjectTimeMap":{"61677649fa49a22d00258039":1634170729467},"isEveryone":false,"userIds":["6167728efa49a22d0025801c"],"projectIds":["61677649fa49a22d00258039"],"adminInfo":{"projectNames":{},"projectIdOwnerUsernameMap":{},"projectLastActiveMap":{"61677649fa49a22d00258039":"2021-10-14T00:18:45.051Z"}},"status":"Active"}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 14 Oct 2021 22:22:33 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '11'
+      Set-Cookie:
+      - dominoSession=aeecbe42-824c-4125-9019-fadd18b6b74c; Max-Age=78840000; Expires=Sun,
+        14 Apr 2024 10:22:33 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"datasourceId": "61677736fa49a22d0025804d", "isReadWrite": false, "objectKey": "aFile", "configOverwrites": {}, "credentialOverwrites": {}}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '138'
+      content-type:
+      - application/json
+      host:
+      - localhost:8000
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: POST
+    uri: http://localhost:8000/objectstore/key
+  response:
+    content: '"https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4v4/datasets/objectstore/datasets/67acfad445df4d5f4d143e9e/snapshots/67acfad445df4d5f4d143e9d/keys/aFile"'
+    headers:
+      Content-Length:
+      - '346'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 15 Oct 2021 17:23:26 GMT
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1

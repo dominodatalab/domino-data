@@ -212,6 +212,7 @@ components:
             - AWSIAMRole
             - AWSIAMRoleWithUsername
             - GCPBasic
+            - NoAuth
             - OAuth
             - OAuthToken
             - ClientIdSecret
@@ -226,6 +227,7 @@ components:
             - BigQueryConfig
             - ClickHouseConfig
             - DatabricksConfig
+            - DatasetConfig
             - DB2Config
             - DruidConfig
             - GCSConfig
