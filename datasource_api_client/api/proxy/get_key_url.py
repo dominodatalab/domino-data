@@ -1,6 +1,5 @@
-from typing import Any, Dict, Optional, Union, cast
-
 from http import HTTPStatus
+from typing import Any, Dict, Optional, Union, cast
 
 import httpx
 
@@ -34,14 +33,14 @@ def _get_kwargs(
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
 ) -> Optional[Union[ProxyErrorResponse, str]]:
-    if response.status_code == HTTPStatus.OK:
+    if response.status_code == 200:
         response_200 = cast(str, response.json())
         return response_200
-    if response.status_code == HTTPStatus.BAD_REQUEST:
+    if response.status_code == 400:
         response_400 = ProxyErrorResponse.from_dict(response.json())
 
         return response_400
-    if response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
+    if response.status_code == 500:
         response_500 = ProxyErrorResponse.from_dict(response.json())
 
         return response_500

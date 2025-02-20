@@ -1,8 +1,15 @@
 """Contains some shared types for properties"""
 
-from typing import BinaryIO, Generic, Literal, MutableMapping, Optional, Tuple, TypeVar
-
 from http import HTTPStatus
+from typing import (
+    BinaryIO,
+    Generic,
+    Literal,
+    MutableMapping,
+    Optional,
+    Tuple,
+    TypeVar,
+)
 
 from attrs import define
 
