@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "dominodatalab-data"
-version = "6.0.0"
+version = "6.1.0"
 description = "Domino Data API for interacting with Domino Data features"
 readme = "README.md"
 authors = [
