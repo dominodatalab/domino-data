@@ -22,7 +22,7 @@ class MockResponse:
 
     def release_conn(self):
         self._released = True
-        
+
     def read(self, amt=None):
         """Read content from the response."""
         if amt is None:
@@ -143,14 +143,10 @@ class TestBlobTransfer(unittest.TestCase):
     def test_error_handling_in_get_content_size(self):
         """Test error handling when getting content size fails."""
         # Mock the range support check to return True
-        range_check_response = MockResponse(
-            status=206, headers={"Accept-Ranges": "bytes"}
-        )
-        
+        range_check_response = MockResponse(status=206, headers={"Accept-Ranges": "bytes"})
+
         # Head response with no Content-Length
-        head_response = MockResponse(
-            status=200, headers={}  # No Content-Length header
-        )
+        head_response = MockResponse(status=200, headers={})  # No Content-Length header
 
         # Mock the content size request to fail with an exception
         def request_side_effect(*args, **kwargs):
