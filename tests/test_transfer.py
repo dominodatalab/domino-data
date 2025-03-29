@@ -22,6 +22,13 @@ class MockResponse:
 
     def release_conn(self):
         self._released = True
+        
+    def read(self, amt=None):
+        """Read content from the response."""
+        if amt is None:
+            return self.content
+        else:
+            return self.content[:amt]
 
     def stream(self, chunk_size=1024):
         """Stream the content in chunks."""
@@ -137,13 +144,22 @@ class TestBlobTransfer(unittest.TestCase):
         """Test error handling when getting content size fails."""
         # Mock the range support check to return True
         range_check_response = MockResponse(
-            status=206, headers={"Accept-Ranges": "bytes", "Content-Length": "1000"}
+            status=206, headers={"Accept-Ranges": "bytes"}
+        )
+        
+        # Head response with no Content-Length
+        head_response = MockResponse(
+            status=200, headers={}  # No Content-Length header
         )
 
         # Mock the content size request to fail with an exception
         def request_side_effect(*args, **kwargs):
-            if kwargs.get("headers", {}).get("Range") == "bytes=0-0":
+            if args[1] == "HEAD":
+                return head_response
+            elif kwargs.get("headers", {}).get("Range") == "bytes=0-0":
                 raise urllib3.exceptions.HTTPError("Simulated HTTPError")
+            elif kwargs.get("headers", {}).get("Range") == "bytes=0-1":
+                return range_check_response
             return range_check_response
 
         self.mock_http.request.side_effect = request_side_effect
