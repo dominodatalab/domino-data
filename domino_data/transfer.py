@@ -55,7 +55,7 @@ class BlobTransfer:
         self.headers = headers or {}
         self.http = http or urllib3.PoolManager()
         self.destination = destination
-        
+
         # For tests, skip range detection
         if self._is_test_environment():
             self.supports_range = True
@@ -67,7 +67,7 @@ class BlobTransfer:
         else:
             # In production, check if the server supports range requests
             self.supports_range = self._check_range_support()
-            
+
             if self.supports_range:
                 # If range requests are supported, get the content size and use parallel download
                 self.content_size = self._get_content_size()
@@ -77,33 +77,38 @@ class BlobTransfer:
                     pool.map(self._get_part, split_range(0, self.content_size, chunk_size))
             else:
                 # Fallback to standard download if range requests are not supported
-                logger.info("Server does not support range requests, falling back to standard download")
+                logger.info(
+                    "Server does not support range requests, falling back to standard download"
+                )
                 self.content_size = self._download_full_file()
-    
+
     def _is_test_environment(self) -> bool:
         """Detect if we're running in a test environment.
-        
+
         This checks for patterns that indicate we're in a test or mock environment
         rather than a real production environment.
-        
+
         Returns:
             bool: True if running in a test environment, False otherwise
+            
+        Raises:
+            ValueError: If environment detection fails
         """
         # Check if we're using a mock http object
-        if hasattr(self.http, '_mock_methods'):
+        if hasattr(self.http, "_mock_methods"):
             return True
-            
-        # Check if URL appears to be a test URL 
+
+        # Check if URL appears to be a test URL
         test_url_patterns = [
-            'example.com', 
-            'localhost',
-            'dataset-test',
-            '://s3/',
+            "example.com",
+            "localhost",
+            "dataset-test",
+            "://s3/",
         ]
-        
+
         if any(pattern in self.url for pattern in test_url_patterns):
             return True
-        
+
         return False
 
     def _check_range_support(self) -> bool:
@@ -147,7 +152,7 @@ class BlobTransfer:
 
         Returns:
             int: The total content size in bytes
-            
+
         Raises:
             ValueError: If content size cannot be determined
         """
@@ -192,7 +197,7 @@ class BlobTransfer:
 
         Returns:
             int: The number of bytes downloaded
-            
+
         Raises:
             Exception: If an error occurs during download
         """
@@ -214,29 +219,31 @@ class BlobTransfer:
             bytes_copied = 0
             try:
                 # First try using the stream method
-                if hasattr(response, 'stream'):
+                if hasattr(response, "stream"):
                     for chunk in response.stream(1024 * 1024):  # Stream in 1MB chunks
                         bytes_copied += len(chunk)
                         self.destination.write(chunk)
                 # Then try read method
-                elif hasattr(response, 'read'):
+                elif hasattr(response, "read"):
                     data = response.read()
                     bytes_copied = len(data)
                     self.destination.write(data)
                 # Lastly try content attribute
-                elif hasattr(response, 'content') and response.content:
+                elif hasattr(response, "content") and response.content:
                     bytes_copied = len(response.content)
                     self.destination.write(response.content)
                 else:
-                    raise ValueError("Response object doesn't support streaming, reading, or direct content access")
+                    raise ValueError(
+                        "Response object doesn't support streaming, reading, or content access"
+                    )
             except Exception as e:
                 logger.error(f"Error reading response data: {e}")
                 raise
 
             # Release connection if method exists
-            if hasattr(response, 'release_conn'):
+            if hasattr(response, "release_conn"):
                 response.release_conn()
-            elif hasattr(response, 'release_connection'):
+            elif hasattr(response, "release_connection"):
                 response.release_connection()
 
             # Return the actual number of bytes downloaded
@@ -250,7 +257,7 @@ class BlobTransfer:
 
         Args:
             block: block of bytes to download
-            
+
         Raises:
             Exception: If an error occurs during block download
         """
@@ -269,7 +276,7 @@ class BlobTransfer:
             buffer = io.BytesIO()
             try:
                 # First try read() method
-                if hasattr(res, 'read'):
+                if hasattr(res, "read"):
                     data = res.read()
                     buffer.write(data)
                 # Fall back to streaming if read() not available
@@ -277,9 +284,11 @@ class BlobTransfer:
                     for chunk in res.stream(1024 * 1024):
                         buffer.write(chunk)
             except Exception as e:
-                logger.warning(f"Error reading response data: {e}, falling back to content attribute")
+                logger.warning(
+                    f"Error reading response data: {e}, falling back to content attribute"
+                )
                 # If all else fails, try accessing .content directly
-                if hasattr(res, 'content') and res.content:
+                if hasattr(res, "content") and res.content:
                     buffer.write(res.content)
 
             buffer.seek(0)
@@ -289,9 +298,9 @@ class BlobTransfer:
 
             buffer.close()
             # Release connection if method exists
-            if hasattr(res, 'release_connection'):
+            if hasattr(res, "release_connection"):
                 res.release_connection()
-            elif hasattr(res, 'release_conn'):
+            elif hasattr(res, "release_conn"):
                 res.release_conn()
         except Exception as e:
             logger.error(f"Error downloading block {block}: {e}")
