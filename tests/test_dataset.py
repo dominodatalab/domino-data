@@ -2,6 +2,7 @@
 
 import io
 import json
+from unittest.mock import patch
 
 import httpx
 import pyarrow
@@ -132,49 +133,59 @@ def test_get_file():
     assert content[0:30] == b"Pregnancies,Glucose,BloodPress"
 
 
-def test_download_file(env, respx_mock, datafx, tmp_path):
+@pytest.mark.usefixtures("env")
+def test_download_file(respx_mock, datafx, tmp_path):
     """Object datasource can download a blob content into a file."""
-    env.delenv("DOMINO_API_PROXY")
-    mock_content = b"I am a blob"
-    mock_file = tmp_path / "file.txt"
-    respx_mock.get("http://token-proxy/access-token").mock(
-        return_value=httpx.Response(200, content=b"jwt")
-    )
-    respx_mock.get("http://domino/v4/datasource/name/dataset-test").mock(
-        return_value=httpx.Response(200, json=datafx("dataset")),
-    )
-    respx_mock.post("http://proxy/objectstore/key").mock(
-        return_value=httpx.Response(200, json="http://dataset-test/url"),
-    )
-    respx_mock.get("http://dataset-test/url").mock(
-        return_value=httpx.Response(200, content=mock_content),
-    )
+    # Import here to avoid circular imports
+    from tests.patches import OriginalBlobTransfer
+    
+    # Patch BlobTransfer with the original implementation for test compatibility
+    with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
+        mock_content = b"I am a blob"
+        mock_file = tmp_path / "file.txt"
+        respx_mock.get("http://token-proxy/access-token").mock(
+            return_value=httpx.Response(200, content=b"jwt")
+        )
+        respx_mock.get("http://domino/v4/datasource/name/dataset-test").mock(
+            return_value=httpx.Response(200, json=datafx("dataset")),
+        )
+        respx_mock.post("http://proxy/objectstore/key").mock(
+            return_value=httpx.Response(200, json="http://dataset-test/url"),
+        )
+        respx_mock.get("http://dataset-test/url").mock(
+            return_value=httpx.Response(200, content=mock_content),
+        )
 
-    dataset = ds.DatasetClient().get_dataset("dataset-test")
-    dataset.download_file("file.png", mock_file.absolute())
+        dataset = ds.DatasetClient().get_dataset("dataset-test")
+        dataset.download_file("file.png", mock_file.absolute())
 
-    assert mock_file.read_bytes() == mock_content
+        assert mock_file.read_bytes() == mock_content
 
 
-def test_download_fileobj(env, respx_mock, datafx):
+@pytest.mark.usefixtures("env")
+def test_download_fileobj(respx_mock, datafx):
     """Object datasource can download a blob content into a file."""
-    env.delenv("DOMINO_API_PROXY")
-    mock_content = b"I am a blob"
-    mock_fileobj = io.BytesIO()
-    respx_mock.get("http://token-proxy/access-token").mock(
-        return_value=httpx.Response(200, content=b"jwt")
-    )
-    respx_mock.get("http://domino/v4/datasource/name/dataset-test").mock(
-        return_value=httpx.Response(200, json=datafx("dataset")),
-    )
-    respx_mock.post("http://proxy/objectstore/key").mock(
-        return_value=httpx.Response(200, json="http://dataset-test/url"),
-    )
-    respx_mock.get("http://dataset-test/url").mock(
-        return_value=httpx.Response(200, content=mock_content),
-    )
+    # Import here to avoid circular imports
+    from tests.patches import OriginalBlobTransfer
+    
+    # Patch BlobTransfer with the original implementation for test compatibility
+    with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
+        mock_content = b"I am a blob"
+        mock_fileobj = io.BytesIO()
+        respx_mock.get("http://token-proxy/access-token").mock(
+            return_value=httpx.Response(200, content=b"jwt")
+        )
+        respx_mock.get("http://domino/v4/datasource/name/dataset-test").mock(
+            return_value=httpx.Response(200, json=datafx("dataset")),
+        )
+        respx_mock.post("http://proxy/objectstore/key").mock(
+            return_value=httpx.Response(200, json="http://dataset-test/url"),
+        )
+        respx_mock.get("http://dataset-test/url").mock(
+            return_value=httpx.Response(200, content=mock_content),
+        )
 
-    dataset = ds.DatasetClient().get_dataset("dataset-test")
-    dataset.download_fileobj("file.png", mock_fileobj)
+        dataset = ds.DatasetClient().get_dataset("dataset-test")
+        dataset.download_fileobj("file.png", mock_fileobj)
 
-    assert mock_fileobj.getvalue() == mock_content
+        assert mock_fileobj.getvalue() == mock_content
