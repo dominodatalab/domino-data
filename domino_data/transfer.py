@@ -6,7 +6,6 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import urllib3
-from urllib3.exceptions import HTTPError
 
 from .logging import logger
 
@@ -113,6 +112,9 @@ class BlobTransfer:
 
         Returns:
             int: The total content size in bytes
+            
+        Raises:
+            ValueError: If content size cannot be determined
         """
         try:
             headers = self.headers.copy()
@@ -155,6 +157,9 @@ class BlobTransfer:
 
         Returns:
             int: The number of bytes downloaded
+            
+        Raises:
+            Exception: If an error occurs during download
         """
         try:
             response = self.http.request(
@@ -189,6 +194,9 @@ class BlobTransfer:
 
         Args:
             block: block of bytes to download
+            
+        Raises:
+            Exception: If an error occurs during block download
         """
         try:
             headers = self.headers.copy()
