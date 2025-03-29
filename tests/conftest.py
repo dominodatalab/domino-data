@@ -5,7 +5,34 @@ import logging
 
 import pyarrow
 import pytest
+import respx
 from loguru import logger
+
+
+# Define setup_token_proxy_mock function directly
+def setup_token_proxy_mock(respx_mock):
+    """Set up token proxy mock."""
+    import httpx
+
+    # Check if route exists by iterating over routes
+    # (The .find method doesn't exist on RouteList)
+    route_exists = False
+    for route in respx_mock.routes:
+        if (
+            hasattr(route, "method")
+            and hasattr(route, "url")
+            and route.method == "GET"
+            and str(route.url) == "http://token-proxy/access-token"
+        ):
+            route_exists = True
+            break
+
+    # Add the token-proxy access-token endpoint mock only if it doesn't exist
+    if not route_exists:
+        respx_mock.get("http://token-proxy/access-token").mock(
+            return_value=httpx.Response(200, content=b"jwt")
+        )
+
 
 # TODO This method is deprecated and should be refactored using `env`
 # and respx mocked APIs
@@ -77,7 +104,7 @@ def feast_repo_root_dir(tmpdir, monkeypatch):
 
 
 @pytest.fixture
-def env(monkeypatch):
+def env(monkeypatch, respx_mock):
     """Set basic environment variables for mocked tests."""
     monkeypatch.setenv("DOMINO_API_HOST", "http://domino")
     monkeypatch.setenv("DOMINO_API_PROXY", "http://token-proxy")
@@ -86,6 +113,10 @@ def env(monkeypatch):
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_HOST", "http://proxy")
     monkeypatch.setenv("DOMINO_DATASOURCE_PROXY_FLIGHT_HOST", "grpc://localhost:8080")
     monkeypatch.setenv("DOMINO_PROJECT_ID", "project-id")
+
+    # Set up the token proxy mock for all tests
+    setup_token_proxy_mock(respx_mock)
+
     yield monkeypatch
 
 

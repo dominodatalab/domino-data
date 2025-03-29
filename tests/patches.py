@@ -12,7 +12,39 @@ import shutil
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
+import httpx
+import respx
 import urllib3
+
+
+# Default setup for token proxy mock in tests
+def setup_token_proxy_mock(respx_mock):
+    """Set up a mock for the token proxy endpoint.
+
+    This is needed by many tests to pass since the recent BlobTransfer implementation
+    changes. This function adds a consistent mock for the token-proxy access-token
+    endpoint that many tests need.
+
+    Args:
+        respx_mock: The respx mock instance to add the route to
+    """
+    # Check if route exists by iterating over routes
+    route_exists = False
+    for route in respx_mock.routes:
+        if (
+            hasattr(route, "method")
+            and hasattr(route, "url")
+            and route.method == "GET"
+            and str(route.url) == "http://token-proxy/access-token"
+        ):
+            route_exists = True
+            break
+
+    # Add the token-proxy access-token endpoint mock only if it doesn't exist
+    if not route_exists:
+        respx_mock.get("http://token-proxy/access-token").mock(
+            return_value=httpx.Response(200, content=b"jwt")
+        )
 
 
 # Original BlobTransfer implementation for test compatibility

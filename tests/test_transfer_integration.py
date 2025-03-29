@@ -5,6 +5,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
+from unittest.mock import patch
 
 from domino_data.transfer import BlobTransfer
 
@@ -176,27 +177,31 @@ class TestBlobTransferIntegration(unittest.TestCase):
         # Create a file-like object to receive the download
         destination = io.BytesIO()
 
-        # Force the test mode to OFF to ensure we test the actual implementation
+        # Force test mode to 'real mode'
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "0"
 
         try:
-            # Initialize the BlobTransfer
-            transfer = BlobTransfer(
-                url=url,
-                destination=destination,
-                max_workers=3,  # Not used since range requests aren't supported
-                chunk_size=100,  # Not used since range requests aren't supported
-            )
+            # Force the environment detection to return False
+            with patch(
+                "domino_data.transfer.BlobTransfer._is_test_environment", return_value=False
+            ):
+                # Initialize the BlobTransfer
+                transfer = BlobTransfer(
+                    url=url,
+                    destination=destination,
+                    max_workers=3,  # Not used since range requests aren't supported
+                    chunk_size=100,  # Not used since range requests aren't supported
+                )
 
-            # Verify that range support was NOT detected
-            self.assertFalse(transfer.supports_range)
+                # Verify that range support was NOT detected
+                self.assertFalse(transfer.supports_range)
 
-            # Verify the content size
-            self.assertEqual(transfer.content_size, 1000)
+                # Verify the content size
+                self.assertEqual(transfer.content_size, 1000)
 
-            # Verify the downloaded content
-            expected_content = NoRangeSupportHandler.CONTENT
-            self.assertEqual(destination.getvalue(), expected_content)
+                # Verify the downloaded content
+                expected_content = NoRangeSupportHandler.CONTENT
+                self.assertEqual(destination.getvalue(), expected_content)
         finally:
             # Clean up
             os.environ.pop("DOMINO_TRANSFER_TEST_MODE", None)

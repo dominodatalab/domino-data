@@ -18,7 +18,7 @@ from domino_data.logging import logger
 from domino_data.transfer import BlobTransfer
 
 
-def test_download(url, output_file, max_workers=5, chunk_size=16 * 1024 * 1024, verify_ssl=True):
+def test_download(url, output_file, max_workers=3, chunk_size=2 * 1024 * 1024, verify_ssl=True):
     """
     Test downloading a file using BlobTransfer.
 
@@ -68,9 +68,9 @@ def main():
     parser = argparse.ArgumentParser(description="Test BlobTransfer functionality")
     parser.add_argument("url", help="URL to download")
     parser.add_argument("--output", "-o", help="Output file (default: derived from URL)")
-    parser.add_argument("--workers", "-w", type=int, default=5, help="Maximum number of workers")
+    parser.add_argument("--workers", "-w", type=int, default=3, help="Maximum number of workers")
     parser.add_argument(
-        "--chunk-size", "-c", type=int, default=16 * 1024 * 1024, help="Chunk size in bytes"
+        "--chunk-size", "-c", type=int, default=2 * 1024 * 1024, help="Chunk size in bytes"
     )
     parser.add_argument(
         "--no-verify-ssl", action="store_true", help="Disable SSL certificate verification"

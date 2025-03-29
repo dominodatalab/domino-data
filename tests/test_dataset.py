@@ -137,15 +137,15 @@ def test_get_file():
 def test_download_file(respx_mock, datafx, tmp_path):
     """Object datasource can download a blob content into a file."""
     # Import here to avoid circular imports
-    from tests.patches import OriginalBlobTransfer
+    from tests.patches import OriginalBlobTransfer, setup_token_proxy_mock
+
+    # Set up token proxy mock
+    setup_token_proxy_mock(respx_mock)
 
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         mock_content = b"I am a blob"
         mock_file = tmp_path / "file.txt"
-        respx_mock.get("http://token-proxy/access-token").mock(
-            return_value=httpx.Response(200, content=b"jwt")
-        )
         respx_mock.get("http://domino/v4/datasource/name/dataset-test").mock(
             return_value=httpx.Response(200, json=datafx("dataset")),
         )
@@ -166,15 +166,15 @@ def test_download_file(respx_mock, datafx, tmp_path):
 def test_download_fileobj(respx_mock, datafx):
     """Object datasource can download a blob content into a file."""
     # Import here to avoid circular imports
-    from tests.patches import OriginalBlobTransfer
+    from tests.patches import OriginalBlobTransfer, setup_token_proxy_mock
+
+    # Set up token proxy mock
+    setup_token_proxy_mock(respx_mock)
 
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         mock_content = b"I am a blob"
         mock_fileobj = io.BytesIO()
-        respx_mock.get("http://token-proxy/access-token").mock(
-            return_value=httpx.Response(200, content=b"jwt")
-        )
         respx_mock.get("http://domino/v4/datasource/name/dataset-test").mock(
             return_value=httpx.Response(200, json=datafx("dataset")),
         )
