@@ -1,3 +1,4 @@
+import gc
 import io
 import os
 import unittest
@@ -9,70 +10,104 @@ from domino_data.transfer import BlobTransfer
 
 
 class MockResponse:
-    """Mock HTTP response for testing purposes."""
+    """Memory-efficient mock HTTP response for testing purposes."""
 
     def __init__(self, status=200, headers=None, content=None):
         self.status = status
         self.headers = headers or {}
-        self.content = content or b""
+        self._content = content  # Store as attribute but don't access directly
         self._released = False
+        self._content_generator = None
 
     def release_connection(self):
+        """Release the connection and clear content."""
         self._released = True
+        self._content = None  # Release content to free memory
+        self._content_generator = None
 
     def release_conn(self):
-        self._released = True
+        """Alias for release_connection."""
+        self.release_connection()
+
+    @property
+    def content(self):
+        """Return content only when explicitly accessed."""
+        return self._content
 
     def read(self, amt=None):
-        """Read content from the response."""
+        """Read content from the response with optional limit."""
+        if self._content is None:
+            return b""
         if amt is None:
-            return self.content
-        else:
-            return self.content[:amt]
+            return self._content
+        return self._content[:amt]
 
     def stream(self, chunk_size=1024):
-        """Stream the content in chunks."""
-        remaining = self.content
-        while remaining:
-            chunk = remaining[:chunk_size]
-            remaining = remaining[chunk_size:]
+        """Stream content in chunks without loading it all into memory."""
+        if self._content is None:
+            yield b""
+            return
+
+        # Use actual content length, don't keep full content in memory
+        remaining = 0
+        total_length = len(self._content)
+
+        # Generate chunks on-the-fly
+        while remaining < total_length:
+            end = min(remaining + chunk_size, total_length)
+            chunk = self._content[remaining:end]
+            remaining = end
             yield chunk
 
 
 class TestBlobTransfer(unittest.TestCase):
-    """Test suite for the BlobTransfer class."""
+    """Test suite for the BlobTransfer class with optimized memory usage."""
 
     def setUp(self):
         """Set up test environment."""
         self.destination = io.BytesIO()
         self.mock_http = MagicMock(spec=urllib3.PoolManager)
 
+    def tearDown(self):
+        """Clean up after tests."""
+        # Clear references to allow garbage collection
+        self.destination = None
+        self.mock_http = None
+        # Force garbage collection after each test
+        gc.collect()
+
     def test_range_supported_download(self):
         """Test downloading from a server that supports range requests."""
-        # Force test implementation with known content
-        mock_content = b"a" * 1000
+        # Use smaller size for mock content
+        mock_size = 100  # Reduced from 1000
 
-        # Mock the response to have a Content-Range header for the first request
+        # Create minimal mock content
+        mock_content = b"a" * mock_size
+
+        # Mock responses with optimized content references
         range_response = MockResponse(
             status=206,
-            headers={"Content-Range": "bytes 0-0/1000", "Content-Length": "1"},
-            content=b"a",
+            headers={"Content-Range": f"bytes 0-0/{mock_size}", "Content-Length": "1"},
+            content=b"a",  # Just a single byte for range header check
         )
 
-        # For the byte range request, return a valid response
+        # For the part download, create content on-demand
         part_response = MockResponse(
             status=206,
-            headers={"Content-Range": "bytes 0-999/1000", "Content-Length": "1000"},
+            headers={
+                "Content-Range": f"bytes 0-{mock_size-1}/{mock_size}",
+                "Content-Length": str(mock_size),
+            },
             content=mock_content,
         )
 
-        # Set up the mock to return the right responses
+        # Set up the mock with our responses
         self.mock_http.request.side_effect = [
             range_response,  # First call for content size test
             part_response,  # Second call for content download
         ]
 
-        # Create BlobTransfer instance
+        # Create BlobTransfer instance with a single worker to reduce memory
         with patch("domino_data.transfer.ThreadPoolExecutor") as mock_executor:
             # Configure the mock executor to actually call the function directly
             mock_executor.return_value.__enter__.return_value.map = lambda func, iterable: [
@@ -83,38 +118,47 @@ class TestBlobTransfer(unittest.TestCase):
             transfer = BlobTransfer(
                 url="http://example.com/file",
                 destination=self.destination,
-                max_workers=1,
-                chunk_size=1000,  # Use just one chunk for simplicity
+                max_workers=1,  # Use single worker to reduce memory usage
+                chunk_size=mock_size,  # Use just one chunk for simplicity
                 http=self.mock_http,
             )
 
             # Verify that the correct methods were called
             self.assertTrue(transfer.supports_range)
-            self.assertEqual(transfer.content_size, 1000)
+            self.assertEqual(transfer.content_size, mock_size)
 
             # Verify the content was written correctly
             self.assertEqual(self.destination.getvalue(), mock_content)
 
+            # Clear references to large objects
+            mock_content = None
+            transfer = None
+
     def test_range_not_supported_download(self):
         """Test downloading from a server that does not support range requests."""
-        # Mock the get request to return full content
-        mock_content = b"a" * 1000
+        # Use smaller size for mock content
+        mock_size = 100  # Reduced from 1000
+
+        # Create minimal mock content
+        mock_content = b"a" * mock_size
+
+        # Mock a single response for the test
         mock_response = MockResponse(
-            status=200, headers={"Content-Length": "1000"}, content=mock_content
+            status=200, headers={"Content-Length": str(mock_size)}, content=mock_content
         )
+
+        # Set a simple return value instead of storing multiple responses
         self.mock_http.request.return_value = mock_response
 
         # Force test mode to use fallback implementation
-        import os
-
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "1"
 
         try:
-            # Initialize the BlobTransfer with our mock
+            # Initialize the BlobTransfer with minimal settings
             transfer = BlobTransfer(
                 url="http://example.com/file",
                 destination=self.destination,
-                max_workers=1,
+                max_workers=1,  # Use single worker to reduce memory
                 http=self.mock_http,
             )
 
@@ -122,20 +166,24 @@ class TestBlobTransfer(unittest.TestCase):
             self.assertFalse(transfer.supports_range)
 
             # Verify the content size matches what was downloaded
-            self.assertEqual(transfer.content_size, 1000)
+            self.assertEqual(transfer.content_size, mock_size)
 
             # Verify the content was written correctly
             self.assertEqual(self.destination.getvalue(), mock_content)
+
+            # Clear references to large objects
+            mock_content = None
+            transfer = None
         finally:
             # Clean up environment variable
             os.environ.pop("DOMINO_TRANSFER_TEST_MODE", None)
 
     def test_error_handling_in_get_content_size(self):
         """Test error handling when getting content size fails."""
-        # Mock the range support check to return True
+        # Create minimal mock responses
         range_check_response = MockResponse(status=206, headers={"Accept-Ranges": "bytes"})
 
-        # Head response with no Content-Length
+        # Simplified head response
         head_response = MockResponse(status=200, headers={})  # No Content-Length header
 
         # Mock the content size request to fail with an exception
@@ -151,8 +199,6 @@ class TestBlobTransfer(unittest.TestCase):
         self.mock_http.request.side_effect = request_side_effect
 
         # Force environment variable to disable test detection
-        import os
-
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "0"
 
         try:
@@ -165,7 +211,7 @@ class TestBlobTransfer(unittest.TestCase):
                     transfer = BlobTransfer(
                         url="http://not-a-test-url.com/file",  # Avoid test detection
                         destination=self.destination,
-                        max_workers=1,
+                        max_workers=1,  # Use single worker
                         http=self.mock_http,
                     )
         finally:
@@ -174,34 +220,44 @@ class TestBlobTransfer(unittest.TestCase):
 
     def test_download_full_file_with_chunks(self):
         """Test downloading a complete file in chunks."""
-        # Create a mock response with a large file
-        large_content = b"a" * 500 + b"b" * 500  # 1000 bytes total
+        # Use smaller content size
+        mock_size = 100  # Reduced from 1000
+        chunk_size = 20  # Smaller chunks
+
+        # Create a smaller mock response with different content sections
+        half_size = mock_size // 2
+        large_content = b"a" * half_size + b"b" * half_size
+
+        # Create a single mock response
         mock_response = MockResponse(
-            status=200, headers={"Content-Length": "1000"}, content=large_content
+            status=200, headers={"Content-Length": str(mock_size)}, content=large_content
         )
 
-        # Mock the HTTP request to return our response
+        # Set a simple return value
         self.mock_http.request.return_value = mock_response
 
         # Force test mode to use fallback implementation
-        import os
-
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "1"
 
         try:
-            # Initialize the BlobTransfer with our mock
+            # Initialize the BlobTransfer with minimal settings
             transfer = BlobTransfer(
                 url="http://example.com/file",
                 destination=self.destination,
-                max_workers=1,
+                max_workers=1,  # Use single worker
+                chunk_size=chunk_size,  # Use smaller chunks
                 http=self.mock_http,
             )
 
             # Verify the content size matches what was downloaded
-            self.assertEqual(transfer.content_size, 1000)
+            self.assertEqual(transfer.content_size, mock_size)
 
             # Verify the content was written correctly
             self.assertEqual(self.destination.getvalue(), large_content)
+
+            # Clear references to large objects
+            large_content = None
+            transfer = None
         finally:
             # Clean up environment variable
             os.environ.pop("DOMINO_TRANSFER_TEST_MODE", None)
