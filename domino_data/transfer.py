@@ -90,7 +90,7 @@ class BlobTransfer:
 
         Returns:
             bool: True if running in a test environment, False otherwise
-            
+
         Raises:
             ValueError: If environment detection fails
         """
@@ -200,6 +200,7 @@ class BlobTransfer:
 
         Raises:
             Exception: If an error occurs during download
+            ValueError: If response object doesn't support any content access method
         """
         try:
             response = self.http.request(
