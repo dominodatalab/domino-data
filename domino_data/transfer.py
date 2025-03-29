@@ -112,7 +112,7 @@ class BlobTransfer:
 
         Returns:
             int: The total content size in bytes
-            
+
         Raises:
             ValueError: If content size cannot be determined
         """
@@ -157,7 +157,7 @@ class BlobTransfer:
 
         Returns:
             int: The number of bytes downloaded
-            
+
         Raises:
             Exception: If an error occurs during download
         """
@@ -194,7 +194,7 @@ class BlobTransfer:
 
         Args:
             block: block of bytes to download
-            
+
         Raises:
             Exception: If an error occurs during block download
         """
