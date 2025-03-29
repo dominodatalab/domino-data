@@ -51,34 +51,34 @@ class TestBlobTransfer(unittest.TestCase):
         """Test downloading from a server that supports range requests."""
         # Force test implementation with known content
         mock_content = b"a" * 1000
-        
+
         # Mock the response to have a Content-Range header for the first request
         range_response = MockResponse(
             status=206,
             headers={"Content-Range": "bytes 0-0/1000", "Content-Length": "1"},
-            content=b"a"
+            content=b"a",
         )
-        
+
         # For the byte range request, return a valid response
         part_response = MockResponse(
             status=206,
             headers={"Content-Range": "bytes 0-999/1000", "Content-Length": "1000"},
             content=mock_content,
         )
-        
+
         # Set up the mock to return the right responses
         self.mock_http.request.side_effect = [
             range_response,  # First call for content size test
-            part_response,   # Second call for content download
+            part_response,  # Second call for content download
         ]
-        
+
         # Create BlobTransfer instance
         with patch("domino_data.transfer.ThreadPoolExecutor") as mock_executor:
             # Configure the mock executor to actually call the function directly
             mock_executor.return_value.__enter__.return_value.map = lambda func, iterable: [
                 func(item) for item in iterable
             ]
-            
+
             # Initialize BlobTransfer
             transfer = BlobTransfer(
                 url="http://example.com/file",
@@ -87,11 +87,11 @@ class TestBlobTransfer(unittest.TestCase):
                 chunk_size=1000,  # Use just one chunk for simplicity
                 http=self.mock_http,
             )
-            
+
             # Verify that the correct methods were called
             self.assertTrue(transfer.supports_range)
             self.assertEqual(transfer.content_size, 1000)
-            
+
             # Verify the content was written correctly
             self.assertEqual(self.destination.getvalue(), mock_content)
 
@@ -100,16 +100,15 @@ class TestBlobTransfer(unittest.TestCase):
         # Mock the get request to return full content
         mock_content = b"a" * 1000
         mock_response = MockResponse(
-            status=200,
-            headers={"Content-Length": "1000"},
-            content=mock_content
+            status=200, headers={"Content-Length": "1000"}, content=mock_content
         )
         self.mock_http.request.return_value = mock_response
-        
+
         # Force test mode to use fallback implementation
         import os
+
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "1"
-        
+
         try:
             # Initialize the BlobTransfer with our mock
             transfer = BlobTransfer(
@@ -118,13 +117,13 @@ class TestBlobTransfer(unittest.TestCase):
                 max_workers=1,
                 http=self.mock_http,
             )
-            
+
             # Verify that range support was detected as false
             self.assertFalse(transfer.supports_range)
-            
+
             # Verify the content size matches what was downloaded
             self.assertEqual(transfer.content_size, 1000)
-            
+
             # Verify the content was written correctly
             self.assertEqual(self.destination.getvalue(), mock_content)
         finally:
@@ -165,18 +164,17 @@ class TestBlobTransfer(unittest.TestCase):
         # Create a mock response with a large file
         large_content = b"a" * 500 + b"b" * 500  # 1000 bytes total
         mock_response = MockResponse(
-            status=200,
-            headers={"Content-Length": "1000"},
-            content=large_content
+            status=200, headers={"Content-Length": "1000"}, content=large_content
         )
-        
+
         # Mock the HTTP request to return our response
         self.mock_http.request.return_value = mock_response
-        
+
         # Force test mode to use fallback implementation
         import os
+
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "1"
-        
+
         try:
             # Initialize the BlobTransfer with our mock
             transfer = BlobTransfer(
@@ -185,10 +183,10 @@ class TestBlobTransfer(unittest.TestCase):
                 max_workers=1,
                 http=self.mock_http,
             )
-            
+
             # Verify the content size matches what was downloaded
             self.assertEqual(transfer.content_size, 1000)
-            
+
             # Verify the content was written correctly
             self.assertEqual(self.destination.getvalue(), large_content)
         finally:

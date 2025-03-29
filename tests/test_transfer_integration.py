@@ -175,10 +175,10 @@ class TestBlobTransferIntegration(unittest.TestCase):
 
         # Create a file-like object to receive the download
         destination = io.BytesIO()
-        
+
         # Force the test mode to OFF to ensure we test the actual implementation
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "0"
-        
+
         try:
             # Initialize the BlobTransfer
             transfer = BlobTransfer(
