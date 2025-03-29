@@ -1,4 +1,4 @@
-""" Classes to augment headers with metadata for HTTP and Flight requests."""
+"""Classes to augment headers with metadata for HTTP and Flight requests."""
 
 from typing import Optional
 
