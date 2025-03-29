@@ -152,13 +152,16 @@ class TestBlobTransfer(unittest.TestCase):
 
         # Force environment variable to disable test detection
         import os
+
         os.environ["DOMINO_TRANSFER_TEST_MODE"] = "0"
-        
+
         try:
             # Initialize the BlobTransfer with our mock
             with self.assertRaises(ValueError):
                 # Use a patched version that forces non-test behavior
-                with patch('domino_data.transfer.BlobTransfer._is_test_environment', return_value=False):
+                with patch(
+                    "domino_data.transfer.BlobTransfer._is_test_environment", return_value=False
+                ):
                     transfer = BlobTransfer(
                         url="http://not-a-test-url.com/file",  # Avoid test detection
                         destination=self.destination,

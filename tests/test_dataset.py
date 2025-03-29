@@ -138,7 +138,7 @@ def test_download_file(respx_mock, datafx, tmp_path):
     """Object datasource can download a blob content into a file."""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         mock_content = b"I am a blob"
@@ -167,7 +167,7 @@ def test_download_fileobj(respx_mock, datafx):
     """Object datasource can download a blob content into a file."""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         mock_content = b"I am a blob"

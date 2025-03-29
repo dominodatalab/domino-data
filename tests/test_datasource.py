@@ -495,7 +495,7 @@ def test_object_store_download_file(respx_mock, datafx, tmp_path):
     """Object datasource can download a blob content into a file."""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         mock_content = b"I am a blob"
@@ -525,7 +525,7 @@ def test_object_store_download_fileobj(respx_mock, datafx):
     """Object datasource can download a blob content into a file."""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         mock_content = b"I am a blob"
@@ -555,15 +555,19 @@ def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
     """Object datasource can list and get key url using AWSIAMRole."""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "tests/data/aws_credentials")
         respx_mock.get("http://domino/v4/datasource/name/s3").mock(
             return_value=httpx.Response(200, json=datafx("s3_awsiamrole")),
         )
-        respx_mock.post("http://proxy/objectstore/list").mock(return_value=httpx.Response(200, json=[]))
-        respx_mock.post("http://proxy/objectstore/key").mock(return_value=httpx.Response(200, json=""))
+        respx_mock.post("http://proxy/objectstore/list").mock(
+            return_value=httpx.Response(200, json=[])
+        )
+        respx_mock.post("http://proxy/objectstore/key").mock(
+            return_value=httpx.Response(200, json="")
+        )
 
         s3d = ds.DataSourceClient().get_datasource("s3")
         s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
@@ -588,7 +592,7 @@ def test_credential_override_with_awsiamrole_file_does_not_exist(respx_mock, dat
     """AWSIAMRole workflow should return error if credential file not present"""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", "notarealfile")
@@ -596,8 +600,12 @@ def test_credential_override_with_awsiamrole_file_does_not_exist(respx_mock, dat
         respx_mock.get("http://domino/v4/datasource/name/s3").mock(
             return_value=httpx.Response(200, json=datafx("s3_awsiamrole")),
         )
-        respx_mock.post("http://proxy/objectstore/list").mock(return_value=httpx.Response(200, json=[]))
-        respx_mock.post("http://proxy/objectstore/key").mock(return_value=httpx.Response(200, json=""))
+        respx_mock.post("http://proxy/objectstore/list").mock(
+            return_value=httpx.Response(200, json=[])
+        )
+        respx_mock.post("http://proxy/objectstore/key").mock(
+            return_value=httpx.Response(200, json="")
+        )
 
         s3d = ds.DataSourceClient().get_datasource("s3")
         s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
@@ -612,7 +620,7 @@ def test_credential_override_with_oauth(datafx, flight_server, monkeypatch, resp
     """Client can execute a Snowflake query using OAuth"""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         monkeypatch.setenv("DOMINO_TOKEN_FILE", "tests/data/domino_jwt")
@@ -640,7 +648,7 @@ def test_credential_override_with_oauth_file_does_not_exist(
     """Client gets an error if token not present using OAuth"""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         monkeypatch.setenv("DOMINO_TOKEN_FILE", "notarealfile")
@@ -664,7 +672,7 @@ def test_client_uses_token_url_api(env, respx_mock, flight_server, datafx):
     """Verify client uses token API to get JWT."""
     # Import here to avoid circular imports
     from tests.patches import OriginalBlobTransfer
-    
+
     # Patch BlobTransfer with the original implementation for test compatibility
     with patch("domino_data.transfer.BlobTransfer", OriginalBlobTransfer):
         env.delenv("DOMINO_USER_API_KEY")
