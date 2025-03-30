@@ -1,8 +1,6 @@
 from typing import BinaryIO, Generator, Iterator, Optional, Tuple
 
-import io
 import os
-import shutil
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
@@ -126,6 +124,9 @@ class BlobTransfer:
 
     def _adjust_chunk_size(self, requested_chunk_size: int) -> int:
         """Adjust chunk size based on expected file size.
+
+        Args:
+            requested_chunk_size: The originally requested chunk size to adjust
 
         Returns:
             int: Adjusted chunk size
@@ -306,10 +307,9 @@ class BlobTransfer:
                         chunk = resp.read(chunk_size)
                         while chunk:
                             yield chunk
-                            # Important: after yielding, clear the reference to free memory
-                            tmp = chunk
+                            # Important: after yielding, get next chunk
+                            # The previous chunk will be garbage collected
                             chunk = resp.read(chunk_size)
-                            del tmp
 
                     bytes_copied = stream_copy(read_chunks(response), self.destination)
                 # Lastly try content attribute
@@ -359,7 +359,7 @@ class BlobTransfer:
                 while chunk:
                     self.destination.write(chunk)
                     chunk = res.read(512 * 1024)
-            
+
         if hasattr(res, "release_connection"):
             res.release_connection()
         elif hasattr(res, "release_conn"):
@@ -373,6 +373,7 @@ class BlobTransfer:
 
         Raises:
             Exception: If an error occurs during block download
+            ValueError: If response object doesn't support any content access method
         """
         try:
             headers = self.headers.copy()
@@ -389,7 +390,7 @@ class BlobTransfer:
             with self._lock:
                 self.destination.seek(block[0])
 
-                # Stream directly to destination with smaller chunks 
+                # Stream directly to destination with smaller chunks
                 if hasattr(res, "stream"):
                     for chunk in res.stream(512 * 1024):
                         if not chunk:

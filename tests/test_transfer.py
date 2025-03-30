@@ -34,16 +34,16 @@ class MockResponse:
         # Return empty bytes if we've reached the end
         if self._position >= self._content_size:
             return b""
-            
+
         # Calculate how much we can actually read
         if amt is None:
             amt = self._content_size - self._position
         else:
             amt = min(amt, self._content_size - self._position)
-            
+
         # Update position
         self._position += amt
-        
+
         # Generate content on demand instead of storing
         return b"a" * amt
 
@@ -52,7 +52,7 @@ class MockResponse:
         # Reset position for streaming
         position = 0
         remaining = self._content_size
-        
+
         while position < self._content_size:
             # Calculate chunk size
             chunk_len = min(chunk_size, self._content_size - position)
