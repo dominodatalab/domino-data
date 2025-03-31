@@ -2,9 +2,9 @@
 
 from typing import Any, List, Optional
 
-import os
 import hashlib
-from os.path import exists, abspath
+import os
+from os.path import exists
 
 import attr
 import backoff
@@ -17,8 +17,10 @@ from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 from .auth import AuthenticatedClient, get_jwt_token
 from .logging import logger
 from .transfer import (
-    MAX_WORKERS, BlobTransfer, get_file_from_uri, get_resume_state_path, 
-    DEFAULT_CHUNK_SIZE, get_content_size
+    DEFAULT_CHUNK_SIZE,
+    MAX_WORKERS,
+    BlobTransfer,
+    get_resume_state_path,
 )
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
@@ -52,7 +54,7 @@ class UnauthenticatedError(DominoError):
 
 class DownloadError(DominoError):
     """Error during download."""
-    
+
     def __init__(self, message: str, completed_bytes: int = 0):
         super().__init__(message)
         self.completed_bytes = completed_bytes
@@ -104,11 +106,11 @@ class _File:
                 file.write(data)
 
     def download(
-        self, 
-        filename: str, 
-        max_workers: int = MAX_WORKERS, 
+        self,
+        filename: str,
+        max_workers: int = MAX_WORKERS,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
-        resume: bool = None
+        resume: bool = None,
     ) -> None:
         """Download object content to file with multithreaded and resumable support.
 
@@ -123,20 +125,25 @@ class _File:
         """
         url = self.dataset.get_file_url(self.name)
         headers = self._get_headers()
-        
+
         # Determine if resumable downloads are enabled
         if resume is None:
             resume = os.environ.get(DOMINO_ENABLE_RESUME, "").lower() in ("true", "1", "yes")
-        
+
         # Create a unique identifier for this download (for the resume state file)
         url_hash = hashlib.md5(url.encode()).hexdigest()
         resume_state_file = get_resume_state_path(filename, url_hash) if resume else None
-        
+
         with open(filename, "wb") as file:
             BlobTransfer(
-                url, file, headers=headers, max_workers=max_workers, 
-                http=self.pool_manager(), chunk_size=chunk_size,
-                resume_state_file=resume_state_file, resume=resume
+                url,
+                file,
+                headers=headers,
+                max_workers=max_workers,
+                http=self.pool_manager(),
+                chunk_size=chunk_size,
+                resume_state_file=resume_state_file,
+                resume=resume,
             )
 
     def download_fileobj(self, fileobj: Any) -> None:
@@ -179,25 +186,25 @@ class _File:
         return headers
 
     def download_with_ranges(
-        self, 
-        filename: str, 
+        self,
+        filename: str,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
         max_workers: int = MAX_WORKERS,
-        resume: bool = None
+        resume: bool = None,
     ) -> None:
         """Download a file using range requests with resumable support.
-        
+
         Args:
             filename: Path to save the file to
             chunk_size: Size of chunks to download
             max_workers: Maximum number of parallel downloads
             resume: Whether to attempt to resume a previous download
+            
+        Returns:
+            None
         """
         return self.download(
-            filename, 
-            max_workers=max_workers, 
-            chunk_size=chunk_size, 
-            resume=resume
+            filename, max_workers=max_workers, chunk_size=chunk_size, resume=resume
         )
 
 
@@ -270,12 +277,12 @@ class Dataset:
         self.File(dataset_file_name).download_file(local_file_name)
 
     def download(
-        self, 
-        dataset_file_name: str, 
-        local_file_name: str, 
+        self,
+        dataset_file_name: str,
+        local_file_name: str,
         max_workers: int = MAX_WORKERS,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
-        resume: bool = None
+        resume: bool = None,
     ) -> None:
         """Download file content to file located at filename with resumable support.
 
@@ -288,9 +295,7 @@ class Dataset:
             chunk_size: size of each chunk to download in bytes
             resume: whether to enable resumable downloads (overrides env var if provided)
         """
-        self.File(dataset_file_name).download(
-            local_file_name, max_workers, chunk_size, resume
-        )
+        self.File(dataset_file_name).download(local_file_name, max_workers, chunk_size, resume)
 
     def download_fileobj(self, dataset_file_name: str, fileobj: Any) -> None:
         """Download file contents to file like object.
@@ -303,21 +308,24 @@ class Dataset:
         self.File(dataset_file_name).download_fileobj(fileobj)
 
     def download_with_ranges(
-        self, 
-        dataset_file_name: str, 
+        self,
+        dataset_file_name: str,
         local_file_name: str,
         chunk_size: int = DEFAULT_CHUNK_SIZE,
         max_workers: int = MAX_WORKERS,
-        resume: bool = None
+        resume: bool = None,
     ) -> None:
         """Download a file using range requests with resumable support.
-        
+
         Args:
             dataset_file_name: Name of the file in the dataset
             local_file_name: Path to save the file to
             chunk_size: Size of chunks to download
             max_workers: Maximum number of parallel downloads
             resume: Whether to attempt to resume a previous download
+            
+        Returns:
+            None
         """
         self.download(dataset_file_name, local_file_name, max_workers, chunk_size, resume)
 
