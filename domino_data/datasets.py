@@ -16,12 +16,7 @@ from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 
 from .auth import AuthenticatedClient, get_jwt_token
 from .logging import logger
-from .transfer import (
-    DEFAULT_CHUNK_SIZE,
-    MAX_WORKERS,
-    BlobTransfer,
-    get_resume_state_path,
-)
+from .transfer import DEFAULT_CHUNK_SIZE, MAX_WORKERS, BlobTransfer, get_resume_state_path
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 
@@ -199,9 +194,6 @@ class _File:
             chunk_size: Size of chunks to download
             max_workers: Maximum number of parallel downloads
             resume: Whether to attempt to resume a previous download
-            
-        Returns:
-            None
         """
         return self.download(
             filename, max_workers=max_workers, chunk_size=chunk_size, resume=resume
@@ -323,9 +315,6 @@ class Dataset:
             chunk_size: Size of chunks to download
             max_workers: Maximum number of parallel downloads
             resume: Whether to attempt to resume a previous download
-            
-        Returns:
-            None
         """
         self.download(dataset_file_name, local_file_name, max_workers, chunk_size, resume)
 

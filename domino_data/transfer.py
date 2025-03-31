@@ -1,6 +1,5 @@
 from typing import BinaryIO, Dict, Generator, List, Optional, Tuple
 
-import hashlib
 import io
 import json
 import os
@@ -61,7 +60,7 @@ def get_file_from_uri(
 
     Returns:
         Tuple of (file content, response headers)
-        
+
     Raises:
         ValueError: If a range request doesn't return partial content status
     """
@@ -248,7 +247,7 @@ class BlobTransfer:
 
         Args:
             block: block of bytes to download
-            
+
         Raises:
             Exception: If any error occurs during download
         """
