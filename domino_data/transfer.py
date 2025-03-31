@@ -271,4 +271,5 @@ class BlobTransfer:
             # Save state on error to allow resuming later
             if self.resume and self.resume_state_file:
                 self._save_state()
-            raise e
+            # Always re-raise the exception
+            raise

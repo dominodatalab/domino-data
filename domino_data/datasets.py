@@ -193,7 +193,12 @@ class _File:
             max_workers: Maximum number of parallel downloads
             resume: Whether to attempt to resume a previous download
         """
-        return self.download(filename, max_workers, chunk_size, resume)
+        return self.download(
+            filename, 
+            max_workers=max_workers, 
+            chunk_size=chunk_size, 
+            resume=resume
+        )
 
 
 @attr.s
