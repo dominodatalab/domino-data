@@ -126,7 +126,8 @@ class _File:
             resume = os.environ.get(DOMINO_ENABLE_RESUME, "").lower() in ("true", "1", "yes")
 
         # Create a unique identifier for this download (for the resume state file)
-        url_hash = hashlib.md5(url.encode()).hexdigest()
+        # Using usedforsecurity=False as this is not used for security purposes
+        url_hash = hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()
         resume_state_file = get_resume_state_path(filename, url_hash) if resume else None
 
         with open(filename, "wb") as file:
