@@ -3,7 +3,8 @@
 from typing import Any, List, Optional
 
 import os
-from os.path import exists
+import hashlib
+from os.path import exists, abspath
 
 import attr
 import backoff
@@ -15,7 +16,10 @@ from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 
 from .auth import AuthenticatedClient, get_jwt_token
 from .logging import logger
-from .transfer import MAX_WORKERS, BlobTransfer
+from .transfer import (
+    MAX_WORKERS, BlobTransfer, get_file_from_uri, get_resume_state_path, 
+    DEFAULT_CHUNK_SIZE, get_content_size
+)
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 
@@ -24,6 +28,7 @@ DOMINO_API_PROXY = "DOMINO_API_PROXY"
 DOMINO_USER_API_KEY = "DOMINO_USER_API_KEY"
 DOMINO_USER_HOST = "DOMINO_USER_HOST"
 DOMINO_TOKEN_FILE = "DOMINO_TOKEN_FILE"
+DOMINO_ENABLE_RESUME = "DOMINO_ENABLE_RESUME"
 
 
 def __getattr__(name: str) -> Any:
@@ -43,6 +48,14 @@ class DominoError(Exception):
 
 class UnauthenticatedError(DominoError):
     """To handle exponential backoff."""
+
+
+class DownloadError(DominoError):
+    """Error during download."""
+    
+    def __init__(self, message: str, completed_bytes: int = 0):
+        super().__init__(message)
+        self.completed_bytes = completed_bytes
 
 
 @attr.s
@@ -90,20 +103,40 @@ class _File:
                 content_size += len(data)
                 file.write(data)
 
-    def download(self, filename: str, max_workers: int = MAX_WORKERS) -> None:
-        """Download object content to file with multithreaded support.
+    def download(
+        self, 
+        filename: str, 
+        max_workers: int = MAX_WORKERS, 
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        resume: bool = None
+    ) -> None:
+        """Download object content to file with multithreaded and resumable support.
 
-        The file will be created if it does not exist. File will be overwritten if it exists.
+        The file will be created if it does not exist. File will be overwritten if it exists
+        and resume is False.
 
         Args:
             filename: path of file to write content to
             max_workers: max parallelism for high speed download
+            chunk_size: size of each chunk to download in bytes
+            resume: whether to enable resumable downloads (overrides env var if provided)
         """
         url = self.dataset.get_file_url(self.name)
         headers = self._get_headers()
+        
+        # Determine if resumable downloads are enabled
+        if resume is None:
+            resume = os.environ.get(DOMINO_ENABLE_RESUME, "").lower() in ("true", "1", "yes")
+        
+        # Create a unique identifier for this download (for the resume state file)
+        url_hash = hashlib.md5(url.encode()).hexdigest()
+        resume_state_file = get_resume_state_path(filename, url_hash) if resume else None
+        
         with open(filename, "wb") as file:
             BlobTransfer(
-                url, file, headers=headers, max_workers=max_workers, http=self.pool_manager()
+                url, file, headers=headers, max_workers=max_workers, 
+                http=self.pool_manager(), chunk_size=chunk_size,
+                resume_state_file=resume_state_file, resume=resume
             )
 
     def download_fileobj(self, fileobj: Any) -> None:
@@ -144,6 +177,23 @@ class _File:
             headers = {"Authorization": f"Bearer {self.dataset.client.token}"}
 
         return headers
+
+    def download_with_ranges(
+        self, 
+        filename: str, 
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        max_workers: int = MAX_WORKERS,
+        resume: bool = None
+    ) -> None:
+        """Download a file using range requests with resumable support.
+        
+        Args:
+            filename: Path to save the file to
+            chunk_size: Size of chunks to download
+            max_workers: Maximum number of parallel downloads
+            resume: Whether to attempt to resume a previous download
+        """
+        return self.download(filename, max_workers, chunk_size, resume)
 
 
 @attr.s
@@ -215,9 +265,14 @@ class Dataset:
         self.File(dataset_file_name).download_file(local_file_name)
 
     def download(
-        self, dataset_file_name: str, local_file_name: str, max_workers: int = MAX_WORKERS
+        self, 
+        dataset_file_name: str, 
+        local_file_name: str, 
+        max_workers: int = MAX_WORKERS,
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        resume: bool = None
     ) -> None:
-        """Download file content to file located at filename.
+        """Download file content to file located at filename with resumable support.
 
         The file will be created if it does not exist.
 
@@ -225,8 +280,12 @@ class Dataset:
             dataset_file_name: name of the file in the dataset to download.
             local_file_name: path of file to write content to
             max_workers: max parallelism for high speed download
+            chunk_size: size of each chunk to download in bytes
+            resume: whether to enable resumable downloads (overrides env var if provided)
         """
-        self.File(dataset_file_name).download(local_file_name, max_workers)
+        self.File(dataset_file_name).download(
+            local_file_name, max_workers, chunk_size, resume
+        )
 
     def download_fileobj(self, dataset_file_name: str, fileobj: Any) -> None:
         """Download file contents to file like object.
@@ -237,6 +296,25 @@ class Dataset:
                 At a minimum, it must implement the write method and must accept bytes.
         """
         self.File(dataset_file_name).download_fileobj(fileobj)
+
+    def download_with_ranges(
+        self, 
+        dataset_file_name: str, 
+        local_file_name: str,
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        max_workers: int = MAX_WORKERS,
+        resume: bool = None
+    ) -> None:
+        """Download a file using range requests with resumable support.
+        
+        Args:
+            dataset_file_name: Name of the file in the dataset
+            local_file_name: Path to save the file to
+            chunk_size: Size of chunks to download
+            max_workers: Maximum number of parallel downloads
+            resume: Whether to attempt to resume a previous download
+        """
+        self.download(dataset_file_name, local_file_name, max_workers, chunk_size, resume)
 
 
 @attr.s
