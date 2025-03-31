@@ -194,6 +194,9 @@ class _File:
             chunk_size: Size of chunks to download
             max_workers: Maximum number of parallel downloads
             resume: Whether to attempt to resume a previous download
+            
+        Returns:
+            None
         """
         return self.download(
             filename, max_workers=max_workers, chunk_size=chunk_size, resume=resume
