@@ -9,7 +9,7 @@ _import_error_message = (
 )
 
 try:
-    from pinecone import Pinecone
+    import pinecone
 except ImportError as e:
     if e.msg == "No module named 'pinecone-client'":
         raise ImportError(_import_error_message) from e
