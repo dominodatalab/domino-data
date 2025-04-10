@@ -9,9 +9,9 @@ _import_error_message = (
 )
 
 try:
-    from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
+    from pinecone import Pinecone
 except ImportError as e:
-    if e.msg == "No module named 'pinecone'":
+    if e.msg == "No module named 'pinecone-client'":
         raise ImportError(_import_error_message) from e
     else:
         raise
