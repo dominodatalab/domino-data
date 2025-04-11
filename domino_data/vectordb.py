@@ -2,20 +2,6 @@ from typing import Dict, Union
 
 import os
 
-_import_error_message = (
-    "pinecone-client is not installed.\n\n"
-    "Please pip install pinecone-client:\n\n"
-    "  python -m pip install pinecone-client   # install directly\n"
-)
-
-try:
-    import pinecone  # noqa: F401
-except ImportError as e:
-    if e.msg == "No module named 'pinecone-client'":
-        raise ImportError(_import_error_message) from e
-    else:
-        raise
-
 HEADER_DOMINO_DATASOURCE = "X-Domino-Datasource"
 HEADER_PINECONE_INDEX = "X-Domino-Pinecone-Index"
 
