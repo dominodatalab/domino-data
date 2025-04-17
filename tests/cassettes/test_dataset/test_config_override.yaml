@@ -1,0 +1,119 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      host:
+      - mcetin5238.workbench-accessdata-team-sandbox.domino.tech
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: GET
+    uri: https://mcetin5238.workbench-accessdata-team-sandbox.domino.tech/v4/datasource/name/dataset-test
+  response:
+    content: '{"id":"61677736fa49a22d0025804d","name":"dataset-test","description":"Generic dataset
+      data source for system tests","ownerId":"61677430fa49a22d00258025","ownerInfo":{"ownerName":"system-test","ownerEmail":"systester@dominodatalab.com","isOwnerAdmin":false},"addedBy":{"61677649fa49a22d00258039":"system-test"},"authType": "NoAuth","dataSourceType":"DatasetConfig","config":{"snapshotID":"67acfad445df4d5f4d143e9d","datasetID":"67acfad445df4d5f4d143e9e"},"credentialType":"Individual","lastUpdated":1634250138905,"lastUpdatedBy":"6167728efa49a22d0025801c","lastAccessed":{"61677649fa49a22d00258039":1634170729467},"addedToProjectTimeMap":{"61677649fa49a22d00258039":1634170729467},"isEveryone":false,"userIds":["6167728efa49a22d0025801c"],"projectIds":["61677649fa49a22d00258039"],"adminInfo":{"projectNames":{},"projectIdOwnerUsernameMap":{},"projectLastActiveMap":{"61677649fa49a22d00258039":"2021-10-14T00:18:45.051Z"}},"status":"Active"}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - no-cache, no-store, must-revalidate, max-age=0
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Security-Policy:
+      - frame-ancestors 'self'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 15 Oct 2021 18:12:49 GMT
+      Domino-Server:
+      - nginx-ingress,nucleus,
+      Play-Processing-Time:
+      - '18'
+      Set-Cookie:
+      - dominoSession=6bc9b873-a398-4b22-9f8d-d318322be0ba; Max-Age=78840000; Expires=Mon,
+        15 Apr 2024 06:12:49 GMT; Path=/; Domain=.mcetin5238.workbench-accessdata-team-sandbox.domino.tech;
+        Secure; HTTPOnly
+      Strict-Transport-Security:
+      - max-age=15768000
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Origin
+      X-Frame-Options:
+      - SAMEORIGIN
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"datasourceId": "61677736fa49a22d0025804d", "prefix": "", "pageSize": 1000, "configOverwrites": {}, "credentialOverwrites": {}}'
+    headers:
+      accept:
+      - '*/*'
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-length:
+      - '131'
+      content-type:
+      - application/json
+      host:
+      - localhost:8000
+      user-agent:
+      - python-httpx/0.18.2
+      x-domino-api-key:
+      - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: POST
+    uri: http://localhost:8000/objectstore/list
+  response:
+    content: '["diabetes.csv","diabetes_changed.csv"]'
+    headers:
+      Content-Length:
+      - '40'
+      Content-Type:
+      - application/json
+      Date:
+      - Fri, 15 Oct 2021 18:12:49 GMT
+    http_version: HTTP/1.1
+    status_code: 200
+- request:
+    body: '{"datasourceId": "61677736fa49a22d0025804d", "prefix": "", "pageSize": 1, "configOverwrites": {"snapshotId: "68011fa7b4ec1d6d4f81df7e"}, "credentialOverwrites": {}}'
+    headers:
+      accept:
+        - '*/*'
+      accept-encoding:
+        - gzip, deflate
+      connection:
+        - keep-alive
+      content-length:
+        - '128'
+      content-type:
+        - application/json
+      host:
+        - localhost:8000
+      user-agent:
+        - python-httpx/0.18.2
+      x-domino-api-key:
+        - b9b339d163152218be8982769fec897561a57888aca799de328d3643e5d74148
+    method: POST
+    uri: http://localhost:8000/objectstore/list
+  response:
+    content: '["diabetes.csv"]'
+    headers:
+      Content-Length:
+        - '25'
+      Content-Type:
+        - application/json
+      Date:
+        - Fri, 15 Oct 2021 18:12:49 GMT
+    http_version: HTTP/1.1
+    status_code: 200
+version: 1
