@@ -178,3 +178,22 @@ def test_download_fileobj(env, respx_mock, datafx):
     dataset.download_fileobj("file.png", mock_fileobj)
 
     assert mock_fileobj.getvalue() == mock_content
+
+
+# Configuration override
+@pytest.mark.vcr
+def test_config_override():
+    """Client get list of files in a dataset."""
+    dataset_test = ds.DatasetClient().get_dataset("dataset-test")
+
+    files = [file.name for file in dataset_test.list_files("", 1000)]
+
+    assert files == ["diabetes.csv", "diabetes_changed.csv"]
+
+    config = ds.DatasetConfig(snapshot_id="68011fa7b4ec1d6d4f81df7e")
+
+    dataset_test.update(config)
+
+    files = [file.name for file in dataset_test.list_files("", 1000)]
+
+    assert files == ["diabetes.csv"]

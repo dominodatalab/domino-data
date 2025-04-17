@@ -14,6 +14,7 @@ import domino_data.configuration_gen
 from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 
 from .auth import AuthenticatedClient, get_jwt_token
+from .configuration_gen import Config, DatasetConfig
 from .logging import logger
 from .transfer import MAX_WORKERS, BlobTransfer
 
@@ -162,6 +163,18 @@ class Dataset:
     def pool_manager(self) -> urllib3.PoolManager:
         """Urllib3 pool manager for range downloads."""
         return urllib3.PoolManager()
+
+    def update(self, config: DatasetConfig) -> None:
+        """Store configuration override for future query calls.
+
+        Args:
+            config: dataset config class
+        """
+        self.datasource._config_override = config
+
+    def reset_config(self) -> None:
+        """Reset the configuration override."""
+        self.datasource._config_override = Config()
 
     def File(self, file_name: str) -> _File:  # pylint: disable=invalid-name
         """Return a file with given name and dataset client."""
