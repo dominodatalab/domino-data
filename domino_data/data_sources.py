@@ -11,6 +11,11 @@ import backoff
 import httpx
 import pandas
 import urllib3
+import logging
+import numpy
+from datetime import datetime, date
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Union, Type
 from httpx._config import DEFAULT_TIMEOUT_CONFIG
 from pyarrow import ArrowException, flight, parquet
 
@@ -405,22 +410,761 @@ class Datasource:
 @attr.s
 class TabularDatasource(Datasource):
     """Represents a tabular type datasource."""
+    
+    _debug_sql = attr.ib(default=False, init=False, repr=False)
+    _logger = attr.ib(factory=lambda: logging.getLogger(__name__), init=False, repr=False)
+    _type_map = attr.ib(factory=dict, init=False, repr=False)
+    _varchar_small_threshold = attr.ib(default=50, init=False)
+    _varchar_medium_threshold = attr.ib(default=255, init=False)
+    
+    def __attrs_post_init__(self):
+        """Initialize the type mapping system."""
+        # Default type mappings
+        self._type_map = {
+            bool: "BOOLEAN",
+            int: "INTEGER",
+            float: "FLOAT",
+            str: "VARCHAR(255)",
+            bytes: "BLOB",
+            datetime: "TIMESTAMP",
+            date: "DATE",
+            Decimal: "NUMERIC",
+            dict: "JSON",
+            list: "JSON",
+            # Pandas/NumPy specific types
+            pandas.Int64Dtype: "BIGINT",
+            pandas.Float64Dtype: "DOUBLE PRECISION",
+            pandas.StringDtype: "VARCHAR(255)",
+            pandas.BooleanDtype: "BOOLEAN",
+            pandas.DatetimeTZDtype: "TIMESTAMP WITH TIME ZONE",
+            numpy.int8: "SMALLINT",
+            numpy.int16: "SMALLINT",
+            numpy.int32: "INTEGER",
+            numpy.int64: "BIGINT",
+            numpy.float32: "REAL",
+            numpy.float64: "DOUBLE PRECISION",
+        }
 
     def query(self, query: str) -> Result:
         """Execute a query against the datasource.
-
+        
         Args:
-            query: SQL statement to execute
-
+            query: SQL query to execute
+            
         Returns:
-            Result entity wrapping dataframe
+            Result: Query result object
         """
+        if self._debug_sql:
+            self._logger.debug(f"Executing SQL: {query}")
         return self.client.execute(
             self.identifier,
             query,
             config=self._config_override.config(),
             credential=self._get_credential_override(),
         )
+    
+    def table_exists(self, table_name: str) -> bool:
+        """Check if a table exists in the database.
+        
+        Args:
+            table_name: Name of the table to check
+            
+        Returns:
+            bool: True if the table exists, False otherwise
+        """
+        try:
+            escaped_table = self._escape_identifier(table_name)
+            self.query(f"SELECT 1 FROM {escaped_table} LIMIT 1")
+            return True
+        except DominoError:
+            return False
+
+    def write_dataframe(
+        self,
+        table_name: str,
+        dataframe: pandas.DataFrame,
+        if_table_exists: str = 'fail',
+        chunksize: int = 10000,
+        handle_mixed_types: bool = True,
+        force: bool = False
+    ) -> None:
+        """
+        Write a DataFrame to a table in the datasource.
+
+        Args:
+            table_name: Name of the table to write to
+            dataframe: DataFrame containing the data to write
+            if_table_exists: Action if table exists:
+                - 'fail': Raise an error if table exists (default)
+                - 'replace': Drop and recreate the table
+                - 'append': Append data to the existing table
+                - 'truncate': Empty the table but keep its structure
+            chunksize: Number of rows to insert in each batch for large DataFrames
+            handle_mixed_types: If True, detect and handle mixed types in object columns
+            force: If True, attempt to append data even if schema compatibility issues are detected
+
+        Raises:
+            ValueError: If operation cannot be completed safely
+
+        Examples:
+            # Create a new table, fail if it already exists (default)
+            datasource.write_dataframe("my_table", df)
+
+            # Replace an existing table if it exists
+            datasource.write_dataframe("my_table", df, if_table_exists='replace')
+
+            # Append data to an existing table (will check schema compatibility)
+            datasource.write_dataframe("my_table", df, if_table_exists='append')
+
+            # Truncate an existing table and add new data
+            datasource.write_dataframe("my_table", df, if_table_exists='truncate')
+
+            # Force append even if there are schema compatibility issues (not recommended)
+            datasource.write_dataframe("my_table", df, if_table_exists='append', force=True)
+        """
+        # Validate inputs
+        if dataframe is None or dataframe.empty:
+            raise ValueError("DataFrame cannot be None or empty")
+
+        valid_options = ['fail', 'replace', 'append', 'truncate']
+        if if_table_exists not in valid_options:
+            raise ValueError(f"if_table_exists must be one of {valid_options}, got '{if_table_exists}'")
+
+        # Handle mixed types if requested
+        if handle_mixed_types:
+            dataframe = self._handle_dataframe_mixed_types(dataframe)
+
+        table_exists = self.table_exists(table_name)
+
+        # Handle table creation/modification based on if_table_exists
+        if table_exists:
+            if if_table_exists == 'fail':
+                raise ValueError(
+                    f"Table '{table_name}' already exists. Use if_table_exists='replace', 'append', or 'truncate' to modify it."
+                )
+            elif if_table_exists == 'replace':
+                self._drop_and_create_table(table_name, dataframe)
+            elif if_table_exists == 'truncate':
+                self._truncate_table(table_name)
+            elif if_table_exists == 'append':
+                if not force:
+                    self._check_schema_compatibility(table_name, dataframe)
+                else:
+                    self._logger.warning(
+                        f"Forcing append to table '{table_name}' without schema compatibility checks"
+                    )
+        else:
+            # Table doesn't exist, create it
+            self._create_table(table_name, dataframe)
+
+        # Insert data
+        self._insert_dataframe(table_name, dataframe, chunksize)
+
+    def _drop_and_create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Drop an existing table and create a new one with the DataFrame's schema."""
+        escaped_table = self._escape_identifier(table_name)
+        
+        # Drop the existing table
+        drop_query = f"DROP TABLE {escaped_table}"
+        if self._debug_sql:
+            self._logger.debug(f"Executing SQL: {drop_query}")
+        self.query(drop_query)
+        
+        # Create new table
+        self._create_table(table_name, dataframe)
+
+    def _create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Create a new table with the DataFrame's schema."""
+        escaped_table = self._escape_identifier(table_name)
+        schema = self._generate_schema(dataframe)
+        create_query = f"CREATE TABLE {escaped_table} ({schema})"
+        if self._debug_sql:
+            self._logger.debug(f"Executing SQL: {create_query}")
+        self.query(create_query)
+
+    def _truncate_table(self, table_name: str) -> None:
+        """Truncate an existing table."""
+        escaped_table = self._escape_identifier(table_name)
+        
+        # Try TRUNCATE first, fall back to DELETE
+        truncate_query = f"TRUNCATE TABLE {escaped_table}"
+        if self._debug_sql:
+            self._logger.debug(f"Executing SQL: {truncate_query}")
+        try:
+            self.query(truncate_query)
+        except Exception as e:
+            # Some databases don't support TRUNCATE, fall back to DELETE
+            delete_query = f"DELETE FROM {escaped_table}"
+            if self._debug_sql:
+                self._logger.debug(f"TRUNCATE failed, executing SQL: {delete_query}")
+            self.query(delete_query)
+
+    def _check_schema_compatibility(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Check if DataFrame schema is compatible with existing table schema."""
+        escaped_table = self._escape_identifier(table_name)
+        
+        try:
+            # Get existing table schema
+            schema_query = f"SELECT * FROM {escaped_table} LIMIT 0"
+            if self._debug_sql:
+                self._logger.debug(f"Executing SQL to check schema: {schema_query}")
+            result = self.query(schema_query)
+            
+            # Check column presence
+            table_columns = result.column_names
+            df_columns = dataframe.columns.tolist()
+            
+            missing_columns = set(table_columns) - set(df_columns)
+            extra_columns = set(df_columns) - set(table_columns)
+            
+            if missing_columns:
+                raise ValueError(f"Cannot append: DataFrame is missing columns that exist in the table: {', '.join(missing_columns)}")
+            
+            if extra_columns:
+                raise ValueError(f"Cannot append: DataFrame contains extra columns not in the table: {', '.join(extra_columns)}")
+            
+            # Check column types
+            self._check_column_types(table_name, dataframe, table_columns)
+            
+        except ValueError:
+            # Re-raise ValueError exceptions (our compatibility errors)
+            raise
+        except Exception as e:
+            self._logger.error(f"Error checking schema compatibility: {str(e)}")
+            raise ValueError(f"Cannot safely append to table '{table_name}': {str(e)}")
+
+    def _check_column_types(self, table_name: str, dataframe: pandas.DataFrame, table_columns: list) -> None:
+        """Check if DataFrame column types are compatible with table column types."""
+        try:
+            columns_query = f"""
+                SELECT column_name, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = '{table_name.lower()}'
+            """
+            
+            columns_info = self.query(columns_query)
+            table_column_types = {row['column_name']: row['data_type'] for row in columns_info.to_pandas().to_dict('records')}
+            
+            # Check type compatibility
+            type_mismatches = []
+            for col in set(table_columns).intersection(set(dataframe.columns)):
+                df_type = dataframe[col].dtype
+                sql_type = self._map_dtype_to_sql(df_type, dataframe[col])
+                table_type = table_column_types.get(col, "").upper()
+                
+                if not self._are_types_compatible(sql_type, table_type):
+                    type_mismatches.append(f"Column '{col}': DataFrame type '{sql_type}' is not compatible with table type '{table_type}'")
+            
+            if type_mismatches:
+                error_msg = "Cannot append due to incompatible column types:\n" + "\n".join(type_mismatches)
+                self._logger.error(error_msg)
+                raise ValueError(error_msg + "\nUse force=True to attempt the append operation despite these incompatibilities.")
+                    
+        except Exception as e:
+            if "information_schema" in str(e):
+                # Some databases don't have information_schema
+                self._logger.warning(f"Could not verify column type compatibility: {str(e)}")
+                raise ValueError(f"Cannot verify schema compatibility: {str(e)}. Use force=True to append anyway.")
+            else:
+                raise
+
+    def _are_types_compatible(self, sql_type: str, table_type: str) -> bool:
+        """Check if two SQL types are compatible for appending data."""
+        # Exact match
+        if sql_type == table_type:
+            return True
+            
+        # Integer types can be safely inserted into wider integer types
+        if "SMALLINT" in sql_type and any(t in table_type for t in ["INTEGER", "BIGINT"]):
+            return True
+        if "INTEGER" in sql_type and "BIGINT" in table_type:
+            return True
+            
+        # Numeric types can go into wider numeric types
+        if "INTEGER" in sql_type and any(t in table_type for t in ["FLOAT", "DOUBLE", "NUMERIC"]):
+            return True
+            
+        # String types can go into wider string types
+        if "VARCHAR" in sql_type and "TEXT" in table_type:
+            return True
+        if "VARCHAR" in sql_type and "VARCHAR" in table_type:
+            # Check VARCHAR length
+            try:
+                df_length = int(sql_type.replace("VARCHAR(", "").replace(")", ""))
+                table_length = int(table_type.replace("VARCHAR(", "").replace(")", ""))
+                return df_length <= table_length
+            except:
+                # If we can't parse the lengths, assume incompatible
+                return False
+                
+        # Default to incompatible
+        return False
+
+
+    def _escape_identifier(self, identifier: str) -> str:
+        """Escape an SQL identifier (table or column name).
+        
+        Args:
+            identifier: The identifier to escape
+            
+        Returns:
+            str: The escaped identifier
+        """
+        # This is a simple implementation - database-specific escaping might be needed
+        return f'"{identifier}"'
+
+    def _handle_dataframe_mixed_types(self, dataframe: pandas.DataFrame) -> pandas.DataFrame:
+        """Process a DataFrame to handle mixed types in object columns.
+        
+        Args:
+            dataframe: DataFrame to process
+            
+        Returns:
+            pandas.DataFrame: DataFrame with mixed types handled
+        """
+        result = dataframe.copy()
+        
+        for col in dataframe.select_dtypes(include=['object']).columns:
+            handled_series, _, is_mixed = self._detect_and_handle_mixed_types(dataframe[col])
+            if is_mixed:
+                result[col] = handled_series
+                if self._debug_sql:
+                    self._logger.debug(f"Handled mixed types in column '{col}'")
+        
+        return result
+
+    def _detect_and_handle_mixed_types(self, series):
+        """Detect and handle mixed types in a pandas Series."""
+        if series.dtype != 'object' or len(series) == 0:
+            return series, None, False
+
+        inferred_type = pandas.api.types.infer_dtype(series)
+        if 'mixed' not in inferred_type:
+            return series, None, False
+
+        non_null_series = series.dropna()
+        if len(non_null_series) == 0:
+            return series, "TEXT", False
+
+        types = non_null_series.apply(type).value_counts()
+
+        if len(types) <= 1:
+            return series, None, False
+
+        numeric_types = {int, float, numpy.int64, numpy.float64, numpy.int32, numpy.float32}
+        series_types = set(types.index)
+
+        if series_types.issubset(numeric_types):
+            handled = pandas.to_numeric(series, errors='coerce')
+            return handled, "FLOAT", True
+
+        if str in series_types or any(issubclass(t, str) for t in series_types):
+            handled = series.astype(str)
+            max_len = handled.str.len().max()
+            if max_len < self._varchar_small_threshold:
+                sql_type = f"VARCHAR({max_len + 10})"
+            elif max_len < self._varchar_medium_threshold:
+                sql_type = f"VARCHAR({self._varchar_medium_threshold})"
+            else:
+                sql_type = "TEXT"
+            return handled, sql_type, True
+
+        try:
+            handled = series.apply(lambda x: json.dumps(x) if x is not None else None)
+            return handled, "JSON", True
+        except Exception as e:
+            if self._debug_sql:
+                self._logger.debug(f"JSON conversion failed: {e}, falling back to string")
+            handled = series.astype(str)
+            return handled, "TEXT", True
+
+
+    def _generate_schema(self, dataframe: pandas.DataFrame) -> str:
+        """Generate SQL schema from DataFrame.
+        
+        Args:
+            dataframe: DataFrame to generate schema from
+            
+        Returns:
+            str: SQL schema definition
+        """
+        columns = []
+        for col, dtype in dataframe.dtypes.items():
+            escaped_col = self._escape_identifier(col)
+            sql_type = self._map_dtype_to_sql(dtype, dataframe[col])
+            columns.append(f"{escaped_col} {sql_type}")
+        return ", ".join(columns)
+
+    def _map_dtype_to_sql(self, dtype, series=None) -> str:
+        """Map pandas dtype to SQL data type.
+        
+        Args:
+            dtype: pandas dtype
+            series: Series with the data (optional)
+            
+        Returns:
+            str: SQL data type
+        """
+        # Handle mixed types in object columns if series is provided
+        if series is not None and dtype == 'object':
+            _, sql_type, is_mixed = self._detect_and_handle_mixed_types(series)
+            if is_mixed and sql_type:
+                return sql_type
+        
+        # Direct lookup for numpy types
+        if hasattr(dtype, 'type') and dtype.type in self._type_map:
+            return self._type_map[dtype.type]
+        
+        # Check for boolean type
+        if pandas.api.types.is_bool_dtype(dtype):
+            return self._type_map[bool]
+        
+        # Check for integer types
+        if pandas.api.types.is_integer_dtype(dtype):
+            if series is not None:
+                try:
+                    min_val, max_val = series.min(), series.max()
+                    if min_val >= -32768 and max_val <= 32767:
+                        return "SMALLINT"
+                    elif min_val >= -2147483648 and max_val <= 2147483647:
+                        return "INTEGER"
+                    else:
+                        return "BIGINT"
+                except Exception:
+                    pass
+            return self._type_map[int]
+        
+        # Check for float types
+        if pandas.api.types.is_float_dtype(dtype):
+            if hasattr(dtype, 'name') and 'float32' in dtype.name:
+                return self._type_map[numpy.float32]
+            return self._type_map[float]
+        
+        # Check for datetime types
+        if pandas.api.types.is_datetime64_any_dtype(dtype):
+            return self._type_map[datetime]
+        
+        # Check for string/object types
+        if pandas.api.types.is_string_dtype(dtype) or pandas.api.types.is_object_dtype(dtype):
+            if series is not None:
+                try:
+                    # Check if it contains JSON-like data
+                    if series.str.contains(r'^\s*[\{$$]').any() and series.str.contains(r'[\}$$]\s*$').any():
+                        return "JSON"
+                    
+                    # Check max string length
+                    max_len = series.astype(str).str.len().max()
+                    if max_len < self._varchar_small_threshold:
+                        return f"VARCHAR({max_len + 10})"
+                    elif max_len < self._varchar_medium_threshold:
+                        return f"VARCHAR({self._varchar_medium_threshold})"
+                    else:
+                        return "TEXT"
+                except Exception:
+                    pass
+            return self._type_map[str]
+        
+        # Default fallback
+        return "TEXT"
+
+    def table(self, table_name: str):
+        """Get a table interface for fluent querying.
+        
+        Args:
+            table_name: Name of the table to query
+            
+        Returns:
+            TableQuery: A TableQuery object for fluent querying
+            
+        Examples:
+            # Select all rows from a table
+            result = datasource.table("my_table").all()
+            
+            # Select with filtering
+            result = datasource.table("my_table").filter("age > 30").all()
+            
+            # Select specific columns
+            result = datasource.table("my_table").select("name, age").all()
+            
+            # Order results
+            result = datasource.table("my_table").order_by("age DESC").all()
+            
+            # Limit results
+            result = datasource.table("my_table").limit(10).all()
+        """
+        return TableQuery(self, table_name)
+
+    def enable_sql_debug(self, enabled: bool = True) -> None:
+        """Enable or disable SQL debug logging.
+        
+        Args:
+            enabled: If True, SQL statements will be logged at DEBUG level.
+        """
+        self._debug_sql = enabled
+        if enabled:
+            # Set up logging if not already configured
+            if not self._logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self._logger.addHandler(handler)
+            
+            # Ensure logger level is set to DEBUG
+            self._logger.setLevel(logging.DEBUG)
+            self._logger.info("SQL debugging enabled")
+
+    def register_type(self, python_type: Type, sql_type: str) -> None:
+        """Register a custom type mapping.
+        
+        Args:
+            python_type: The Python type to map
+            sql_type: The SQL type to map to
+            
+        Examples:
+            # Register a custom type
+            datasource.register_type(UUID, "UUID")
+            
+            # Register a custom class
+            datasource.register_type(MyCustomClass, "JSON")
+        """
+        self._type_map[python_type] = sql_type
+    
+    def get_type_mappings(self) -> Dict[str, str]:
+        """Return all registered type mappings.
+        
+        Returns:
+            dict: A dictionary mapping Python type names to SQL types
+        """
+        return {getattr(k, '__name__', str(k)): v for k, v in self._type_map.items()}
+
+    def _insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """Insert DataFrame into table in chunks.
+        
+        Args:
+            table_name: Name of the table to insert into
+            dataframe: DataFrame containing the data to insert
+            chunksize: Number of rows to insert in each batch
+        """
+        # For very large DataFrames, use bulk insert for better performance
+        if len(dataframe) > 1000:
+            self._bulk_insert_dataframe(table_name, dataframe, chunksize)
+        else:
+            # For smaller DataFrames, use the original approach
+            escaped_table = self._escape_identifier(table_name)
+            for i in range(0, len(dataframe), chunksize):
+                chunk = dataframe.iloc[i:i+chunksize]
+                escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+                values = ", ".join(f"({', '.join(map(self._format_value, row))})" for _, row in chunk.iterrows())
+                
+                insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
+                
+                if self._debug_sql:
+                    truncated_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values[:1000]}{'...' if len(values) > 1000 else ''}"
+                    self._logger.debug(f"Executing SQL (truncated): {truncated_query}")
+                
+                self.query(insert_query)
+
+    def _bulk_insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """Perform a more efficient bulk insert for large DataFrames.
+        
+        Args:
+            table_name: Name of the table to insert into
+            dataframe: DataFrame containing the data to insert
+            chunksize: Number of rows to insert in each batch
+            
+        Note:
+            This method currently uses the same approach as _insert_dataframe.
+            A true bulk insert implementation would use database-specific features
+            like prepared statements, COPY commands, or batch loading APIs.
+            This is a placeholder for future optimization.
+        """
+        escaped_table = self._escape_identifier(table_name)
+        for i in range(0, len(dataframe), chunksize):
+            chunk = dataframe.iloc[i:i+chunksize]
+            escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+            values = ", ".join(f"({', '.join(map(self._format_value, row))})" for _, row in chunk.iterrows())
+            
+            insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
+            
+            if self._debug_sql:
+                self._logger.debug(f"Executing bulk insert for {len(chunk)} rows")
+            
+            self.query(insert_query)
+
+    def _format_value(self, value) -> str:
+        """Format value for SQL insertion.
+        
+        Args:
+            value: Value to format
+            
+        Returns:
+            str: SQL-formatted value
+        """
+        if pandas.isna(value):
+            return "NULL"
+        elif isinstance(value, bool):
+            return str(value).upper()  # 'TRUE' or 'FALSE'
+        elif isinstance(value, (int, float)):
+            return str(value)
+        elif isinstance(value, datetime):
+            return f"'{value.isoformat()}'"
+        elif isinstance(value, date):
+            return f"'{value.isoformat()}'"
+        elif isinstance(value, (dict, list)):
+            # Handle JSON data
+            json_str = json.dumps(value)
+            escaped_str = json_str.replace("'", "''")
+            return f"'{escaped_str}'"
+        elif isinstance(value, (numpy.ndarray)):
+            # Handle array types
+            array_list = value.tolist()
+            array_str = str(array_list)
+            escaped_str = array_str.replace("'", "''")
+            return f"'{escaped_str}'"
+        else:
+            # Handle strings and other types
+            str_value = str(value)
+            escaped_str = str_value.replace("'", "''")
+            return f"'{escaped_str}'"
+
+
+@attr.s
+class TableQuery:
+    """Provides a fluent query interface for tables."""
+    
+    _datasource = attr.ib()
+    _table_name = attr.ib()
+    _select_clause = attr.ib(default="*")
+    _where_clause = attr.ib(default="")
+    _order_clause = attr.ib(default="")
+    _limit_clause = attr.ib(default="")
+    _offset_clause = attr.ib(default="")
+    
+    def select(self, columns: str):
+        """Select specific columns from the table.
+        
+        Args:
+            columns: Comma-separated list of column names
+            
+        Returns:
+            TableQuery: Self for method chaining
+        """
+        self._select_clause = columns
+        return self
+    
+    def filter(self, condition: str):
+        """Filter results based on a condition.
+        
+        Args:
+            condition: SQL WHERE condition
+            
+        Returns:
+            TableQuery: Self for method chaining
+        """
+        if self._where_clause:
+            self._where_clause += f" AND {condition}"
+        else:
+            self._where_clause = f"WHERE {condition}"
+        return self
+    
+    def order_by(self, order: str):
+        """Order results based on columns.
+        
+        Args:
+            order: SQL ORDER BY expression
+            
+        Returns:
+            TableQuery: Self for method chaining
+        """
+        self._order_clause = f"ORDER BY {order}"
+        return self
+    
+    def limit(self, limit: int):
+        """Limit the number of results returned.
+        
+        Args:
+            limit: Maximum number of rows to return
+            
+        Returns:
+            TableQuery: Self for method chaining
+        """
+        self._limit_clause = f"LIMIT {limit}"
+        return self
+    
+    def offset(self, offset: int):
+        """Set the offset for results.
+        
+        Args:
+            offset: Number of rows to skip
+            
+        Returns:
+            TableQuery: Self for method chaining
+        """
+        self._offset_clause = f"OFFSET {offset}"
+        return self
+    
+    def _build_query(self) -> str:
+        """Build the SQL query from the components.
+        
+        Returns:
+            str: Complete SQL query
+        """
+        escaped_table = self._datasource._escape_identifier(self._table_name)
+        query_parts = [f"SELECT {self._select_clause} FROM {escaped_table}"]
+        
+        if self._where_clause:
+            query_parts.append(self._where_clause)
+        
+        if self._order_clause:
+            query_parts.append(self._order_clause)
+        
+        if self._limit_clause:
+            query_parts.append(self._limit_clause)
+        
+        if self._offset_clause:
+            query_parts.append(self._offset_clause)
+        
+        return " ".join(query_parts)
+    
+    def all(self):
+        """Execute the query and return all results as a DataFrame.
+        
+        Returns:
+            pandas.DataFrame: The query results
+        """
+        query = self._build_query()
+        result = self._datasource.query(query)
+        return result.to_pandas()
+    
+    def first(self):
+        """Execute the query and return the first result.
+        
+        Returns:
+            pandas.Series or None: First row as a Series, or None if no results
+        """
+        original_limit = self._limit_clause
+        self._limit_clause = "LIMIT 1"
+        try:
+            result = self.all()
+            if len(result) > 0:
+                return result.iloc[0]
+            return None
+        finally:
+            self._limit_clause = original_limit
+    
+    def count(self) -> int:
+        """Count the number of rows that would be returned.
+        
+        Returns:
+            int: Row count
+        """
+        original_select = self._select_clause
+        self._select_clause = "COUNT(*) as count"
+        try:
+            result = self.all()
+            return result.iloc[0]['count']
+        finally:
+            self._select_clause = original_select
 
 
 @attr.s
