@@ -418,31 +418,29 @@ class TabularDatasource(Datasource):
     _varchar_medium_threshold = attr.ib(default=255, init=False)
     
     def __attrs_post_init__(self):
-        """Initialize the type mapping system."""
-        # Default type mappings
+        """Initialize the type mapping system with cross-database compatible types."""
         self._type_map = {
-            bool: "BOOLEAN",
+            bool: pandas.BooleanDtype if hasattr(pandas, 'BooleanDtype') else "BOOLEAN",
             int: "INTEGER",
-            float: "FLOAT",
-            str: "VARCHAR(255)",
+            float: "DOUBLE",
+            str: "TEXT",
             bytes: "BLOB",
             datetime: "TIMESTAMP",
             date: "DATE",
             Decimal: "NUMERIC",
-            dict: "JSON",
-            list: "JSON",
-            # Pandas/NumPy specific types
-            pandas.Int64Dtype: "BIGINT",
-            pandas.Float64Dtype: "DOUBLE PRECISION",
-            pandas.StringDtype: "VARCHAR(255)",
+            dict: "TEXT",
+            list: "TEXT",
+            pandas.Int64Dtype: "INTEGER",
+            pandas.Float64Dtype: "DOUBLE",
+            pandas.StringDtype: "TEXT",
             pandas.BooleanDtype: "BOOLEAN",
-            pandas.DatetimeTZDtype: "TIMESTAMP WITH TIME ZONE",
+            pandas.DatetimeTZDtype: "TIMESTAMP",
             numpy.int8: "SMALLINT",
             numpy.int16: "SMALLINT",
             numpy.int32: "INTEGER",
-            numpy.int64: "BIGINT",
+            numpy.int64: "INTEGER",
             numpy.float32: "REAL",
-            numpy.float64: "DOUBLE PRECISION",
+            numpy.float64: "DOUBLE",
         }
 
     def query(self, query: str) -> Result:
@@ -700,9 +698,11 @@ class TabularDatasource(Datasource):
         # Default to incompatible
         return False
 
-
     def _escape_identifier(self, identifier: str) -> str:
         """Escape an SQL identifier (table or column name).
+        
+        Handles schema.table notation properly for cross-database compatibility.
+        Uses SQL standard double quotes which work across most database systems.
         
         Args:
             identifier: The identifier to escape
@@ -710,8 +710,22 @@ class TabularDatasource(Datasource):
         Returns:
             str: The escaped identifier
         """
-        # This is a simple implementation - database-specific escaping might be needed
-        return f'"{identifier}"'
+        # Handle schema.table notation
+        if '.' in identifier:
+            parts = identifier.split('.', 1)  # Split only on first dot to handle cases like catalog.schema.table
+            schema = parts[0].strip()
+            table = parts[1].strip()
+            
+            # Remove existing quotes if present and re-quote properly
+            schema = schema.strip('"').strip('`').strip('[').strip(']')
+            table = table.strip('"').strip('`').strip('[').strip(']')
+            
+            # Return properly quoted schema.table using SQL standard double quotes
+            return f'"{schema}"."{table}"'
+        else:
+            # Single identifier - remove existing quotes and re-quote with double quotes
+            clean_identifier = identifier.strip('"').strip('`').strip('[').strip(']')
+            return f'"{clean_identifier}"'
 
     def _handle_dataframe_mixed_types(self, dataframe: pandas.DataFrame) -> pandas.DataFrame:
         """Process a DataFrame to handle mixed types in object columns.
@@ -796,76 +810,61 @@ class TabularDatasource(Datasource):
         return ", ".join(columns)
 
     def _map_dtype_to_sql(self, dtype, series=None) -> str:
-        """Map pandas dtype to SQL data type.
-        
-        Args:
-            dtype: pandas dtype
-            series: Series with the data (optional)
-            
-        Returns:
-            str: SQL data type
-        """
-        # Handle mixed types in object columns if series is provided
+        """Map pandas dtype to a cross-database compatible SQL type."""
+        # Handle mixed object types
         if series is not None and dtype == 'object':
             _, sql_type, is_mixed = self._detect_and_handle_mixed_types(series)
             if is_mixed and sql_type:
                 return sql_type
-        
-        # Direct lookup for numpy types
+
+        # Direct lookup for known numpy types
         if hasattr(dtype, 'type') and dtype.type in self._type_map:
             return self._type_map[dtype.type]
-        
-        # Check for boolean type
+
+        # Booleans
         if pandas.api.types.is_bool_dtype(dtype):
-            return self._type_map[bool]
-        
-        # Check for integer types
+            return "BOOLEAN"
+
+        # Integers: default to INTEGER, switch to BIGINT only if values exceed 32-bit range
         if pandas.api.types.is_integer_dtype(dtype):
             if series is not None:
                 try:
-                    min_val, max_val = series.min(), series.max()
-                    if min_val >= -32768 and max_val <= 32767:
-                        return "SMALLINT"
-                    elif min_val >= -2147483648 and max_val <= 2147483647:
+                    mn, mx = series.min(), series.max()
+                    if mn >= -2147483648 and mx <= 2147483647:
                         return "INTEGER"
-                    else:
-                        return "BIGINT"
+                    return "BIGINT"
                 except Exception:
                     pass
-            return self._type_map[int]
-        
-        # Check for float types
+            return "INTEGER"
+
+        # Floats: use REAL for 32-bit floats, otherwise DOUBLE
         if pandas.api.types.is_float_dtype(dtype):
-            if hasattr(dtype, 'name') and 'float32' in dtype.name:
-                return self._type_map[numpy.float32]
-            return self._type_map[float]
-        
-        # Check for datetime types
+            name = getattr(dtype, 'name', '')
+            return "REAL" if 'float32' in name else "DOUBLE"
+
+        # Datetimes
         if pandas.api.types.is_datetime64_any_dtype(dtype):
-            return self._type_map[datetime]
-        
-        # Check for string/object types
+            return "TIMESTAMP"
+
+        # Strings and objects: size-based VARCHAR
         if pandas.api.types.is_string_dtype(dtype) or pandas.api.types.is_object_dtype(dtype):
             if series is not None:
                 try:
-                    # Check if it contains JSON-like data
-                    if series.str.contains(r'^\s*[\{$$]').any() and series.str.contains(r'[\}$$]\s*$').any():
-                        return "JSON"
-                    
-                    # Check max string length
+                    # JSON-like detection
+                    if series.str.contains(r'^\s*[\{\[]').any() and series.str.contains(r'[\}\]]\s*$').any():
+                        return "VARCHAR(4000)"
                     max_len = series.astype(str).str.len().max()
                     if max_len < self._varchar_small_threshold:
-                        return f"VARCHAR({max_len + 10})"
-                    elif max_len < self._varchar_medium_threshold:
-                        return f"VARCHAR({self._varchar_medium_threshold})"
-                    else:
-                        return "TEXT"
+                        return f"VARCHAR({max_len + 20})"
+                    if max_len < self._varchar_medium_threshold:
+                        return f"VARCHAR({max_len + 50})"
+                    return "VARCHAR(4000)"
                 except Exception:
                     pass
-            return self._type_map[str]
-        
-        # Default fallback
-        return "TEXT"
+            return "VARCHAR(255)"
+
+        # Fallback
+        return "VARCHAR(255)"
 
     def table(self, table_name: str):
         """Get a table interface for fluent querying.
@@ -992,40 +991,41 @@ class TabularDatasource(Datasource):
             self.query(insert_query)
 
     def _format_value(self, value) -> str:
-        """Format value for SQL insertion.
-        
-        Args:
-            value: Value to format
-            
-        Returns:
-            str: SQL-formatted value
-        """
+        """Format value for SQL insertion with universal CAST approach for all databases."""
         if pandas.isna(value):
             return "NULL"
         elif isinstance(value, bool):
-            return str(value).upper()  # 'TRUE' or 'FALSE'
-        elif isinstance(value, (int, float)):
-            return str(value)
+            # Use CAST to ensure boolean compatibility across all databases
+            return f"CAST({str(value).upper()} AS BOOLEAN)"
+        elif isinstance(value, (int, numpy.integer)):
+            # Use CAST to ensure integer type consistency
+            return f"CAST({value} AS INTEGER)"
+        elif isinstance(value, (float, numpy.floating)):
+            # Use CAST for numeric types
+            return f"CAST({value} AS DOUBLE)"
         elif isinstance(value, datetime):
-            return f"'{value.isoformat()}'"
+            # Use CAST with standard timestamp format
+            timestamp_str = value.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+            return f"CAST('{timestamp_str}' AS TIMESTAMP)"
         elif isinstance(value, date):
-            return f"'{value.isoformat()}'"
+            # Use CAST for date types
+            return f"CAST('{value.isoformat()}' AS DATE)"
         elif isinstance(value, (dict, list)):
-            # Handle JSON data
+            # Convert to JSON string and cast as VARCHAR (Trino compatible)
             json_str = json.dumps(value)
             escaped_str = json_str.replace("'", "''")
-            return f"'{escaped_str}'"
-        elif isinstance(value, (numpy.ndarray)):
-            # Handle array types
+            return f"CAST('{escaped_str}' AS VARCHAR)"
+        elif isinstance(value, numpy.ndarray):
+            # Handle array types as VARCHAR
             array_list = value.tolist()
             array_str = str(array_list)
             escaped_str = array_str.replace("'", "''")
-            return f"'{escaped_str}'"
+            return f"CAST('{escaped_str}' AS VARCHAR)"
         else:
-            # Handle strings and other types
+            # Handle all other types as VARCHAR (universally supported)
             str_value = str(value)
             escaped_str = str_value.replace("'", "''")
-            return f"'{escaped_str}'"
+            return f"CAST('{escaped_str}' AS VARCHAR)"
 
 
 @attr.s
