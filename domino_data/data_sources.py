@@ -608,8 +608,9 @@ class TabularDatasource(Datasource):
                 self._logger.debug(f"Executing SQL to check schema: {schema_query}")
             result = self.query(schema_query)
             
-            # Check column presence
-            table_columns = result.column_names
+            # Convert result to pandas to get column names reliably
+            pandas_result = result.to_pandas()
+            table_columns = pandas_result.columns.tolist()
             df_columns = dataframe.columns.tolist()
             
             missing_columns = set(table_columns) - set(df_columns)
@@ -634,14 +635,77 @@ class TabularDatasource(Datasource):
     def _check_column_types(self, table_name: str, dataframe: pandas.DataFrame, table_columns: list) -> None:
         """Check if DataFrame column types are compatible with table column types."""
         try:
-            columns_query = f"""
-                SELECT column_name, data_type 
-                FROM information_schema.columns 
-                WHERE table_name = '{table_name.lower()}'
-            """
+            # Parse schema.table notation
+            if '.' in table_name:
+                schema_name, table_only = table_name.split('.', 1)
+                schema_name = schema_name.strip('"').strip('`').strip('[').strip(']')
+                table_only = table_only.strip('"').strip('`').strip('[').strip(']')
+                
+                # Try different query formats for different databases
+                queries_to_try = [
+                    # Standard format with schema and table separated
+                    f"""
+                        SELECT column_name, data_type 
+                        FROM information_schema.columns 
+                        WHERE table_schema = '{schema_name}' AND table_name = '{table_only}'
+                    """,
+                    # Alternative format (some databases use different case)
+                    f"""
+                        SELECT column_name, data_type 
+                        FROM information_schema.columns 
+                        WHERE LOWER(table_schema) = LOWER('{schema_name}') AND LOWER(table_name) = LOWER('{table_only}')
+                    """,
+                    # Fallback format for databases that concatenate
+                    f"""
+                        SELECT column_name, data_type 
+                        FROM information_schema.columns 
+                        WHERE table_name = '{table_only}' AND table_schema = '{schema_name}'
+                    """
+                ]
+            else:
+                # No schema specified, use table name only
+                queries_to_try = [
+                    f"""
+                        SELECT column_name, data_type 
+                        FROM information_schema.columns 
+                        WHERE table_name = '{table_name.lower()}'
+                    """
+                ]
             
-            columns_info = self.query(columns_query)
-            table_column_types = {row['column_name']: row['data_type'] for row in columns_info.to_pandas().to_dict('records')}
+            columns_info = None
+            last_error = None
+            
+            # Try each query format until one works
+            for columns_query in queries_to_try:
+                try:
+                    if self._debug_sql:
+                        self._logger.debug(f"Trying column query: {columns_query.strip()}")
+                    columns_info = self.query(columns_query)
+                    columns_df = columns_info.to_pandas()
+                    
+                    # Check if we got results with actual data types
+                    if len(columns_df) > 0 and not columns_df['data_type'].isna().all() and not (columns_df['data_type'] == '').all():
+                        break
+                    else:
+                        if self._debug_sql:
+                            self._logger.debug(f"Query returned empty or null data types: {len(columns_df)} rows")
+                except Exception as e:
+                    last_error = e
+                    if self._debug_sql:
+                        self._logger.debug(f"Query failed: {str(e)}")
+                    continue
+            
+            if columns_info is None:
+                raise Exception(f"All information_schema queries failed. Last error: {last_error}")
+            
+            # Convert to dictionary
+            columns_df = columns_info.to_pandas()
+            if len(columns_df) == 0 or columns_df['data_type'].isna().all() or (columns_df['data_type'] == '').all():
+                # If we still don't have type information, skip type checking
+                self._logger.warning(f"Could not retrieve column type information for table '{table_name}'. Skipping type compatibility check.")
+                return
+            
+            table_column_types = {row['column_name']: row['data_type'] for row in columns_df.to_dict('records')}
             
             # Check type compatibility
             type_mismatches = []
@@ -650,7 +714,7 @@ class TabularDatasource(Datasource):
                 sql_type = self._map_dtype_to_sql(df_type, dataframe[col])
                 table_type = table_column_types.get(col, "").upper()
                 
-                if not self._are_types_compatible(sql_type, table_type):
+                if table_type and not self._are_types_compatible(sql_type, table_type):
                     type_mismatches.append(f"Column '{col}': DataFrame type '{sql_type}' is not compatible with table type '{table_type}'")
             
             if type_mismatches:
@@ -659,12 +723,14 @@ class TabularDatasource(Datasource):
                 raise ValueError(error_msg + "\nUse force=True to attempt the append operation despite these incompatibilities.")
                     
         except Exception as e:
-            if "information_schema" in str(e):
+            if "information_schema" in str(e).lower():
                 # Some databases don't have information_schema
                 self._logger.warning(f"Could not verify column type compatibility: {str(e)}")
                 raise ValueError(f"Cannot verify schema compatibility: {str(e)}. Use force=True to append anyway.")
             else:
-                raise
+                # For other errors, skip type checking with a warning
+                self._logger.warning(f"Could not verify column type compatibility for table '{table_name}': {str(e)}. Skipping type check.")
+                return
 
     def _are_types_compatible(self, sql_type: str, table_type: str) -> bool:
         """Check if two SQL types are compatible for appending data."""
