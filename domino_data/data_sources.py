@@ -420,19 +420,19 @@ class TabularDatasource(Datasource):
     def __attrs_post_init__(self):
         """Initialize the type mapping system with cross-database compatible types."""
         self._type_map = {
-            bool: pandas.BooleanDtype if hasattr(pandas, 'BooleanDtype') else "BOOLEAN",
+            bool: "BOOLEAN",
             int: "INTEGER",
             float: "DOUBLE",
-            str: "TEXT",
+            str: "VARCHAR(255)",
             bytes: "BLOB",
             datetime: "TIMESTAMP",
             date: "DATE",
             Decimal: "NUMERIC",
-            dict: "TEXT",
-            list: "TEXT",
+            dict: "VARCHAR(4000)",
+            list: "VARCHAR(4000)",
             pandas.Int64Dtype: "INTEGER",
             pandas.Float64Dtype: "DOUBLE",
-            pandas.StringDtype: "TEXT",
+            pandas.StringDtype: "VARCHAR(255)",
             pandas.BooleanDtype: "BOOLEAN",
             pandas.DatetimeTZDtype: "TIMESTAMP",
             numpy.int8: "SMALLINT",
@@ -441,7 +441,7 @@ class TabularDatasource(Datasource):
             numpy.int64: "INTEGER",
             numpy.float32: "REAL",
             numpy.float64: "DOUBLE",
-        }
+        }     
 
     def query(self, query: str) -> Result:
         """Execute a query against the datasource.
@@ -758,19 +758,26 @@ class TabularDatasource(Datasource):
 
         non_null_series = series.dropna()
         if len(non_null_series) == 0:
-            return series, "TEXT", False
+            return series, "VARCHAR(255)", False
 
         types = non_null_series.apply(type).value_counts()
 
         if len(types) <= 1:
             return series, None, False
 
-        numeric_types = {int, float, numpy.int64, numpy.float64, numpy.int32, numpy.float32}
+        numeric_types = {
+            int,
+            float,
+            numpy.int64,
+            numpy.float64,
+            numpy.int32,
+            numpy.float32
+        }
         series_types = set(types.index)
 
         if series_types.issubset(numeric_types):
             handled = pandas.to_numeric(series, errors='coerce')
-            return handled, "FLOAT", True
+            return handled, "DOUBLE", True
 
         if str in series_types or any(issubclass(t, str) for t in series_types):
             handled = series.astype(str)
@@ -780,17 +787,17 @@ class TabularDatasource(Datasource):
             elif max_len < self._varchar_medium_threshold:
                 sql_type = f"VARCHAR({self._varchar_medium_threshold})"
             else:
-                sql_type = "TEXT"
+                sql_type = "VARCHAR(4000)"
             return handled, sql_type, True
 
         try:
             handled = series.apply(lambda x: json.dumps(x) if x is not None else None)
-            return handled, "JSON", True
+            return handled, "VARCHAR(4000)", True
         except Exception as e:
             if self._debug_sql:
                 self._logger.debug(f"JSON conversion failed: {e}, falling back to string")
             handled = series.astype(str)
-            return handled, "TEXT", True
+            return handled, "VARCHAR(4000)", True
 
 
     def _generate_schema(self, dataframe: pandas.DataFrame) -> str:
