@@ -608,9 +608,30 @@ class TabularDatasource(Datasource):
                 self._logger.debug(f"Executing SQL to check schema: {schema_query}")
             result = self.query(schema_query)
             
-            # Convert result to pandas to get column names reliably
-            pandas_result = result.to_pandas()
-            table_columns = pandas_result.columns.tolist()
+            # Get column names - try multiple methods for compatibility
+            try:
+                # Method 1: Try schema.names (Arrow Table)
+                if hasattr(result, 'schema') and hasattr(result.schema, 'names'):
+                    table_columns = result.schema.names
+                # Method 2: Try columns attribute
+                elif hasattr(result, 'columns'):
+                    table_columns = list(result.columns)
+                # Method 3: Convert to pandas and get columns
+                elif hasattr(result, 'to_pandas'):
+                    table_columns = result.to_pandas().columns.tolist()
+                # Method 4: Try column_names (original attempt)
+                elif hasattr(result, 'column_names'):
+                    table_columns = result.column_names
+                else:
+                    # Fallback: get from pandas conversion
+                    pandas_result = result.to_pandas()
+                    table_columns = pandas_result.columns.tolist()
+            except Exception as col_err:
+                self._logger.warning(f"Could not extract column names: {str(col_err)}")
+                # Final fallback - convert to pandas
+                pandas_result = result.to_pandas()
+                table_columns = pandas_result.columns.tolist()
+            
             df_columns = dataframe.columns.tolist()
             
             missing_columns = set(table_columns) - set(df_columns)
