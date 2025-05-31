@@ -418,30 +418,142 @@ class TabularDatasource(Datasource):
     _varchar_medium_threshold = attr.ib(default=255, init=False)
     
     def __attrs_post_init__(self):
-        """Initialize the type mapping system with cross-database compatible types."""
-        self._type_map = {
-            bool: "BOOLEAN",
-            int: "INTEGER",
-            float: "DOUBLE",
-            str: "VARCHAR(255)",
-            bytes: "BLOB",
-            datetime: "TIMESTAMP",
-            date: "DATE",
-            Decimal: "NUMERIC",
-            dict: "VARCHAR(4000)",
-            list: "VARCHAR(4000)",
-            pandas.Int64Dtype: "INTEGER",
-            pandas.Float64Dtype: "DOUBLE",
-            pandas.StringDtype: "VARCHAR(255)",
-            pandas.BooleanDtype: "BOOLEAN",
-            pandas.DatetimeTZDtype: "TIMESTAMP",
-            numpy.int8: "SMALLINT",
-            numpy.int16: "SMALLINT",
-            numpy.int32: "INTEGER",
-            numpy.int64: "INTEGER",
-            numpy.float32: "REAL",
-            numpy.float64: "DOUBLE",
-        }     
+        """Initialize database-specific type mappings."""
+        self._type_mappings = {
+            'postgresql': {
+                bool: "BOOLEAN",
+                int: "INTEGER",
+                float: "DOUBLE PRECISION",
+                str: "VARCHAR(255)",
+                datetime: "TIMESTAMP",
+                date: "DATE",
+                Decimal: "NUMERIC",
+                dict: "VARCHAR(4000)",
+                list: "VARCHAR(4000)",
+                pandas.Int64Dtype: "INTEGER",
+                pandas.Float64Dtype: "DOUBLE PRECISION",
+                pandas.StringDtype: "VARCHAR(255)",
+                pandas.BooleanDtype: "BOOLEAN",
+                pandas.DatetimeTZDtype: "TIMESTAMP",
+                numpy.int8: "SMALLINT",
+                numpy.int16: "SMALLINT",
+                numpy.int32: "INTEGER",
+                numpy.int64: "INTEGER",
+                numpy.float32: "REAL",
+                numpy.float64: "DOUBLE PRECISION",
+            },
+            'mysql': {
+                bool: "BOOLEAN",
+                int: "INTEGER",
+                float: "DOUBLE",
+                str: "VARCHAR(255)",
+                datetime: "DATETIME",
+                date: "DATE",
+                Decimal: "DECIMAL",
+                dict: "VARCHAR(4000)",
+                list: "VARCHAR(4000)",
+                pandas.Int64Dtype: "INTEGER",
+                pandas.Float64Dtype: "DOUBLE",
+                pandas.StringDtype: "VARCHAR(255)",
+                pandas.BooleanDtype: "BOOLEAN",
+                pandas.DatetimeTZDtype: "DATETIME",
+                numpy.int8: "SMALLINT",
+                numpy.int16: "SMALLINT",
+                numpy.int32: "INTEGER",
+                numpy.int64: "INTEGER",
+                numpy.float32: "REAL",
+                numpy.float64: "DOUBLE",
+            },
+            'db2': {
+                bool: "SMALLINT",  # DB2 doesn't have native BOOLEAN
+                int: "INTEGER",
+                float: "DOUBLE",
+                str: "VARCHAR(255)",
+                datetime: "TIMESTAMP",
+                date: "DATE",
+                Decimal: "DECIMAL",
+                dict: "VARCHAR(4000)",
+                list: "VARCHAR(4000)",
+                pandas.Int64Dtype: "INTEGER",
+                pandas.Float64Dtype: "DOUBLE",
+                pandas.StringDtype: "VARCHAR(255)",
+                pandas.BooleanDtype: "SMALLINT",
+                pandas.DatetimeTZDtype: "TIMESTAMP",
+                numpy.int8: "SMALLINT",
+                numpy.int16: "SMALLINT",
+                numpy.int32: "INTEGER",
+                numpy.int64: "INTEGER",
+                numpy.float32: "REAL",
+                numpy.float64: "DOUBLE",
+            },
+            'unknown': {  # Fallback for unsupported databases
+                bool: "BOOLEAN",
+                int: "INTEGER",
+                float: "FLOAT",
+                str: "VARCHAR(255)",
+                datetime: "TIMESTAMP",
+                date: "DATE",
+                Decimal: "NUMERIC",
+                dict: "VARCHAR(4000)",
+                list: "VARCHAR(4000)",
+                pandas.Int64Dtype: "INTEGER",
+                pandas.Float64Dtype: "FLOAT",
+                pandas.StringDtype: "VARCHAR(255)",
+                pandas.BooleanDtype: "BOOLEAN",
+                pandas.DatetimeTZDtype: "TIMESTAMP",
+                numpy.int8: "SMALLINT",
+                numpy.int16: "SMALLINT",
+                numpy.int32: "INTEGER",
+                numpy.int64: "INTEGER",
+                numpy.float32: "REAL",
+                numpy.float64: "FLOAT",
+            }
+        }
+        
+        # Set current database type mapping
+        db_type = self._get_db_type()
+        self._type_map = self._type_mappings.get(db_type, self._type_mappings['unknown'])   
+
+    _db_type = None  # Add class-level cache
+
+    def _get_db_type(self) -> str:
+        """Detect and cache database type, only check once per session."""
+        if self._db_type is not None:
+            return self._db_type
+
+        # Try raw connection first
+        try:
+            conn = self.client.raw_connection()
+            if hasattr(conn, 'pgconn'):
+                self._db_type = 'postgresql'
+            elif 'mysql' in str(type(conn)).lower():
+                self._db_type = 'mysql'
+            elif 'db2' in str(type(conn)).lower():
+                self._db_type = 'db2'
+            else:
+                self._db_type = 'unknown'
+        except Exception:
+            pass
+
+        # Fallback to version query (only if needed)
+        if self._db_type is None:
+            try:
+                version_info = self.query("SELECT version()").to_pandas().iat[0, 0].lower()
+                if 'postgresql' in version_info:
+                    self._db_type = 'postgresql'
+                elif 'mysql' in version_info:
+                    self._db_type = 'mysql'
+                elif 'db2' in version_info:
+                    self._db_type = 'db2'
+                else:
+                    self._db_type = 'unknown'
+            except Exception:
+                self._db_type = 'unknown'
+
+        if self._debug_sql:
+            self._logger.debug(f"Using database type: {self._db_type}")
+
+        return self._db_type
 
     def query(self, query: str) -> Result:
         """Execute a query against the datasource.
@@ -487,22 +599,22 @@ class TabularDatasource(Datasource):
         force: bool = False
     ) -> None:
         """
-        Write a DataFrame to a table in the datasource.
+        Write DataFrame to a table in the datasource.
 
         Args:
-            table_name: Name of the table to write to
-            dataframe: DataFrame containing the data to write
+            table_name: Name of the table to write to.
+            dataframe: DataFrame containing the data to write.
             if_table_exists: Action if table exists:
                 - 'fail': Raise an error if table exists (default)
                 - 'replace': Drop and recreate the table
                 - 'append': Append data to the existing table
                 - 'truncate': Empty the table but keep its structure
-            chunksize: Number of rows to insert in each batch for large DataFrames
-            handle_mixed_types: If True, detect and handle mixed types in object columns
-            force: If True, attempt to append data even if schema compatibility issues are detected
+            chunksize: Number of rows to insert in each batch for large DataFrames.
+            handle_mixed_types: If True, detect and handle mixed types in object columns.
+            force: If True, attempt to append/truncate even if schema compatibility issues are detected.
 
         Raises:
-            ValueError: If operation cannot be completed safely
+            ValueError: If operation cannot be completed safely.
 
         Examples:
             # Create a new table, fail if it already exists (default)
@@ -514,13 +626,13 @@ class TabularDatasource(Datasource):
             # Append data to an existing table (will check schema compatibility)
             datasource.write_dataframe("my_table", df, if_table_exists='append')
 
-            # Truncate an existing table and add new data
+            # Truncate an existing table and add new data (will check schema compatibility)
             datasource.write_dataframe("my_table", df, if_table_exists='truncate')
 
             # Force append even if there are schema compatibility issues (not recommended)
             datasource.write_dataframe("my_table", df, if_table_exists='append', force=True)
         """
-        # Validate inputs
+        # Input validation
         if dataframe is None or dataframe.empty:
             raise ValueError("DataFrame cannot be None or empty")
 
@@ -541,16 +653,15 @@ class TabularDatasource(Datasource):
                     f"Table '{table_name}' already exists. Use if_table_exists='replace', 'append', or 'truncate' to modify it."
                 )
             elif if_table_exists == 'replace':
+                # No schema checks here—just drop and recreate
                 self._drop_and_create_table(table_name, dataframe)
             elif if_table_exists == 'truncate':
+                if not force:
+                    self._check_schema_compatibility(table_name, dataframe)
                 self._truncate_table(table_name)
             elif if_table_exists == 'append':
                 if not force:
                     self._check_schema_compatibility(table_name, dataframe)
-                else:
-                    self._logger.warning(
-                        f"Forcing append to table '{table_name}' without schema compatibility checks"
-                    )
         else:
             # Table doesn't exist, create it
             self._create_table(table_name, dataframe)
@@ -559,15 +670,22 @@ class TabularDatasource(Datasource):
         self._insert_dataframe(table_name, dataframe, chunksize)
 
     def _drop_and_create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Drop an existing table and create a new one with the DataFrame's schema."""
+        """
+        Drop existing table and create a new one with the DataFrame's schema.
+
+        Args:
+            table_name: Name of the table to replace.
+            dataframe: DataFrame containing the new schema and data.
+        """
         escaped_table = self._escape_identifier(table_name)
         
-        # Drop the existing table
-        drop_query = f"DROP TABLE {escaped_table}"
-        if self._debug_sql:
-            self._logger.debug(f"Executing SQL: {drop_query}")
-        self.query(drop_query)
-        
+        # Drop existing table
+        try:
+            self.query(f"DROP TABLE {escaped_table}")
+        except Exception as e:
+            self._logger.warning(f"Error dropping table {table_name}: {str(e)}")
+            raise
+
         # Create new table
         self._create_table(table_name, dataframe)
 
@@ -597,161 +715,151 @@ class TabularDatasource(Datasource):
                 self._logger.debug(f"TRUNCATE failed, executing SQL: {delete_query}")
             self.query(delete_query)
 
-    def _check_schema_compatibility(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Check if DataFrame schema is compatible with existing table schema."""
-        escaped_table = self._escape_identifier(table_name)
-        
-        try:
-            # Get existing table schema
-            schema_query = f"SELECT * FROM {escaped_table} LIMIT 0"
-            if self._debug_sql:
-                self._logger.debug(f"Executing SQL to check schema: {schema_query}")
-            result = self.query(schema_query)
-            
-            # Get column names - try multiple methods for compatibility
-            try:
-                # Method 1: Try schema.names (Arrow Table)
-                if hasattr(result, 'schema') and hasattr(result.schema, 'names'):
-                    table_columns = result.schema.names
-                # Method 2: Try columns attribute
-                elif hasattr(result, 'columns'):
-                    table_columns = list(result.columns)
-                # Method 3: Convert to pandas and get columns
-                elif hasattr(result, 'to_pandas'):
-                    table_columns = result.to_pandas().columns.tolist()
-                # Method 4: Try column_names (original attempt)
-                elif hasattr(result, 'column_names'):
-                    table_columns = result.column_names
-                else:
-                    # Fallback: get from pandas conversion
-                    pandas_result = result.to_pandas()
-                    table_columns = pandas_result.columns.tolist()
-            except Exception as col_err:
-                self._logger.warning(f"Could not extract column names: {str(col_err)}")
-                # Final fallback - convert to pandas
-                pandas_result = result.to_pandas()
-                table_columns = pandas_result.columns.tolist()
-            
-            df_columns = dataframe.columns.tolist()
-            
-            missing_columns = set(table_columns) - set(df_columns)
-            extra_columns = set(df_columns) - set(table_columns)
-            
-            if missing_columns:
-                raise ValueError(f"Cannot append: DataFrame is missing columns that exist in the table: {', '.join(missing_columns)}")
-            
-            if extra_columns:
-                raise ValueError(f"Cannot append: DataFrame contains extra columns not in the table: {', '.join(extra_columns)}")
-            
-            # Check column types
-            self._check_column_types(table_name, dataframe, table_columns)
-            
-        except ValueError:
-            # Re-raise ValueError exceptions (our compatibility errors)
-            raise
-        except Exception as e:
-            self._logger.error(f"Error checking schema compatibility: {str(e)}")
-            raise ValueError(f"Cannot safely append to table '{table_name}': {str(e)}")
+    def _check_schema_compatibility(self, table_name: str, dataframe: pandas.DataFrame, force: bool = False) -> None:
+        """
+        Check schema compatibility between DataFrame and existing table.
 
-    def _check_column_types(self, table_name: str, dataframe: pandas.DataFrame, table_columns: list) -> None:
-        """Check if DataFrame column types are compatible with table column types."""
+        Args:
+            table_name: Name of the table to check.
+            dataframe: DataFrame to check compatibility with.
+            force: If True, skip schema mismatch checks and proceed with warning.
+
+        Raises:
+            ValueError: If schema mismatch detected and force=False.
+        """
         try:
-            # Parse schema.table notation
+            # Get existing table columns
+            escaped_table = self._escape_identifier(table_name)
+            schema_query = f"SELECT * FROM {escaped_table} LIMIT 0"
+            result = self.query(schema_query)
+            table_columns = result.to_pandas().columns.tolist()
+            df_columns = dataframe.columns.tolist()
+
+            # Check for missing/extra columns
+            missing = set(table_columns) - set(df_columns)
+            extra = set(df_columns) - set(table_columns)
+            if missing or extra:
+                error_msg = []
+                if missing:
+                    error_msg.append(f"Missing columns: {', '.join(missing)}")
+                if extra:
+                    error_msg.append(f"Extra columns: {', '.join(extra)}")
+                if not force:
+                    raise ValueError(
+                        "Schema mismatch detected: " + " | ".join(error_msg) +
+                        "\nUse force=True to attempt the operation anyway."
+                    )
+                else:
+                    self._logger.warning(
+                        "Forcing write despite schema mismatch: " + " | ".join(error_msg)
+                    )
+                    return
+
+            # Check column types (if metadata available)
+            try:
+                self._check_column_types(table_name, dataframe, table_columns, force)
+            except Exception as type_err:
+                if not force:
+                    raise ValueError(
+                        "Type mismatch detected. " +
+                        str(type_err) +
+                        "\nUse force=True to attempt the operation anyway."
+                    )
+                else:
+                    self._logger.warning(
+                        f"Forcing write despite type mismatch: {str(type_err)}"
+                    )
+
+        except Exception as e:
+            self._logger.error(f"Schema check failed: {str(e)}")
+            if not force:
+                raise ValueError(
+                    "Cannot write to table - schema mismatch detected. "
+                    "Use force=True to attempt the operation anyway."
+                ) from e
+
+    def _check_column_types(self, table_name: str, dataframe: pandas.DataFrame, table_columns: list, force: bool = False) -> None:
+        """
+        Check column type compatibility between DataFrame and existing table.
+
+        Args:
+            table_name: Name of the table to check.
+            dataframe: DataFrame to check compatibility with.
+            table_columns: List of column names in the table.
+            force: If True, skip type mismatch checks and proceed with warning.
+
+        Raises:
+            ValueError: If type mismatch detected and force=False.
+        """
+        try:
+            # Try different ways to get column metadata
+            queries_to_try = []
             if '.' in table_name:
-                schema_name, table_only = table_name.split('.', 1)
-                schema_name = schema_name.strip('"').strip('`').strip('[').strip(']')
-                table_only = table_only.strip('"').strip('`').strip('[').strip(']')
-                
-                # Try different query formats for different databases
+                schema_part, table_part = table_name.split('.', 1)
                 queries_to_try = [
-                    # Standard format with schema and table separated
-                    f"""
-                        SELECT column_name, data_type 
+                    f"""SELECT column_name, data_type 
                         FROM information_schema.columns 
-                        WHERE table_schema = '{schema_name}' AND table_name = '{table_only}'
-                    """,
-                    # Alternative format (some databases use different case)
-                    f"""
-                        SELECT column_name, data_type 
+                        WHERE table_schema = '{schema_part}' 
+                        AND table_name = '{table_part}'""",
+                    f"""SELECT column_name, data_type 
                         FROM information_schema.columns 
-                        WHERE LOWER(table_schema) = LOWER('{schema_name}') AND LOWER(table_name) = LOWER('{table_only}')
-                    """,
-                    # Fallback format for databases that concatenate
-                    f"""
-                        SELECT column_name, data_type 
-                        FROM information_schema.columns 
-                        WHERE table_name = '{table_only}' AND table_schema = '{schema_name}'
-                    """
+                        WHERE LOWER(table_schema) = LOWER('{schema_part}') 
+                        AND LOWER(table_name) = LOWER('{table_part}')""",
                 ]
             else:
-                # No schema specified, use table name only
                 queries_to_try = [
-                    f"""
-                        SELECT column_name, data_type 
+                    f"""SELECT column_name, data_type 
                         FROM information_schema.columns 
-                        WHERE table_name = '{table_name.lower()}'
-                    """
+                        WHERE table_name = '{table_name}'"""
                 ]
-            
+
             columns_info = None
-            last_error = None
-            
-            # Try each query format until one works
-            for columns_query in queries_to_try:
+            for query in queries_to_try:
                 try:
-                    if self._debug_sql:
-                        self._logger.debug(f"Trying column query: {columns_query.strip()}")
-                    columns_info = self.query(columns_query)
-                    columns_df = columns_info.to_pandas()
-                    
-                    # Check if we got results with actual data types
-                    if len(columns_df) > 0 and not columns_df['data_type'].isna().all() and not (columns_df['data_type'] == '').all():
+                    columns_info = self.query(query.strip())
+                    if columns_info.to_pandas().shape[0] > 0:
                         break
-                    else:
-                        if self._debug_sql:
-                            self._logger.debug(f"Query returned empty or null data types: {len(columns_df)} rows")
-                except Exception as e:
-                    last_error = e
-                    if self._debug_sql:
-                        self._logger.debug(f"Query failed: {str(e)}")
+                except Exception:
                     continue
-            
-            if columns_info is None:
-                raise Exception(f"All information_schema queries failed. Last error: {last_error}")
-            
-            # Convert to dictionary
-            columns_df = columns_info.to_pandas()
-            if len(columns_df) == 0 or columns_df['data_type'].isna().all() or (columns_df['data_type'] == '').all():
-                # If we still don't have type information, skip type checking
-                self._logger.warning(f"Could not retrieve column type information for table '{table_name}'. Skipping type compatibility check.")
+
+            if columns_info is None or columns_info.to_pandas().empty:
+                self._logger.warning(
+                    f"Could not retrieve type info for table '{table_name}'. "
+                    "Skipping type validation."
+                )
                 return
-            
-            table_column_types = {row['column_name']: row['data_type'] for row in columns_df.to_dict('records')}
-            
-            # Check type compatibility
+
+            # Proceed with type checks if metadata is available
+            columns_df = columns_info.to_pandas()
+            table_column_types = {
+                row['column_name']: row['data_type']
+                for row in columns_df.to_dict('records')
+            }
+
             type_mismatches = []
-            for col in set(table_columns).intersection(set(dataframe.columns)):
-                df_type = dataframe[col].dtype
-                sql_type = self._map_dtype_to_sql(df_type, dataframe[col])
+            for col in table_columns:
+                df_type = self._map_dtype_to_sql(dataframe[col].dtype, dataframe[col])
                 table_type = table_column_types.get(col, "").upper()
                 
-                if table_type and not self._are_types_compatible(sql_type, table_type):
-                    type_mismatches.append(f"Column '{col}': DataFrame type '{sql_type}' is not compatible with table type '{table_type}'")
-            
+                if not self._are_types_compatible(df_type, table_type):
+                    type_mismatches.append(f"Column '{col}': {df_type} vs {table_type}")
+
             if type_mismatches:
-                error_msg = "Cannot append due to incompatible column types:\n" + "\n".join(type_mismatches)
-                self._logger.error(error_msg)
-                raise ValueError(error_msg + "\nUse force=True to attempt the append operation despite these incompatibilities.")
-                    
+                if not force:
+                    raise ValueError("Type mismatch: " + ", ".join(type_mismatches))
+                else:
+                    self._logger.warning(
+                        "Forcing write despite type mismatch: " + ", ".join(type_mismatches)
+                    )
+
         except Exception as e:
-            if "information_schema" in str(e).lower():
-                # Some databases don't have information_schema
-                self._logger.warning(f"Could not verify column type compatibility: {str(e)}")
-                raise ValueError(f"Cannot verify schema compatibility: {str(e)}. Use force=True to append anyway.")
-            else:
-                # For other errors, skip type checking with a warning
-                self._logger.warning(f"Could not verify column type compatibility for table '{table_name}': {str(e)}. Skipping type check.")
-                return
+            self._logger.warning(f"Type validation skipped: {str(e)}")
+            if not force:
+                raise ValueError(
+                    "Type validation failed. " +
+                    str(e) +
+                    "\nUse force=True to attempt the operation anyway."
+                )
 
     def _are_types_compatible(self, sql_type: str, table_type: str) -> bool:
         """Check if two SQL types are compatible for appending data."""
@@ -886,7 +994,6 @@ class TabularDatasource(Datasource):
             handled = series.astype(str)
             return handled, "VARCHAR(4000)", True
 
-
     def _generate_schema(self, dataframe: pandas.DataFrame) -> str:
         """Generate SQL schema from DataFrame.
         
@@ -919,7 +1026,7 @@ class TabularDatasource(Datasource):
         if pandas.api.types.is_bool_dtype(dtype):
             return "BOOLEAN"
 
-        # Integers: default to INTEGER, switch to BIGINT only if values exceed 32-bit range
+        # Integers
         if pandas.api.types.is_integer_dtype(dtype):
             if series is not None:
                 try:
@@ -931,10 +1038,15 @@ class TabularDatasource(Datasource):
                     pass
             return "INTEGER"
 
-        # Floats: use REAL for 32-bit floats, otherwise DOUBLE
+        # Floats: use DOUBLE PRECISION for PostgreSQL, DOUBLE for MySQL/DB2, FLOAT for others
         if pandas.api.types.is_float_dtype(dtype):
-            name = getattr(dtype, 'name', '')
-            return "REAL" if 'float32' in name else "DOUBLE"
+            db_type = self._get_db_type()
+            if db_type == 'postgresql':
+                return "DOUBLE PRECISION"
+            elif db_type in ['mysql', 'db2']:
+                return "DOUBLE"
+            else:
+                return "FLOAT"
 
         # Datetimes
         if pandas.api.types.is_datetime64_any_dtype(dtype):
@@ -1085,41 +1197,83 @@ class TabularDatasource(Datasource):
             self.query(insert_query)
 
     def _format_value(self, value) -> str:
-        """Format value for SQL insertion with universal CAST approach for all databases."""
+        """
+        Format value for SQL insertion with database-specific CAST operations.
+
+        Args:
+            value: Value to format for SQL insertion
+
+        Returns:
+            str: SQL expression for the value (e.g., 'CAST(28.2 AS DOUBLE PRECISION)')
+        """
         if pandas.isna(value):
             return "NULL"
-        elif isinstance(value, bool):
-            # Use CAST to ensure boolean compatibility across all databases
-            return f"CAST({str(value).upper()} AS BOOLEAN)"
+
+        db_type = self._get_db_type()
+        cast_map = {
+            'postgresql': {
+                'float': 'DOUBLE PRECISION',
+                'datetime': 'TIMESTAMP',
+                'date': 'DATE',
+                'bool': 'BOOLEAN',
+                'int': 'INTEGER',
+                'str': 'VARCHAR'
+            },
+            'mysql': {
+                'float': 'DOUBLE',
+                'datetime': 'DATETIME',
+                'date': 'DATE',
+                'bool': 'BOOLEAN',
+                'int': 'INTEGER',
+                'str': 'VARCHAR'
+            },
+            'db2': {
+                'float': 'DOUBLE',
+                'datetime': 'TIMESTAMP',
+                'date': 'DATE',
+                'bool': 'SMALLINT',
+                'int': 'INTEGER',
+                'str': 'VARCHAR'
+            },
+            'unknown': {
+                'float': 'FLOAT',
+                'datetime': 'TIMESTAMP',
+                'date': 'DATE',
+                'bool': 'BOOLEAN',
+                'int': 'INTEGER',
+                'str': 'VARCHAR'
+            }
+        }
+
+        cast_types = cast_map.get(db_type, cast_map['unknown'])
+
+        if isinstance(value, bool):
+            if db_type == 'db2':
+                return f"CAST({1 if value else 0} AS {cast_types['bool']})"
+            else:
+                return f"CAST({str(value).upper()} AS {cast_types['bool']})"
         elif isinstance(value, (int, numpy.integer)):
-            # Use CAST to ensure integer type consistency
-            return f"CAST({value} AS INTEGER)"
+            return f"CAST({value} AS {cast_types['int']})"
         elif isinstance(value, (float, numpy.floating)):
-            # Use CAST for numeric types
-            return f"CAST({value} AS DOUBLE)"
+            return f"CAST({value} AS {cast_types['float']})"
         elif isinstance(value, datetime):
-            # Use CAST with standard timestamp format
             timestamp_str = value.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-            return f"CAST('{timestamp_str}' AS TIMESTAMP)"
+            return f"CAST('{timestamp_str}' AS {cast_types['datetime']})"
         elif isinstance(value, date):
-            # Use CAST for date types
-            return f"CAST('{value.isoformat()}' AS DATE)"
+            return f"CAST('{value.isoformat()}' AS {cast_types['date']})"
         elif isinstance(value, (dict, list)):
-            # Convert to JSON string and cast as VARCHAR (Trino compatible)
             json_str = json.dumps(value)
             escaped_str = json_str.replace("'", "''")
-            return f"CAST('{escaped_str}' AS VARCHAR)"
+            return f"CAST('{escaped_str}' AS {cast_types['str']})"
         elif isinstance(value, numpy.ndarray):
-            # Handle array types as VARCHAR
             array_list = value.tolist()
             array_str = str(array_list)
             escaped_str = array_str.replace("'", "''")
-            return f"CAST('{escaped_str}' AS VARCHAR)"
+            return f"CAST('{escaped_str}' AS {cast_types['str']})"
         else:
-            # Handle all other types as VARCHAR (universally supported)
             str_value = str(value)
             escaped_str = str_value.replace("'", "''")
-            return f"CAST('{escaped_str}' AS VARCHAR)"
+            return f"CAST('{escaped_str}' AS {cast_types['str']})"
 
 
 @attr.s
