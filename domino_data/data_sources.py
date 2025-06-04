@@ -672,7 +672,7 @@ class TabularDatasource(Datasource):
         table_name: str,
         dataframe: pandas.DataFrame,
         if_table_exists: str = 'fail',
-        chunksize: int = 50000,
+        chunksize: int = 20000,
         handle_mixed_types: bool = True,
         force: bool = False
     ) -> None:
