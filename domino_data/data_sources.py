@@ -418,6 +418,84 @@ class TabularDatasource(Datasource):
     _type_map = attr.ib(factory=dict, init=False, repr=False)
     _varchar_small_threshold = attr.ib(default=50, init=False)
     _varchar_medium_threshold = attr.ib(default=255, init=False)
+
+    def query(self, query: str) -> Result:
+        """Execute a query against the datasource.
+        
+        Args:
+            query: SQL query to execute
+            
+        Returns:
+            Result: Query result object
+        """
+        if self._debug_sql:
+            self._logger.debug(f"Executing SQL: {query}")
+        return self.client.execute(
+            self.identifier,
+            query,
+            config=self._config_override.config(),
+            credential=self._get_credential_override(),
+        )
+    def wrap_passthrough_query(self, query: str) -> str:
+        """
+        Wrap a query for database passthrough to bypass query engine optimization.
+        
+        Uses system.query() table function to execute the query directly
+        on the data source, avoiding query engine transformations that may change
+        results or performance characteristics.
+        
+        Args:
+            query: The SQL query to wrap
+            
+        Returns:
+            str: Wrapped query using passthrough function
+            
+        Examples:
+            # Force a complex join to execute on the data source
+            complex_query = "SELECT * FROM users u JOIN orders o ON u.id = o.user_id ORDER BY u.created_date"
+            wrapped = ds.wrap_passthrough_query(complex_query)
+            result = ds.query(wrapped)
+            
+            # Use data source-specific (non-ANSI) functions
+            db_specific = "SELECT user_id, REGEXP_EXTRACT(email, '@(.*)') as domain FROM users"
+            wrapped = ds.wrap_passthrough_query(db_specific)
+            result = ds.query(wrapped)
+        """
+        # Escape single quotes in the query
+        escaped_query = query.replace("'", "''")
+        
+        # Wrap with system.query table function
+        return f"SELECT * FROM TABLE(system.query(query => '{escaped_query}'))"
+
+    def passthrough_query(self, query: str) -> Result:
+        """
+        Execute a query using database passthrough wrapper.
+        
+        This method wraps and executes the query with system.query() to:
+        - Force operations to execute on the data source
+        - Bypass query engine optimization that may change results
+        - Allow use of data source-specific (non-ANSI) functions
+        - Improve performance for complex operations
+        
+        Args:
+            query: SQL query to execute with passthrough
+            
+        Returns:
+            Result: Query result object
+            
+        Examples:
+            # Use instead of query() for complex operations
+            result = ds.passthrough_query("SELECT * FROM large_table ORDER BY complex_calculation(col1, col2)")
+            
+            # Force predicate pushdown
+            result = ds.passthrough_query("SELECT * FROM table1 t1 JOIN table2 t2 ON t1.id = t2.id WHERE t1.status = 'active'")
+        """
+        wrapped_query_str = self.wrap_passthrough_query(query)
+        
+        if self._debug_sql:
+            self._logger.debug(f"Executing passthrough query: {wrapped_query_str}")
+        
+        return self.query(wrapped_query_str)
     
     def __attrs_post_init__(self):
         """Initialize database-specific type mappings."""
@@ -631,24 +709,6 @@ class TabularDatasource(Datasource):
             self._logger.debug(f"Using database type: {self._db_type}")
 
         return self._db_type
-
-    def query(self, query: str) -> Result:
-        """Execute a query against the datasource.
-        
-        Args:
-            query: SQL query to execute
-            
-        Returns:
-            Result: Query result object
-        """
-        if self._debug_sql:
-            self._logger.debug(f"Executing SQL: {query}")
-        return self.client.execute(
-            self.identifier,
-            query,
-            config=self._config_override.config(),
-            credential=self._get_credential_override(),
-        )
     
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
