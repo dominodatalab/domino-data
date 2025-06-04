@@ -710,28 +710,28 @@ class TabularDatasource(Datasource):
             # Force append even if there are schema compatibility issues (not recommended)
             datasource.write_dataframe("my_table", df, if_table_exists='append', force=True)
         """
-        # Input validation and initial checks remain the same
-        # ...
-
         table_created = False
         try:
-            # Existing table existence check and handling
+            # Check if table exists
             table_exists = self.table_exists(table_name)
-            
+
             if table_exists:
-                if if_table_exists == 'replace':
+                if if_table_exists == 'fail':
+                    raise ValueError(f"Table '{table_name}' already exists.")
+                elif if_table_exists == 'replace':
                     # Replace existing table
                     self._drop_and_create_table(table_name, dataframe)
                     table_created = True
                 elif if_table_exists == 'truncate':
-                    # Truncate logic (doesn't create new table)
+                    # Truncate existing table
                     if not force:
                         self._check_schema_compatibility(table_name, dataframe)
                     self._truncate_table(table_name)
                 elif if_table_exists == 'append':
-                    # Append logic
                     if not force:
                         self._check_schema_compatibility(table_name, dataframe)
+                else:
+                    raise ValueError(f"Invalid option for if_table_exists: {if_table_exists}")
             else:
                 # Create new table
                 self._create_table(table_name, dataframe)
