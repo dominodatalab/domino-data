@@ -1,23 +1,22 @@
 """Datasource module."""
 
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Type, Union, cast
 
 import configparser
-import json
-import os
 import io
+import json
+import logging
+import os
 import tempfile
+from datetime import date, datetime
+from decimal import Decimal
 
 import attr
 import backoff
 import httpx
+import numpy
 import pandas
 import urllib3
-import logging
-import numpy
-from datetime import datetime, date
-from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union, Type
 from httpx._config import DEFAULT_TIMEOUT_CONFIG
 from pyarrow import ArrowException, flight, parquet
 
