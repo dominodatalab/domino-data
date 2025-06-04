@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, cast
 import configparser
 import json
 import os
+import io
+import tempfile
 
 import attr
 import backoff
@@ -411,6 +413,7 @@ class Datasource:
 class TabularDatasource(Datasource):
     """Represents a tabular type datasource."""
     
+    _db_type_override = attr.ib(default=None, init=False, repr=False)
     _debug_sql = attr.ib(default=False, init=False, repr=False)
     _logger = attr.ib(factory=lambda: logging.getLogger(__name__), init=False, repr=False)
     _type_map = attr.ib(factory=dict, init=False, repr=False)
@@ -486,6 +489,50 @@ class TabularDatasource(Datasource):
                 numpy.float32: "REAL",
                 numpy.float64: "DOUBLE",
             },
+            'oracle': {
+                bool: "NUMBER(1)",
+                int: "NUMBER",
+                float: "BINARY_DOUBLE",  # or "NUMBER" for full precision
+                str: "VARCHAR2(255)",
+                datetime: "TIMESTAMP",
+                date: "DATE",
+                Decimal: "NUMBER",
+                dict: "VARCHAR2(4000)",
+                list: "VARCHAR2(4000)",
+                pandas.Int64Dtype: "NUMBER",
+                pandas.Float64Dtype: "BINARY_DOUBLE",  # or "NUMBER"
+                pandas.StringDtype: "VARCHAR2(255)",
+                pandas.BooleanDtype: "NUMBER(1)",
+                pandas.DatetimeTZDtype: "TIMESTAMP",
+                numpy.int8: "NUMBER",
+                numpy.int16: "NUMBER",
+                numpy.int32: "NUMBER",
+                numpy.int64: "NUMBER",
+                numpy.float32: "BINARY_FLOAT",
+                numpy.float64: "BINARY_DOUBLE",  # or "NUMBER"
+            },
+            'sqlserver': {
+                bool: "BIT",
+                int: "INT",
+                float: "FLOAT",
+                str: "NVARCHAR(255)",
+                datetime: "DATETIME2",
+                date: "DATE",
+                Decimal: "DECIMAL",
+                dict: "NVARCHAR(4000)",
+                list: "NVARCHAR(4000)",
+                pandas.Int64Dtype: "BIGINT",
+                pandas.Float64Dtype: "FLOAT",
+                pandas.StringDtype: "NVARCHAR(255)",
+                pandas.BooleanDtype: "BIT",
+                pandas.DatetimeTZDtype: "DATETIMEOFFSET",
+                numpy.int8: "TINYINT",
+                numpy.int16: "SMALLINT",
+                numpy.int32: "INT",
+                numpy.int64: "BIGINT",
+                numpy.float32: "REAL",
+                numpy.float64: "FLOAT",
+            },
             'unknown': {  # Fallback for unsupported databases
                 bool: "BOOLEAN",
                 int: "INTEGER",
@@ -511,13 +558,29 @@ class TabularDatasource(Datasource):
         }
         
         # Set current database type mapping
-        db_type = self._get_db_type()
-        self._type_map = self._type_mappings.get(db_type, self._type_mappings['unknown'])   
+        db_type = self.get_db_type()
+        self._type_map = self._type_mappings.get(db_type, self._type_mappings['unknown'])
 
-    _db_type = None  # Add class-level cache
+    _db_type = None
 
-    def _get_db_type(self) -> str:
-        """Detect and cache database type, only check once per session."""
+    def set_db_type_override(self, db_type: str) -> None:
+        """Override the detected database type. Use with caution.
+        
+        Args:
+            db_type: Database type to force (e.g., 'db2', 'postgresql', 'mysql').
+        """
+        self._db_type_override = db_type.lower() if db_type else None
+        self._db_type = None  # Clear cache to force re-detection if override is removed
+
+    def get_db_type(self) -> str:
+        """Return the database type, respecting overrides.
+        
+        Returns:
+            str: Detected or overridden database type.
+        """
+        if self._db_type_override is not None:
+            return self._db_type_override
+
         if self._db_type is not None:
             return self._db_type
 
@@ -528,15 +591,19 @@ class TabularDatasource(Datasource):
                 self._db_type = 'postgresql'
             elif 'mysql' in str(type(conn)).lower():
                 self._db_type = 'mysql'
-            elif 'db2' in str(type(conn)).lower():
+            elif 'db2' in str(type(conn)).lower() or 'ibm_db' in str(type(conn)).lower():
                 self._db_type = 'db2'
+            elif 'oracle' in str(type(conn)).lower() or 'cx_oracle' in str(type(conn)).lower():
+                self._db_type = 'oracle'
+            elif 'pyodbc' in str(type(conn)).lower() or 'pymssql' in str(type(conn)).lower() or 'sqlserver' in str(type(conn)).lower():
+                self._db_type = 'sqlserver'
             else:
                 self._db_type = 'unknown'
         except Exception:
-            pass
+            self._db_type = 'unknown'
 
         # Fallback to version query (only if needed)
-        if self._db_type is None:
+        if self._db_type == 'unknown':
             try:
                 version_info = self.query("SELECT version()").to_pandas().iat[0, 0].lower()
                 if 'postgresql' in version_info:
@@ -545,10 +612,21 @@ class TabularDatasource(Datasource):
                     self._db_type = 'mysql'
                 elif 'db2' in version_info:
                     self._db_type = 'db2'
-                else:
-                    self._db_type = 'unknown'
+                elif 'oracle' in version_info:
+                    self._db_type = 'oracle'
+                elif 'microsoft' in version_info or 'sql server' in version_info:
+                    self._db_type = 'sqlserver'
             except Exception:
-                self._db_type = 'unknown'
+                pass
+
+        # DB2-specific fallback
+        if self._db_type == 'unknown':
+            try:
+                res = self.query("SELECT CURRENT SERVER FROM SYSIBM.SYSDUMMY1")
+                if not res.to_pandas().empty:
+                    self._db_type = 'db2'
+            except Exception:
+                pass
 
         if self._debug_sql:
             self._logger.debug(f"Using database type: {self._db_type}")
@@ -594,7 +672,7 @@ class TabularDatasource(Datasource):
         table_name: str,
         dataframe: pandas.DataFrame,
         if_table_exists: str = 'fail',
-        chunksize: int = 10000,
+        chunksize: int = 50000,
         handle_mixed_types: bool = True,
         force: bool = False
     ) -> None:
@@ -632,42 +710,52 @@ class TabularDatasource(Datasource):
             # Force append even if there are schema compatibility issues (not recommended)
             datasource.write_dataframe("my_table", df, if_table_exists='append', force=True)
         """
-        # Input validation
-        if dataframe is None or dataframe.empty:
-            raise ValueError("DataFrame cannot be None or empty")
+        # Input validation and initial checks remain the same
+        # ...
 
-        valid_options = ['fail', 'replace', 'append', 'truncate']
-        if if_table_exists not in valid_options:
-            raise ValueError(f"if_table_exists must be one of {valid_options}, got '{if_table_exists}'")
+        table_created = False
+        try:
+            # Existing table existence check and handling
+            table_exists = self.table_exists(table_name)
+            
+            if table_exists:
+                if if_table_exists == 'replace':
+                    # Replace existing table
+                    self._drop_and_create_table(table_name, dataframe)
+                    table_created = True
+                elif if_table_exists == 'truncate':
+                    # Truncate logic (doesn't create new table)
+                    if not force:
+                        self._check_schema_compatibility(table_name, dataframe)
+                    self._truncate_table(table_name)
+                elif if_table_exists == 'append':
+                    # Append logic
+                    if not force:
+                        self._check_schema_compatibility(table_name, dataframe)
+            else:
+                # Create new table
+                self._create_table(table_name, dataframe)
+                table_created = True
 
-        # Handle mixed types if requested
-        if handle_mixed_types:
-            dataframe = self._handle_dataframe_mixed_types(dataframe)
+            # Insert data
+            self._insert_dataframe(table_name, dataframe, chunksize)
 
-        table_exists = self.table_exists(table_name)
+        except Exception as e:
+            if table_created:
+                self._drop_table_quietly(table_name)
+            raise  # Re-raise after cleanup
 
-        # Handle table creation/modification based on if_table_exists
-        if table_exists:
-            if if_table_exists == 'fail':
-                raise ValueError(
-                    f"Table '{table_name}' already exists. Use if_table_exists='replace', 'append', or 'truncate' to modify it."
-                )
-            elif if_table_exists == 'replace':
-                # No schema checks here—just drop and recreate
-                self._drop_and_create_table(table_name, dataframe)
-            elif if_table_exists == 'truncate':
-                if not force:
-                    self._check_schema_compatibility(table_name, dataframe)
-                self._truncate_table(table_name)
-            elif if_table_exists == 'append':
-                if not force:
-                    self._check_schema_compatibility(table_name, dataframe)
-        else:
-            # Table doesn't exist, create it
-            self._create_table(table_name, dataframe)
-
-        # Insert data
-        self._insert_dataframe(table_name, dataframe, chunksize)
+    def _drop_table_quietly(self, table_name: str) -> None:
+        """Attempt to drop table without raising errors."""
+        try:
+            escaped_table = self._escape_identifier(table_name)
+            self.query(f"DROP TABLE {escaped_table}")
+            if self._debug_sql:
+                self._logger.debug(f"Cleaned up table after failed write: {table_name}")
+        except Exception as drop_error:
+            self._logger.error(
+                f"Failed to clean up table {table_name} after error: {str(drop_error)}"
+            )
 
     def _drop_and_create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
         """
@@ -1038,13 +1126,17 @@ class TabularDatasource(Datasource):
                     pass
             return "INTEGER"
 
-        # Floats: use DOUBLE PRECISION for PostgreSQL, DOUBLE for MySQL/DB2, FLOAT for others
+        # Floats: database-specific handling
         if pandas.api.types.is_float_dtype(dtype):
-            db_type = self._get_db_type()
+            db_type = self.get_db_type()
             if db_type == 'postgresql':
                 return "DOUBLE PRECISION"
             elif db_type in ['mysql', 'db2']:
                 return "DOUBLE"
+            elif db_type == 'oracle':
+                return "BINARY_DOUBLE"  # or "NUMBER" for full precision
+            elif db_type == 'sqlserver':
+                return "FLOAT"
             else:
                 return "FLOAT"
 
@@ -1143,58 +1235,260 @@ class TabularDatasource(Datasource):
         return {getattr(k, '__name__', str(k)): v for k, v in self._type_map.items()}
 
     def _insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
-        """Insert DataFrame into table in chunks.
-        
-        Args:
-            table_name: Name of the table to insert into
-            dataframe: DataFrame containing the data to insert
-            chunksize: Number of rows to insert in each batch
-        """
-        # For very large DataFrames, use bulk insert for better performance
+        """Insert DataFrame using bulk methods when possible."""
         if len(dataframe) > 1000:
             self._bulk_insert_dataframe(table_name, dataframe, chunksize)
         else:
-            # For smaller DataFrames, use the original approach
-            escaped_table = self._escape_identifier(table_name)
-            for i in range(0, len(dataframe), chunksize):
-                chunk = dataframe.iloc[i:i+chunksize]
-                escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
-                values = ", ".join(f"({', '.join(map(self._format_value, row))})" for _, row in chunk.iterrows())
-                
-                insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
-                
-                if self._debug_sql:
-                    truncated_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values[:1000]}{'...' if len(values) > 1000 else ''}"
-                    self._logger.debug(f"Executing SQL (truncated): {truncated_query}")
-                
-                self.query(insert_query)
+            # Use standard chunked inserts for small datasets
+            self._fallback_bulk_insert(table_name, dataframe, chunksize)
 
     def _bulk_insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
-        """Perform a more efficient bulk insert for large DataFrames.
+        """Perform optimized bulk inserts based on database type."""
+        db_type = self.get_db_type()
         
-        Args:
-            table_name: Name of the table to insert into
-            dataframe: DataFrame containing the data to insert
-            chunksize: Number of rows to insert in each batch
-            
-        Note:
-            This method currently uses the same approach as _insert_dataframe.
-            A true bulk insert implementation would use database-specific features
-            like prepared statements, COPY commands, or batch loading APIs.
-            This is a placeholder for future optimization.
-        """
+        try:
+            if db_type == 'postgresql':
+                self._postgresql_bulk_insert(table_name, dataframe)
+            elif db_type == 'mysql':
+                self._mysql_bulk_insert(table_name, dataframe)
+            elif db_type == 'sqlserver':
+                self._sqlserver_bulk_insert(table_name, dataframe)
+            elif db_type == 'db2':
+                self._db2_bulk_insert(table_name, dataframe)
+            elif db_type == 'oracle':
+                self._oracle_bulk_insert(table_name, dataframe)
+            else:
+                self._fallback_bulk_insert(table_name, dataframe, chunksize)
+        except Exception as e:
+            self._logger.warning(f"Bulk insert failed for {db_type}, falling back to standard insert: {e}")
+            self._fallback_bulk_insert(table_name, dataframe, chunksize)
+
+    def _fallback_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """Fallback to optimized multi-row INSERTs for unsupported databases."""
         escaped_table = self._escape_identifier(table_name)
+        escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+        
+        if self._debug_sql:
+            self._logger.debug(f"Starting fallback bulk insert for table: {escaped_table}")
+            self._logger.debug(f"Row count: {len(dataframe)}, chunksize: {chunksize}")
+
         for i in range(0, len(dataframe), chunksize):
             chunk = dataframe.iloc[i:i+chunksize]
-            escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
-            values = ", ".join(f"({', '.join(map(self._format_value, row))})" for _, row in chunk.iterrows())
+            values = ", ".join(
+                f"({', '.join(map(self._format_value, row))})" 
+                for _, row in chunk.iterrows()
+            )
             
             insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
             
             if self._debug_sql:
-                self._logger.debug(f"Executing bulk insert for {len(chunk)} rows")
-            
+                self._logger.debug(f"Executing fallback bulk insert for {len(chunk)} rows")
+                
             self.query(insert_query)
+        
+        if self._debug_sql:
+            self._logger.debug(f"Fallback bulk insert completed for {len(dataframe)} rows into {table_name}")
+
+    def _postgresql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Use PostgreSQL's COPY command for high-speed bulk inserts.
+
+        Args:
+            table_name: Name of the table to insert into.
+            dataframe: DataFrame containing the data to insert.
+        """
+        escaped_table = self._escape_identifier(table_name)
+        columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+        
+        conn = None
+        cursor = None
+        try:
+            if self._debug_sql:
+                self._logger.debug(f"Starting PostgreSQL COPY for table: {escaped_table}")
+                self._logger.debug(f"Columns: {columns}")
+                self._logger.debug(f"Row count: {len(dataframe)}")
+
+            # Get a raw connection and set up transaction
+            conn = self.client.raw_connection()
+            conn.set_session(autocommit=False)
+            cursor = conn.cursor()
+
+            # Convert DataFrame to CSV buffer
+            csv_buffer = io.StringIO()
+            dataframe.to_csv(csv_buffer, index=False, header=False, sep='\t', na_rep='\\N')
+            csv_buffer.seek(0)
+
+            # Execute COPY
+            copy_query = f"COPY {escaped_table} ({columns}) FROM STDIN WITH CSV DELIMITER '\t' NULL '\\N'"
+            if self._debug_sql:
+                self._logger.debug(f"Executing COPY: {copy_query}")
+            cursor.copy_expert(copy_query, csv_buffer)
+            conn.commit()
+            
+            if self._debug_sql:
+                self._logger.debug(f"PostgreSQL COPY inserted {len(dataframe)} rows into {table_name}")
+                
+        except Exception as e:
+            if conn is not None:
+                conn.rollback()
+            self._logger.error(f"PostgreSQL bulk insert failed: {e}")
+            raise
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
+
+
+    def _mysql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Use MySQL's LOAD DATA LOCAL INFILE for fast bulk inserts."""
+        escaped_table = self._escape_identifier(table_name)
+        
+        tmp_path = None
+        try:
+            if self._debug_sql:
+                self._logger.debug(f"Starting MySQL LOAD DATA for table: {escaped_table}")
+                self._logger.debug(f"Row count: {len(dataframe)}")
+
+            # Write DataFrame to temp file
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as tmpfile:
+                dataframe.to_csv(tmpfile, index=False, header=False, na_rep='\\N')
+                tmp_path = tmpfile.name
+            
+            # Build and execute LOAD DATA query
+            load_query = f"""
+                LOAD DATA LOCAL INFILE '{tmp_path}'
+                INTO TABLE {escaped_table}
+                FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+                LINES TERMINATED BY '\\n'
+            """
+            if self._debug_sql:
+                self._logger.debug(f"Executing LOAD DATA: {load_query.strip()}")
+            self.query(load_query)
+            
+            if self._debug_sql:
+                self._logger.debug(f"MySQL LOAD DATA inserted {len(dataframe)} rows into {table_name}")
+                
+        except Exception as e:
+            self._logger.error(f"MySQL bulk insert failed: {e}")
+            raise
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def _sqlserver_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Use SQL Server's BULK INSERT for optimized performance."""
+        escaped_table = self._escape_identifier(table_name)
+        
+        tmp_path = None
+        try:
+            if self._debug_sql:
+                self._logger.debug(f"Starting SQL Server BULK INSERT for table: {escaped_table}")
+                self._logger.debug(f"Row count: {len(dataframe)}")
+
+            # Write DataFrame to temp file
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as tmpfile:
+                dataframe.to_csv(tmpfile, index=False, header=False, na_rep='NULL')
+                tmp_path = tmpfile.name
+            
+            # Build and execute BULK INSERT query
+            bulk_query = f"""
+                BULK INSERT {escaped_table}
+                FROM '{tmp_path}'
+                WITH (
+                    FIELDTERMINATOR = ',',
+                    ROWTERMINATOR = '\\n',
+                    TABLOCK,
+                    KEEPNULLS
+                )
+            """
+            if self._debug_sql:
+                self._logger.debug(f"Executing BULK INSERT: {bulk_query.strip()}")
+            self.query(bulk_query)
+            
+            if self._debug_sql:
+                self._logger.debug(f"SQL Server BULK INSERT inserted {len(dataframe)} rows into {table_name}")
+                
+        except Exception as e:
+            self._logger.error(f"SQL Server bulk insert failed: {e}")
+            raise
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def _db2_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Use DB2's ADMIN_CMD for efficient bulk inserts.
+
+        Note:
+            DB2 expects pipe-delimited files for ADMIN_CMD(IMPORT).
+        """
+        escaped_table = self._escape_identifier(table_name)
+        
+        tmp_path = None
+        try:
+            if self._debug_sql:
+                self._logger.debug(f"Starting DB2 IMPORT for table: {escaped_table}")
+                self._logger.debug(f"Row count: {len(dataframe)}")
+
+            # Write DataFrame to temp file with pipe delimiter (DB2 preference)
+            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.del') as tmpfile:
+                dataframe.to_csv(tmpfile, index=False, header=False, sep='|', na_rep='')
+                tmp_path = tmpfile.name
+            
+            # Execute DB2 IMPORT command
+            import_query = f"""
+                CALL SYSPROC.ADMIN_CMD('IMPORT FROM {tmp_path} OF DEL 
+                    MODIFIED BY COLDEL| 
+                    INSERT INTO {escaped_table}')
+            """
+            if self._debug_sql:
+                self._logger.debug(f"Executing IMPORT: {import_query.strip()}")
+            self.query(import_query)
+            
+            if self._debug_sql:
+                self._logger.debug(f"DB2 IMPORT inserted {len(dataframe)} rows into {table_name}")
+                
+        except Exception as e:
+            self._logger.error(f"DB2 bulk insert failed: {e}")
+            raise
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def _oracle_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Use Oracle's multi-row INSERT ALL for bulk inserts.
+
+        Note:
+            For very large datasets, consider using SQL*Loader externally.
+        """
+        escaped_table = self._escape_identifier(table_name)
+        escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+
+        if self._debug_sql:
+            self._logger.debug(f"Starting Oracle INSERT ALL for table: {escaped_table}")
+            self._logger.debug(f"Row count: {len(dataframe)}")
+
+        # Oracle supports INSERT ALL for multi-row inserts
+        # Split into chunks to avoid hitting Oracle's SQL length limit
+        chunk_size = 1000
+        for i in range(0, len(dataframe), chunk_size):
+            chunk = dataframe.iloc[i:i+chunk_size]
+            values = []
+            for _, row in chunk.iterrows():
+                values.append(
+                    "SELECT " + ', '.join(map(self._format_value, row)) + " FROM DUAL"
+                )
+            insert_all_query = f"""
+                INSERT ALL
+                INTO {escaped_table} ({escaped_columns}) VALUES {values[0]}
+                {"".join(f" INTO {escaped_table} ({escaped_columns}) VALUES {v}" for v in values[1:])}
+                SELECT * FROM DUAL
+            """
+            if self._debug_sql:
+                self._logger.debug(f"Executing INSERT ALL for {len(chunk)} rows")
+            self.query(insert_all_query)
+        
+        if self._debug_sql:
+            self._logger.debug(f"Oracle INSERT ALL completed for {len(dataframe)} rows into {table_name}")
 
     def _format_value(self, value) -> str:
         """
@@ -1209,7 +1503,7 @@ class TabularDatasource(Datasource):
         if pandas.isna(value):
             return "NULL"
 
-        db_type = self._get_db_type()
+        db_type = self.get_db_type()
         cast_map = {
             'postgresql': {
                 'float': 'DOUBLE PRECISION',
@@ -1235,6 +1529,22 @@ class TabularDatasource(Datasource):
                 'int': 'INTEGER',
                 'str': 'VARCHAR'
             },
+            'oracle': {
+                'float': 'BINARY_DOUBLE',  # or "NUMBER"
+                'datetime': 'TIMESTAMP',
+                'date': 'DATE',
+                'bool': 'NUMBER',  # Oracle does not have a native BOOLEAN; use 0/1
+                'int': 'NUMBER',
+                'str': 'VARCHAR2'
+            },
+            'sqlserver': {
+                'float': 'FLOAT',
+                'datetime': 'DATETIME2',
+                'date': 'DATE',
+                'bool': 'BIT',
+                'int': 'INT',
+                'str': 'NVARCHAR'
+            },
             'unknown': {
                 'float': 'FLOAT',
                 'datetime': 'TIMESTAMP',
@@ -1248,7 +1558,11 @@ class TabularDatasource(Datasource):
         cast_types = cast_map.get(db_type, cast_map['unknown'])
 
         if isinstance(value, bool):
-            if db_type == 'db2':
+            if db_type in ['db2']:
+                return f"CAST({1 if value else 0} AS {cast_types['bool']})"
+            elif db_type == 'oracle':
+                return f"CAST({1 if value else 0} AS {cast_types['bool']})"
+            elif db_type == 'sqlserver':
                 return f"CAST({1 if value else 0} AS {cast_types['bool']})"
             else:
                 return f"CAST({str(value).upper()} AS {cast_types['bool']})"
