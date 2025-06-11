@@ -508,19 +508,21 @@ class TabularDatasource(Datasource):
                 datetime: "TIMESTAMP",
                 date: "DATE",
                 Decimal: "NUMERIC",
-                dict: "VARCHAR(4000)",
-                list: "VARCHAR(4000)",
-                pandas.Int64Dtype: "INTEGER",
+                dict: "JSONB",  # Improved: Use JSONB for better performance
+                list: "JSONB",  # Improved: Use JSONB for arrays
+                pandas.Int64Dtype: "BIGINT",  # Improved: Use BIGINT for large integers
                 pandas.Float64Dtype: "DOUBLE PRECISION",
                 pandas.StringDtype: "VARCHAR(255)",
                 pandas.BooleanDtype: "BOOLEAN",
-                pandas.DatetimeTZDtype: "TIMESTAMP",
+                pandas.DatetimeTZDtype: "TIMESTAMPTZ",  # Improved: Use timezone-aware type
                 numpy.int8: "SMALLINT",
                 numpy.int16: "SMALLINT",
                 numpy.int32: "INTEGER",
-                numpy.int64: "INTEGER",
+                numpy.int64: "BIGINT",  # Improved: Use BIGINT for int64
                 numpy.float32: "REAL",
                 numpy.float64: "DOUBLE PRECISION",
+                numpy.bool_: "BOOLEAN",  # Added: numpy boolean support
+                bytes: "BYTEA",  # Added: binary data support
             },
             'mysql': {
                 bool: "BOOLEAN",
@@ -529,20 +531,22 @@ class TabularDatasource(Datasource):
                 str: "VARCHAR(255)",
                 datetime: "DATETIME",
                 date: "DATE",
-                Decimal: "DECIMAL",
-                dict: "VARCHAR(4000)",
-                list: "VARCHAR(4000)",
-                pandas.Int64Dtype: "INTEGER",
+                Decimal: "DECIMAL(65,30)",  # Improved: Specify precision
+                dict: "JSON",  # Improved: Use native JSON type
+                list: "JSON",  # Improved: Use native JSON type
+                pandas.Int64Dtype: "BIGINT",  # Improved: Use BIGINT for large integers
                 pandas.Float64Dtype: "DOUBLE",
                 pandas.StringDtype: "VARCHAR(255)",
                 pandas.BooleanDtype: "BOOLEAN",
                 pandas.DatetimeTZDtype: "DATETIME",
-                numpy.int8: "SMALLINT",
+                numpy.int8: "TINYINT",  # Improved: Use TINYINT for int8
                 numpy.int16: "SMALLINT",
                 numpy.int32: "INTEGER",
-                numpy.int64: "INTEGER",
-                numpy.float32: "REAL",
+                numpy.int64: "BIGINT",  # Improved: Use BIGINT for int64
+                numpy.float32: "FLOAT",
                 numpy.float64: "DOUBLE",
+                numpy.bool_: "BOOLEAN",  # Added: numpy boolean support
+                bytes: "LONGBLOB",  # Added: binary data support
             },
             'db2': {
                 bool: "SMALLINT",  # DB2 doesn't have native BOOLEAN
@@ -551,10 +555,10 @@ class TabularDatasource(Datasource):
                 str: "VARCHAR(255)",
                 datetime: "TIMESTAMP",
                 date: "DATE",
-                Decimal: "DECIMAL",
-                dict: "VARCHAR(4000)",
-                list: "VARCHAR(4000)",
-                pandas.Int64Dtype: "INTEGER",
+                Decimal: "DECIMAL(31,0)",  # Improved: Specify DB2's max precision
+                dict: "CLOB",  # Improved: Use CLOB for large JSON objects
+                list: "CLOB",  # Improved: Use CLOB for large arrays
+                pandas.Int64Dtype: "BIGINT",  # Improved: Use BIGINT for large integers
                 pandas.Float64Dtype: "DOUBLE",
                 pandas.StringDtype: "VARCHAR(255)",
                 pandas.BooleanDtype: "SMALLINT",
@@ -562,31 +566,35 @@ class TabularDatasource(Datasource):
                 numpy.int8: "SMALLINT",
                 numpy.int16: "SMALLINT",
                 numpy.int32: "INTEGER",
-                numpy.int64: "INTEGER",
+                numpy.int64: "BIGINT",  # Improved: DB2 supports BIGINT
                 numpy.float32: "REAL",
                 numpy.float64: "DOUBLE",
+                numpy.bool_: "SMALLINT",  # Added: numpy boolean support
+                bytes: "BLOB",  # Added: binary data support
             },
             'oracle': {
                 bool: "NUMBER(1)",
                 int: "NUMBER",
-                float: "BINARY_DOUBLE",  # or "NUMBER" for full precision
+                float: "BINARY_DOUBLE",
                 str: "VARCHAR2(255)",
                 datetime: "TIMESTAMP",
                 date: "DATE",
-                Decimal: "NUMBER",
-                dict: "VARCHAR2(4000)",
-                list: "VARCHAR2(4000)",
-                pandas.Int64Dtype: "NUMBER",
-                pandas.Float64Dtype: "BINARY_DOUBLE",  # or "NUMBER"
+                Decimal: "NUMBER(38,10)",  # Improved: Specify precision
+                dict: "CLOB",  # Improved: Use CLOB for JSON (Oracle 12c+ has JSON type)
+                list: "CLOB",  # Improved: Use CLOB for arrays
+                pandas.Int64Dtype: "NUMBER(19)",  # Improved: Specify precision for large integers
+                pandas.Float64Dtype: "BINARY_DOUBLE",
                 pandas.StringDtype: "VARCHAR2(255)",
                 pandas.BooleanDtype: "NUMBER(1)",
-                pandas.DatetimeTZDtype: "TIMESTAMP",
-                numpy.int8: "NUMBER",
-                numpy.int16: "NUMBER",
-                numpy.int32: "NUMBER",
-                numpy.int64: "NUMBER",
+                pandas.DatetimeTZDtype: "TIMESTAMP WITH TIME ZONE",  # Improved: Use timezone-aware type
+                numpy.int8: "NUMBER(3)",  # Improved: Specify precision
+                numpy.int16: "NUMBER(5)",  # Improved: Specify precision
+                numpy.int32: "NUMBER(10)",  # Improved: Specify precision
+                numpy.int64: "NUMBER(19)",  # Improved: Specify precision
                 numpy.float32: "BINARY_FLOAT",
-                numpy.float64: "BINARY_DOUBLE",  # or "NUMBER"
+                numpy.float64: "BINARY_DOUBLE",
+                numpy.bool_: "NUMBER(1)",  # Added: numpy boolean support
+                bytes: "BLOB",  # Added: binary data support
             },
             'sqlserver': {
                 bool: "BIT",
@@ -595,9 +603,9 @@ class TabularDatasource(Datasource):
                 str: "NVARCHAR(255)",
                 datetime: "DATETIME2",
                 date: "DATE",
-                Decimal: "DECIMAL",
-                dict: "NVARCHAR(4000)",
-                list: "NVARCHAR(4000)",
+                Decimal: "DECIMAL(38,10)",  # Improved: Specify precision
+                dict: "NVARCHAR(MAX)",  # Improved: Use MAX for large JSON
+                list: "NVARCHAR(MAX)",  # Improved: Use MAX for large arrays
                 pandas.Int64Dtype: "BIGINT",
                 pandas.Float64Dtype: "FLOAT",
                 pandas.StringDtype: "NVARCHAR(255)",
@@ -609,8 +617,10 @@ class TabularDatasource(Datasource):
                 numpy.int64: "BIGINT",
                 numpy.float32: "REAL",
                 numpy.float64: "FLOAT",
+                numpy.bool_: "BIT",  # Added: numpy boolean support
+                bytes: "VARBINARY(MAX)",  # Added: binary data support
             },
-            'unknown': {  # Fallback for unsupported databases
+            'unknown': {
                 bool: "BOOLEAN",
                 int: "INTEGER",
                 float: "FLOAT",
@@ -631,9 +641,11 @@ class TabularDatasource(Datasource):
                 numpy.int64: "INTEGER",
                 numpy.float32: "REAL",
                 numpy.float64: "FLOAT",
+                numpy.bool_: "BOOLEAN",  # Added: numpy boolean support
+                bytes: "VARBINARY(4000)",  # Added: binary data support
             }
         }
-        
+
         # Set current database type mapping
         db_type = self.get_db_type()
         self._type_map = self._type_mappings.get(db_type, self._type_mappings['unknown'])
@@ -642,16 +654,81 @@ class TabularDatasource(Datasource):
 
     def set_db_type_override(self, db_type: str) -> None:
         """Override the detected database type. Use with caution.
-        
+
         Args:
-            db_type: Database type to force (e.g., 'db2', 'postgresql', 'mysql').
+            db_type: Database type to force (e.g., 'db2', 'postgresql', 'mysql', 'oracle', 'sqlserver').
+                    Pass None to remove the override and re-enable auto-detection.
+
+        Raises:
+            ValueError: If an unsupported database type is provided.
+
+        Examples:
+            # Force DB2 detection
+            datasource.set_db_type_override('db2')
+            
+            # Force PostgreSQL detection
+            datasource.set_db_type_override('postgresql')
+            
+            # Remove override and re-enable auto-detection
+            datasource.set_db_type_override(None)
         """
-        self._db_type_override = db_type.lower() if db_type else None
-        self._db_type = None  # Clear cache to force re-detection if override is removed
+        if db_type is not None:
+            db_type_lower = db_type.lower()
+            supported_types = {'postgresql', 'mysql', 'db2', 'oracle', 'sqlserver', 'unknown'}
+            
+            if db_type_lower not in supported_types:
+                raise ValueError(
+                    f"Unsupported database type: '{db_type}'. "
+                    f"Supported types are: {', '.join(sorted(supported_types))}"
+                )
+            
+            self._db_type_override = db_type_lower
+            if self._debug_sql:
+                self._logger.info(f"Database type override set to: {db_type_lower}")
+        else:
+            self._db_type_override = None
+            if self._debug_sql:
+                self._logger.info("Database type override removed - auto-detection re-enabled")
+        
+        # Clear cached detection result to force re-detection
+        self._db_type = None
+        
+        # Update type mappings for the new database type
+        db_type_to_use = self.get_db_type()
+        self._type_map = self._type_mappings.get(db_type_to_use, self._type_mappings['unknown'])
+        
+        if self._debug_sql:
+            self._logger.debug(f"Type mappings updated for database type: {db_type_to_use}")
+
+    def get_db_type_override(self) -> Optional[str]:
+        """Get the current database type override.
+
+        Returns:
+            str or None: Current database type override, or None if auto-detection is enabled.
+        """
+        return self._db_type_override
+
+    def get_supported_db_types(self) -> List[str]:
+        """Get list of supported database types for manual override.
+
+        Returns:
+            List[str]: List of supported database type identifiers.
+        """
+        return sorted(list(self._type_mappings.keys()))
+    
+    def reset_db_type_detection(self) -> None:
+        """Reset cached database type detection to force re-detection."""
+        self._db_type = None
+        self._db_type_override = None
+        # Update type mappings
+        db_type = self.get_db_type()
+        self._type_map = self._type_mappings.get(db_type, self._type_mappings['unknown'])
+        if self._debug_sql:
+            self._logger.info("Database type detection reset")
 
     def get_db_type(self) -> str:
         """Return the database type, respecting overrides.
-        
+
         Returns:
             str: Detected or overridden database type.
         """
@@ -661,54 +738,419 @@ class TabularDatasource(Datasource):
         if self._db_type is not None:
             return self._db_type
 
-        # Try raw connection first
+        # Try raw connection first with enhanced detection
         try:
             conn = self.client.raw_connection()
-            if hasattr(conn, 'pgconn'):
+            
+            if self._detect_postgresql_connection(conn):
                 self._db_type = 'postgresql'
-            elif 'mysql' in str(type(conn)).lower():
+            elif self._detect_mysql_connection(conn):
                 self._db_type = 'mysql'
-            elif 'db2' in str(type(conn)).lower() or 'ibm_db' in str(type(conn)).lower():
+            elif self._detect_db2_connection(conn):
                 self._db_type = 'db2'
-            elif 'oracle' in str(type(conn)).lower() or 'cx_oracle' in str(type(conn)).lower():
+            elif self._detect_oracle_connection(conn):
                 self._db_type = 'oracle'
-            elif 'pyodbc' in str(type(conn)).lower() or 'pymssql' in str(type(conn)).lower() or 'sqlserver' in str(type(conn)).lower():
+            elif self._detect_sqlserver_connection(conn):
                 self._db_type = 'sqlserver'
             else:
                 self._db_type = 'unknown'
         except Exception:
             self._db_type = 'unknown'
 
-        # Fallback to version query (only if needed)
+        # Enhanced fallback to version query (only if needed)
         if self._db_type == 'unknown':
             try:
-                version_info = self.query("SELECT version()").to_pandas().iat[0, 0].lower()
-                if 'postgresql' in version_info:
-                    self._db_type = 'postgresql'
-                elif 'mysql' in version_info:
-                    self._db_type = 'mysql'
-                elif 'db2' in version_info:
-                    self._db_type = 'db2'
-                elif 'oracle' in version_info:
-                    self._db_type = 'oracle'
-                elif 'microsoft' in version_info or 'sql server' in version_info:
-                    self._db_type = 'sqlserver'
+                # Try PostgreSQL-specific version queries first
+                postgresql_version_queries = [
+                    "SELECT version()",
+                    "SHOW server_version",
+                    "SELECT current_setting('server_version')"
+                ]
+                
+                for query in postgresql_version_queries:
+                    try:
+                        version_info = self.query(query).to_pandas().iat[0, 0].lower()
+                        if any(indicator in version_info for indicator in ['postgresql', 'postgres']):
+                            self._db_type = 'postgresql'
+                            break
+                    except Exception:
+                        continue
+                
+                # Try MySQL-specific version queries
+                if self._db_type == 'unknown':
+                    mysql_version_queries = [
+                        "SELECT VERSION()",
+                        "SHOW VARIABLES LIKE 'version'",
+                        "SELECT @@version"
+                    ]
+                    
+                    for query in mysql_version_queries:
+                        try:
+                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
+                            if any(indicator in version_info for indicator in ['mysql', 'mariadb']):
+                                self._db_type = 'mysql'
+                                break
+                        except Exception:
+                            continue
+                
+                # Try SQL Server-specific version queries
+                if self._db_type == 'unknown':
+                    sqlserver_version_queries = [
+                        "SELECT @@VERSION",
+                        "SELECT SERVERPROPERTY('ProductVersion')",
+                        "SELECT SERVERPROPERTY('Edition')"
+                    ]
+                    
+                    for query in sqlserver_version_queries:
+                        try:
+                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
+                            if any(indicator in version_info for indicator in ['microsoft', 'sql server', 'azure sql']):
+                                self._db_type = 'sqlserver'
+                                break
+                        except Exception:
+                            continue
+                
+                # Try Oracle-specific version queries
+                if self._db_type == 'unknown':
+                    oracle_version_queries = [
+                        "SELECT BANNER FROM V$VERSION WHERE BANNER LIKE 'Oracle Database%'",
+                        "SELECT VERSION FROM PRODUCT_COMPONENT_VERSION WHERE PRODUCT LIKE 'Oracle Database%'",
+                        "SELECT VERSION FROM V$INSTANCE",
+                        "SELECT * FROM V$VERSION"
+                    ]
+                    
+                    for query in oracle_version_queries:
+                        try:
+                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
+                            if any(indicator in version_info for indicator in ['oracle', 'database']):
+                                self._db_type = 'oracle'
+                                break
+                        except Exception:
+                            continue
+                
+                # Try DB2-specific version queries
+                if self._db_type == 'unknown':
+                    db2_version_queries = [
+                        "SELECT SERVICE_LEVEL FROM SYSIBMADM.ENV_INST_INFO",
+                        "SELECT PROD_RELEASE FROM SYSIBM.SYSVERSIONS WHERE VERSION_TYPE = 'DB2'",
+                        "VALUES(DB2_VERSION())"
+                    ]
+                    
+                    for query in db2_version_queries:
+                        try:
+                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
+                            if any(indicator in version_info for indicator in ['db2', 'ibm']):
+                                self._db_type = 'db2'
+                                break
+                        except Exception:
+                            continue
             except Exception:
                 pass
 
-        # DB2-specific fallback
+        # Enhanced database-specific fallback with multiple detection queries
         if self._db_type == 'unknown':
-            try:
-                res = self.query("SELECT CURRENT SERVER FROM SYSIBM.SYSDUMMY1")
-                if not res.to_pandas().empty:
-                    self._db_type = 'db2'
-            except Exception:
-                pass
+            # PostgreSQL detection queries
+            postgresql_detection_queries = [
+                "SELECT 1",
+                "SELECT current_database()",
+                "SELECT current_user",
+                "SHOW server_version_num"
+            ]
+            
+            for query in postgresql_detection_queries:
+                try:
+                    res = self.query(query)
+                    if not res.to_pandas().empty:
+                        self._db_type = 'postgresql'
+                        break
+                except Exception:
+                    continue
+
+        if self._db_type == 'unknown':
+            # MySQL detection queries
+            mysql_detection_queries = [
+                "SELECT 1",
+                "SELECT DATABASE()",
+                "SELECT USER()",
+                "SHOW STATUS LIKE 'Uptime'"
+            ]
+            
+            for query in mysql_detection_queries:
+                try:
+                    res = self.query(query)
+                    if not res.to_pandas().empty:
+                        self._db_type = 'mysql'
+                        break
+                except Exception:
+                    continue
+
+        if self._db_type == 'unknown':
+            # SQL Server detection queries
+            sqlserver_detection_queries = [
+                "SELECT 1",
+                "SELECT DB_NAME()",
+                "SELECT SUSER_NAME()",
+                "SELECT @@SERVERNAME"
+            ]
+            
+            for query in sqlserver_detection_queries:
+                try:
+                    res = self.query(query)
+                    if not res.to_pandas().empty:
+                        self._db_type = 'sqlserver'
+                        break
+                except Exception:
+                    continue
+
+        if self._db_type == 'unknown':
+            # Oracle detection queries
+            oracle_detection_queries = [
+                "SELECT 1 FROM DUAL",
+                "SELECT SYSDATE FROM DUAL",
+                "SELECT USER FROM DUAL",
+                "SELECT * FROM V$VERSION WHERE ROWNUM = 1",
+                "SELECT BANNER FROM V$VERSION WHERE ROWNUM = 1"
+            ]
+            
+            for query in oracle_detection_queries:
+                try:
+                    res = self.query(query)
+                    if not res.to_pandas().empty:
+                        self._db_type = 'oracle'
+                        break
+                except Exception:
+                    continue
+
+        if self._db_type == 'unknown':
+            # DB2 detection queries
+            db2_detection_queries = [
+                "SELECT CURRENT SERVER FROM SYSIBM.SYSDUMMY1",
+                "SELECT 1 FROM SYSIBM.SYSDUMMY1",
+                "VALUES(CURRENT SERVER)",
+                "SELECT CURRENT SCHEMA FROM SYSIBM.SYSDUMMY1",
+                "SELECT CURRENT TIMESTAMP FROM SYSIBM.SYSDUMMY1"
+            ]
+            
+            for query in db2_detection_queries:
+                try:
+                    res = self.query(query)
+                    if not res.to_pandas().empty:
+                        self._db_type = 'db2'
+                        break
+                except Exception:
+                    continue
 
         if self._debug_sql:
             self._logger.debug(f"Using database type: {self._db_type}")
 
         return self._db_type
+
+    def _detect_postgresql_connection(self, conn) -> bool:
+        """Enhanced PostgreSQL connection detection.
+        
+        Args:
+            conn: Database connection object
+            
+        Returns:
+            bool: True if connection appears to be PostgreSQL
+        """
+        try:
+            # Check for PostgreSQL-specific attributes first
+            if hasattr(conn, 'pgconn'):
+                return True
+                
+            # Check connection type string with multiple indicators
+            conn_type_str = str(type(conn)).lower()
+            postgresql_indicators = [
+                'postgresql', 'postgres', 'psycopg', 'pg8000', 'py-postgresql'
+            ]
+            
+            if any(indicator in conn_type_str for indicator in postgresql_indicators):
+                return True
+                
+            # Check for PostgreSQL-specific connection attributes
+            if hasattr(conn, 'server_version'):
+                try:
+                    version_info = str(conn.server_version).lower()
+                    if 'postgresql' in version_info or 'postgres' in version_info:
+                        return True
+                except Exception:
+                    pass
+                    
+            # Check for PostgreSQL-specific methods
+            postgresql_methods = ['commit', 'rollback', 'cursor', 'close']
+            if all(hasattr(conn, method) for method in postgresql_methods):
+                # Additional PostgreSQL-specific attribute checks
+                if hasattr(conn, 'dsn') or hasattr(conn, 'encoding'):
+                    return True
+                    
+            return False
+            
+        except Exception:
+            return False
+
+    def _detect_mysql_connection(self, conn) -> bool:
+        """Enhanced MySQL connection detection.
+        
+        Args:
+            conn: Database connection object
+            
+        Returns:
+            bool: True if connection appears to be MySQL
+        """
+        try:
+            # Check connection type string with multiple indicators
+            conn_type_str = str(type(conn)).lower()
+            mysql_indicators = [
+                'mysql', 'mariadb', 'pymysql', 'mysqldb', 'mysql.connector',
+                'aiomysql', 'mysql-connector'
+            ]
+            
+            if any(indicator in conn_type_str for indicator in mysql_indicators):
+                return True
+                
+            # Check for MySQL-specific connection attributes
+            if hasattr(conn, 'get_server_info'):
+                try:
+                    server_info = str(conn.get_server_info()).lower()
+                    if 'mysql' in server_info or 'mariadb' in server_info:
+                        return True
+                except Exception:
+                    pass
+                    
+            # Check for MySQL-specific methods
+            mysql_methods = ['commit', 'rollback', 'cursor', 'ping']
+            if all(hasattr(conn, method) for method in mysql_methods):
+                # Additional MySQL-specific attribute checks
+                if hasattr(conn, 'charset') or hasattr(conn, 'autocommit'):
+                    return True
+                    
+            return False
+            
+        except Exception:
+            return False
+
+    def _detect_sqlserver_connection(self, conn) -> bool:
+        """Enhanced SQL Server connection detection.
+        
+        Args:
+            conn: Database connection object
+            
+        Returns:
+            bool: True if connection appears to be SQL Server
+        """
+        try:
+            # Check connection type string with multiple indicators
+            conn_type_str = str(type(conn)).lower()
+            sqlserver_indicators = [
+                'sqlserver', 'mssql', 'pyodbc', 'pymssql', 'turbodbc',
+                'microsoft', 'sql server', 'azure'
+            ]
+            
+            if any(indicator in conn_type_str for indicator in sqlserver_indicators):
+                return True
+                
+            # Check for SQL Server-specific connection attributes
+            if hasattr(conn, 'getinfo'):
+                try:
+                    # ODBC-specific check for SQL Server
+                    dbms_name = conn.getinfo(17)  # SQL_DBMS_NAME
+                    if 'microsoft' in str(dbms_name).lower() or 'sql server' in str(dbms_name).lower():
+                        return True
+                except Exception:
+                    pass
+                    
+            # Check for SQL Server-specific methods
+            sqlserver_methods = ['commit', 'rollback', 'cursor', 'execute']
+            if all(hasattr(conn, method) for method in sqlserver_methods):
+                # Additional SQL Server-specific attribute checks
+                if hasattr(conn, 'timeout') or hasattr(conn, 'autocommit'):
+                    return True
+                    
+            return False
+            
+        except Exception:
+            return False
+
+    def _detect_oracle_connection(self, conn) -> bool:
+        """Enhanced Oracle connection detection.
+        
+        Args:
+            conn: Database connection object
+            
+        Returns:
+            bool: True if connection appears to be Oracle
+        """
+        try:
+            # Check connection type string with multiple indicators
+            conn_type_str = str(type(conn)).lower()
+            oracle_indicators = [
+                'oracle', 'cx_oracle', 'oracledb', 'python-oracledb',
+                'thick', 'thin', 'oracle.jdbc'
+            ]
+            
+            if any(indicator in conn_type_str for indicator in oracle_indicators):
+                return True
+                
+            # Check for Oracle-specific connection attributes
+            if hasattr(conn, 'version'):
+                try:
+                    version_info = str(conn.version).lower()
+                    if 'oracle' in version_info:
+                        return True
+                except Exception:
+                    pass
+                    
+            # Check for Oracle-specific methods
+            oracle_methods = ['ping', 'commit', 'rollback', 'cursor']
+            if all(hasattr(conn, method) for method in oracle_methods):
+                # Additional Oracle-specific attribute checks
+                if hasattr(conn, 'dsn') or hasattr(conn, 'tnsentry'):
+                    return True
+                    
+            return False
+            
+        except Exception:
+            return False
+
+    def _detect_db2_connection(self, conn) -> bool:
+        """Enhanced DB2 connection detection.
+        
+        Args:
+            conn: Database connection object
+            
+        Returns:
+            bool: True if connection appears to be DB2
+        """
+        try:
+            # Check connection type string with multiple indicators
+            conn_type_str = str(type(conn)).lower()
+            db2_indicators = [
+                'db2', 'ibm_db', 'ibm_db_dbi', 'jaydebeapi',
+                'ibmdb', 'db2_cli', 'ibm_db_sa'
+            ]
+            
+            if any(indicator in conn_type_str for indicator in db2_indicators):
+                return True
+                
+            # Check for DB2-specific connection attributes
+            if hasattr(conn, 'server_info'):
+                try:
+                    server_info = str(conn.server_info()).lower()
+                    if 'db2' in server_info or 'ibm' in server_info:
+                        return True
+                except Exception:
+                    pass
+                    
+            # Check for DB2-specific methods
+            db2_methods = ['get_option', 'set_option', 'server_info']
+            if all(hasattr(conn, method) for method in db2_methods):
+                return True
+                
+            return False
+            
+        except Exception:
+            return False
     
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
@@ -1159,6 +1601,7 @@ class TabularDatasource(Datasource):
 
     def _map_dtype_to_sql(self, dtype, series=None) -> str:
         """Map pandas dtype to a cross-database compatible SQL type."""
+        
         # Handle mixed object types
         if series is not None and dtype == 'object':
             _, sql_type, is_mixed = self._detect_and_handle_mixed_types(series)
@@ -1169,59 +1612,151 @@ class TabularDatasource(Datasource):
         if hasattr(dtype, 'type') and dtype.type in self._type_map:
             return self._type_map[dtype.type]
 
+        # Handle pandas extension types
+        if hasattr(dtype, 'name'):
+            if dtype.name in ['Int8', 'Int16', 'Int32', 'Int64']:
+                return self._get_integer_type_by_range(series)
+            elif dtype.name in ['Float32', 'Float64']:
+                return self._type_map.get(pandas.Float64Dtype, "FLOAT")
+            elif dtype.name == 'boolean':
+                return self._type_map.get(pandas.BooleanDtype, "BOOLEAN")
+            elif dtype.name == 'string':
+                return self._get_varchar_type_by_length(series)
+
         # Booleans
         if pandas.api.types.is_bool_dtype(dtype):
-            return "BOOLEAN"
+            return self._type_map.get(bool, "BOOLEAN")
 
-        # Integers
+        # Integers with range-based sizing
         if pandas.api.types.is_integer_dtype(dtype):
-            if series is not None:
-                try:
-                    mn, mx = series.min(), series.max()
-                    if mn >= -2147483648 and mx <= 2147483647:
-                        return "INTEGER"
-                    return "BIGINT"
-                except Exception:
-                    pass
-            return "INTEGER"
+            return self._get_integer_type_by_range(series)
 
         # Floats: database-specific handling
         if pandas.api.types.is_float_dtype(dtype):
-            db_type = self.get_db_type()
-            if db_type == 'postgresql':
-                return "DOUBLE PRECISION"
-            elif db_type in ['mysql', 'db2']:
-                return "DOUBLE"
-            elif db_type == 'oracle':
-                return "BINARY_DOUBLE"  # or "NUMBER" for full precision
-            elif db_type == 'sqlserver':
-                return "FLOAT"
-            else:
-                return "FLOAT"
+            return self._get_float_type_by_database()
 
-        # Datetimes
+        # Datetimes with timezone awareness
         if pandas.api.types.is_datetime64_any_dtype(dtype):
-            return "TIMESTAMP"
+            if hasattr(dtype, 'tz') and dtype.tz is not None:
+                return self._get_timezone_aware_timestamp()
+            return self._type_map.get(datetime, "TIMESTAMP")
 
-        # Strings and objects: size-based VARCHAR
+        # Strings and objects: enhanced size-based VARCHAR
         if pandas.api.types.is_string_dtype(dtype) or pandas.api.types.is_object_dtype(dtype):
-            if series is not None:
-                try:
-                    # JSON-like detection
-                    if series.str.contains(r'^\s*[\{\[]').any() and series.str.contains(r'[\}\]]\s*$').any():
-                        return "VARCHAR(4000)"
-                    max_len = series.astype(str).str.len().max()
-                    if max_len < self._varchar_small_threshold:
-                        return f"VARCHAR({max_len + 20})"
-                    if max_len < self._varchar_medium_threshold:
-                        return f"VARCHAR({max_len + 50})"
-                    return "VARCHAR(4000)"
-                except Exception:
-                    pass
-            return "VARCHAR(255)"
+            return self._get_varchar_type_by_length(series)
+
+        # Binary data
+        if dtype == 'bytes' or str(dtype).startswith('bytes'):
+            return self._type_map.get(bytes, "VARBINARY(4000)")
 
         # Fallback
         return "VARCHAR(255)"
+
+    def _get_integer_type_by_range(self, series) -> str:
+        """Get appropriate integer type based on value range."""
+        if series is not None:
+            try:
+                mn, mx = series.min(), series.max()
+                db_type = self.get_db_type()
+                
+                # TINYINT range: -128 to 127 (or 0 to 255 unsigned)
+                if mn >= -128 and mx <= 127:
+                    if db_type in ['mysql', 'sqlserver']:
+                        return "TINYINT"
+                    else:
+                        return "SMALLINT"
+                
+                # SMALLINT range: -32,768 to 32,767
+                elif mn >= -32768 and mx <= 32767:
+                    return "SMALLINT"
+                
+                # INTEGER range: -2,147,483,648 to 2,147,483,647
+                elif mn >= -2147483648 and mx <= 2147483647:
+                    return "INTEGER"
+                
+                # BIGINT for larger values
+                else:
+                    return "BIGINT"
+            except Exception:
+                pass
+        
+        return self._type_map.get(int, "INTEGER")
+
+    def _get_float_type_by_database(self) -> str:
+        """Get appropriate float type based on database."""
+        db_type = self.get_db_type()
+        if db_type == 'postgresql':
+            return "DOUBLE PRECISION"
+        elif db_type in ['mysql', 'db2']:
+            return "DOUBLE"
+        elif db_type == 'oracle':
+            return "BINARY_DOUBLE"
+        elif db_type == 'sqlserver':
+            return "FLOAT"
+        else:
+            return "FLOAT"
+
+    def _get_timezone_aware_timestamp(self) -> str:
+        """Get timezone-aware timestamp type based on database."""
+        db_type = self.get_db_type()
+        if db_type == 'postgresql':
+            return "TIMESTAMPTZ"
+        elif db_type == 'oracle':
+            return "TIMESTAMP WITH TIME ZONE"
+        elif db_type == 'sqlserver':
+            return "DATETIMEOFFSET"
+        else:
+            return "TIMESTAMP"
+
+    def _get_varchar_type_by_length(self, series) -> str:
+        """Get appropriate VARCHAR type based on content length."""
+        if series is not None:
+            try:
+                # Check for JSON-like content
+                if series.astype(str).str.contains(r'^\s*[\{\[]').any() and \
+                series.astype(str).str.contains(r'[\}\]]\s*$').any():
+                    return self._get_json_type()
+                
+                max_len = series.astype(str).str.len().max()
+                db_type = self.get_db_type()
+                
+                if max_len < self._varchar_small_threshold:
+                    return f"VARCHAR({max_len + 20})"
+                elif max_len < self._varchar_medium_threshold:
+                    return f"VARCHAR({max_len + 50})"
+                elif max_len < 4000:
+                    return "VARCHAR(4000)"
+                else:
+                    # Use database-specific large text types
+                    if db_type == 'postgresql':
+                        return "TEXT"
+                    elif db_type == 'mysql':
+                        return "LONGTEXT"
+                    elif db_type in ['db2', 'oracle']:
+                        return "CLOB"
+                    elif db_type == 'sqlserver':
+                        return "NVARCHAR(MAX)"
+                    else:
+                        return "VARCHAR(4000)"
+            except Exception:
+                pass
+        
+        return self._type_map.get(str, "VARCHAR(255)")
+
+    def _get_json_type(self) -> str:
+        """Get appropriate JSON type based on database."""
+        db_type = self.get_db_type()
+        if db_type == 'postgresql':
+            return "JSONB"
+        elif db_type == 'mysql':
+            return "JSON"
+        elif db_type in ['db2', 'oracle']:
+            return "CLOB"
+        elif db_type == 'sqlserver':
+            return "NVARCHAR(MAX)"
+        else:
+            return "VARCHAR(4000)"
+
 
     def table(self, table_name: str):
         """Get a table interface for fluent querying.
