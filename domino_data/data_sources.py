@@ -2194,9 +2194,9 @@ class TabularDatasource(Datasource):
             json_str = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
             escaped_str = json_str.replace("'", "''")
             
-            # Database-specific JSON handling
+            # Database-specific JSON handling - THIS IS THE KEY FIX!
             if db_type == 'postgresql':
-                # PostgreSQL requires explicit JSONB casting
+                # PostgreSQL requires explicit JSONB casting using :: syntax
                 return f"'{escaped_str}'::jsonb"
             elif db_type == 'mysql':
                 # MySQL can cast to JSON type
@@ -2256,7 +2256,7 @@ class TabularDatasource(Datasource):
                     return f"CAST('{truncated}' AS VARCHAR(4000))"
             else:
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
-
+        
 
 @attr.s
 class TableQuery:
