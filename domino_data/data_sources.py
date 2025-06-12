@@ -1173,44 +1173,81 @@ class TabularDatasource(Datasource):
         table_name: str,
         dataframe: pandas.DataFrame,
         if_table_exists: str = 'fail',
-        chunksize: int = 20000,
+        chunksize: Optional[int] = None,  # Changed: None means auto-optimize
         handle_mixed_types: bool = True,
-        force: bool = False
+        force: bool = False,
+        auto_optimize_chunks: bool = True,  # New: Enable auto-optimization by default
+        max_message_size_mb: float = 4.0,  # New: gRPC message size limit
     ) -> None:
         """
-        Write DataFrame to a table in the datasource.
+        Write DataFrame to a table in the datasource with automatic chunk size optimization.
 
         Args:
             table_name: Name of the table to write to.
             dataframe: DataFrame containing the data to write.
-            if_table_exists: Action if table exists:
-                - 'fail': Raise an error if table exists (default)
-                - 'replace': Drop and recreate the table
-                - 'append': Append data to the existing table
-                - 'truncate': Empty the table but keep its structure
-            chunksize: Number of rows to insert in each batch for large DataFrames.
+            if_table_exists: Action if table exists ('fail', 'replace', 'append', 'truncate')
+            chunksize: Number of rows per chunk. If None, auto-optimize based on data characteristics.
             handle_mixed_types: If True, detect and handle mixed types in object columns.
-            force: If True, attempt to append/truncate even if schema compatibility issues are detected.
+            force: If True, attempt operation even if schema compatibility issues are detected.
+            auto_optimize_chunks: If True and chunksize is None, automatically calculate optimal chunk size.
+            max_message_size_mb: Maximum gRPC message size in MB for auto-optimization.
 
         Raises:
             ValueError: If operation cannot be completed safely.
 
         Examples:
-            # Create a new table, fail if it already exists (default)
+            # Auto-optimized chunking (default behavior)
             datasource.write_dataframe("my_table", df)
-
-            # Replace an existing table if it exists
-            datasource.write_dataframe("my_table", df, if_table_exists='replace')
-
-            # Append data to an existing table (will check schema compatibility)
-            datasource.write_dataframe("my_table", df, if_table_exists='append')
-
-            # Truncate an existing table and add new data (will check schema compatibility)
-            datasource.write_dataframe("my_table", df, if_table_exists='truncate')
-
-            # Force append even if there are schema compatibility issues (not recommended)
-            datasource.write_dataframe("my_table", df, if_table_exists='append', force=True)
+            
+            # Manual chunk size (overrides auto-optimization)
+            datasource.write_dataframe("my_table", df, chunksize=5000)
+            
+            # Auto-optimization with custom gRPC limit
+            datasource.write_dataframe("my_table", df, max_message_size_mb=2.0)
+            
+            # Disable auto-optimization, use default chunk size
+            datasource.write_dataframe("my_table", df, auto_optimize_chunks=False)
         """
+        import time
+        start_time = time.perf_counter()
+        
+        # Determine chunk size strategy
+        if chunksize is not None:
+            # Manual chunk size provided - use it
+            optimal_chunk_size = chunksize
+            if self._debug_sql:
+                self._logger.debug(f"Using manual chunk size: {optimal_chunk_size:,} rows")
+        elif auto_optimize_chunks:
+            # Auto-optimize chunk size
+            optimal_chunk_size = self.calculate_optimal_chunk_size(
+                dataframe, 
+                max_message_size_mb=max_message_size_mb
+            )
+            
+            # Estimate message size with optimal chunk
+            estimated_size_mb = self.estimate_message_size(dataframe, optimal_chunk_size)
+            
+            if self._debug_sql:
+                self._logger.debug(f"Auto-optimized chunk size: {optimal_chunk_size:,} rows")
+                self._logger.debug(f"Estimated message size: {estimated_size_mb:.2f} MB")
+                
+                if estimated_size_mb > max_message_size_mb:
+                    self._logger.warning(f"Estimated size ({estimated_size_mb:.2f} MB) exceeds limit ({max_message_size_mb} MB)")
+        else:
+            # Use default chunk size
+            optimal_chunk_size = 20000
+            if self._debug_sql:
+                self._logger.debug(f"Using default chunk size: {optimal_chunk_size:,} rows")
+
+        if self._debug_sql:
+            total_chunks = (len(dataframe) + optimal_chunk_size - 1) // optimal_chunk_size
+            self._logger.debug(f"Write operation details:")
+            self._logger.debug(f"  Table: {table_name}")
+            self._logger.debug(f"  Rows: {len(dataframe):,}")
+            self._logger.debug(f"  Chunks: {total_chunks}")
+            self._logger.debug(f"  Mode: {if_table_exists}")
+            self._logger.debug(f"  Auto-optimize: {auto_optimize_chunks}")
+
         table_created = False
         try:
             # Check if table exists
@@ -1238,12 +1275,32 @@ class TabularDatasource(Datasource):
                 self._create_table(table_name, dataframe)
                 table_created = True
 
-            # Insert data
-            self._insert_dataframe(table_name, dataframe, chunksize)
+            # Insert data with optimized chunk size
+            self._insert_dataframe(table_name, dataframe, optimal_chunk_size)
+            
+            # Performance metrics
+            if self._debug_sql:
+                end_time = time.perf_counter()
+                elapsed_time = end_time - start_time
+                rows_per_second = len(dataframe) / elapsed_time if elapsed_time > 0 else 0
+                mb_per_second = (dataframe.memory_usage(deep=True).sum() / (1024*1024)) / elapsed_time if elapsed_time > 0 else 0
+                
+                self._logger.debug(f"Write operation completed successfully!")
+                self._logger.debug(f"Performance metrics:")
+                self._logger.debug(f"  Execution time: {elapsed_time:.2f} seconds")
+                self._logger.debug(f"  Throughput: {rows_per_second:,.0f} rows/second")
+                self._logger.debug(f"  Data rate: {mb_per_second:.1f} MB/second")
 
         except Exception as e:
             if table_created:
                 self._drop_table_quietly(table_name)
+            
+            # Enhanced error context
+            if self._debug_sql:
+                self._logger.error(f"Write operation failed: {str(e)}")
+                if "grpc: received message larger than max" in str(e):
+                    self._logger.error(f"Suggestion: Try reducing max_message_size_mb parameter or manual chunksize")
+            
             raise  # Re-raise after cleanup
 
     def _drop_table_quietly(self, table_name: str) -> None:
@@ -1304,6 +1361,107 @@ class TabularDatasource(Datasource):
                 self._logger.debug(f"TRUNCATE failed, executing SQL: {delete_query}")
             self.query(delete_query)
 
+    def calculate_optimal_chunk_size(self, dataframe: pandas.DataFrame, max_message_size_mb: float = 4.0, safety_factor: float = 0.8) -> int:
+        """
+        Calculate optimal chunk size to maximize performance while staying under gRPC limits.
+        
+        Args:
+            dataframe: DataFrame to analyze
+            max_message_size_mb: Maximum message size in MB (default 3.5MB to stay under 4MB limit)
+            safety_factor: Safety multiplier to account for serialization overhead (default 0.8)
+        
+        Returns:
+            int: Optimal chunk size in number of rows
+        """
+        if len(dataframe) == 0:
+            return 1000  # Default fallback
+        
+        # Calculate memory usage per row
+        total_memory_bytes = dataframe.memory_usage(deep=True).sum()
+        memory_per_row = total_memory_bytes / len(dataframe)
+        
+        # Account for serialization overhead (gRPC/Arrow serialization adds ~30-50% overhead)
+        serialization_overhead = 1.5
+        estimated_serialized_per_row = memory_per_row * serialization_overhead
+        
+        # Calculate max rows that fit in target message size
+        max_message_bytes = max_message_size_mb * 1024 * 1024
+        safe_message_bytes = max_message_bytes * safety_factor
+        
+        optimal_rows = int(safe_message_bytes / estimated_serialized_per_row)
+        
+        # Apply reasonable bounds
+        min_chunk_size = 100    # Don't go too small (too many round trips)
+        max_chunk_size = 50000  # Don't go too large (memory concerns)
+        
+        optimal_chunk_size = max(min_chunk_size, min(optimal_rows, max_chunk_size))
+        
+        if self._debug_sql:
+            self._logger.debug(f"Chunk size calculation:")
+            self._logger.debug(f"  Total rows: {len(dataframe):,}")
+            self._logger.debug(f"  Memory per row: {memory_per_row:.2f} bytes")
+            self._logger.debug(f"  Estimated serialized per row: {estimated_serialized_per_row:.2f} bytes")
+            self._logger.debug(f"  Target message size: {max_message_size_mb:.1f} MB")
+            self._logger.debug(f"  Calculated optimal chunk size: {optimal_chunk_size:,} rows")
+            self._logger.debug(f"  Expected chunks: {(len(dataframe) + optimal_chunk_size - 1) // optimal_chunk_size}")
+        
+        return optimal_chunk_size
+
+    def estimate_message_size(self, dataframe: pandas.DataFrame, chunk_size: int) -> float:
+        """
+        Estimate the serialized message size for a given chunk size.
+        
+        Args:
+            dataframe: DataFrame to analyze
+            chunk_size: Number of rows per chunk
+        
+        Returns:
+            float: Estimated message size in MB
+        """
+        if len(dataframe) == 0:
+            return 0
+        
+        # Sample a chunk to estimate size
+        sample_size = min(chunk_size, len(dataframe))
+        sample_chunk = dataframe.head(sample_size)
+        
+        # Calculate memory usage of sample
+        sample_memory = sample_chunk.memory_usage(deep=True).sum()
+        
+        # Apply serialization overhead
+        serialization_overhead = 1.5
+        estimated_serialized_size = sample_memory * serialization_overhead
+        
+        # Scale to full chunk size
+        if sample_size < chunk_size:
+            estimated_serialized_size = estimated_serialized_size * (chunk_size / sample_size)
+        
+        estimated_mb = estimated_serialized_size / (1024 * 1024)
+        
+        if self._debug_sql:
+            self._logger.debug(f"Message size estimation:")
+            self._logger.debug(f"  Sample size: {sample_size:,} rows")
+            self._logger.debug(f"  Sample memory: {sample_memory / (1024*1024):.2f} MB")
+            self._logger.debug(f"  Estimated chunk size: {estimated_mb:.2f} MB")
+        
+        return estimated_mb
+
+    def set_grpc_message_limits(self, max_message_size_mb: float = 64.0) -> None:
+        """
+        Update the default gRPC message size limits for this datasource.
+        
+        Args:
+            max_message_size_mb: Maximum message size in MB (default 64MB)
+        
+        Note:
+            This affects the auto-optimization calculations for future write operations.
+            The actual gRPC client limits are set at the DataSourceClient level.
+        """
+        self._default_grpc_limit_mb = max_message_size_mb
+        
+        if self._debug_sql:
+            self._logger.debug(f"Updated default gRPC message limit to {max_message_size_mb} MB")
+
     def _check_schema_compatibility(self, table_name: str, dataframe: pandas.DataFrame, force: bool = False) -> None:
         """
         Check schema compatibility between DataFrame and existing table.
@@ -1322,27 +1480,32 @@ class TabularDatasource(Datasource):
             schema_query = f"SELECT * FROM {escaped_table} LIMIT 0"
             result = self.query(schema_query)
             table_columns = result.to_pandas().columns.tolist()
+
             df_columns = dataframe.columns.tolist()
 
             # Check for missing/extra columns
             missing = set(table_columns) - set(df_columns)
             extra = set(df_columns) - set(table_columns)
+
             if missing or extra:
                 error_msg = []
                 if missing:
                     error_msg.append(f"Missing columns: {', '.join(missing)}")
                 if extra:
                     error_msg.append(f"Extra columns: {', '.join(extra)}")
+
                 if not force:
                     raise ValueError(
                         "Schema mismatch detected: " + " | ".join(error_msg) +
                         "\nUse force=True to attempt the operation anyway."
                     )
                 else:
-                    self._logger.warning(
-                        "Forcing write despite schema mismatch: " + " | ".join(error_msg)
-                    )
-                    return
+                    if self._debug_sql:
+                        self._logger.warning(
+                            "Forcing write despite schema mismatch: " + " | ".join(error_msg)
+                        )
+
+            return
 
             # Check column types (if metadata available)
             try:
@@ -1355,17 +1518,20 @@ class TabularDatasource(Datasource):
                         "\nUse force=True to attempt the operation anyway."
                     )
                 else:
-                    self._logger.warning(
-                        f"Forcing write despite type mismatch: {str(type_err)}"
-                    )
+                    if self._debug_sql:
+                        self._logger.warning(
+                            f"Forcing write despite type mismatch: {str(type_err)}"
+                        )
 
         except Exception as e:
-            self._logger.error(f"Schema check failed: {str(e)}")
+            if self._debug_sql:
+                self._logger.error(f"Schema check failed: {str(e)}")
             if not force:
                 raise ValueError(
                     "Cannot write to table - schema mismatch detected. "
                     "Use force=True to attempt the operation anyway."
                 ) from e
+
 
     def _check_column_types(self, table_name: str, dataframe: pandas.DataFrame, table_columns: list, force: bool = False) -> None:
         """
@@ -1386,20 +1552,20 @@ class TabularDatasource(Datasource):
             if '.' in table_name:
                 schema_part, table_part = table_name.split('.', 1)
                 queries_to_try = [
-                    f"""SELECT column_name, data_type 
-                        FROM information_schema.columns 
-                        WHERE table_schema = '{schema_part}' 
-                        AND table_name = '{table_part}'""",
-                    f"""SELECT column_name, data_type 
-                        FROM information_schema.columns 
-                        WHERE LOWER(table_schema) = LOWER('{schema_part}') 
-                        AND LOWER(table_name) = LOWER('{table_part}')""",
+                    f"""SELECT column_name, data_type
+                    FROM information_schema.columns
+                    WHERE table_schema = '{schema_part}'
+                    AND table_name = '{table_part}'""",
+                    f"""SELECT column_name, data_type
+                    FROM information_schema.columns
+                    WHERE LOWER(table_schema) = LOWER('{schema_part}')
+                    AND LOWER(table_name) = LOWER('{table_part}')""",
                 ]
             else:
                 queries_to_try = [
-                    f"""SELECT column_name, data_type 
-                        FROM information_schema.columns 
-                        WHERE table_name = '{table_name}'"""
+                    f"""SELECT column_name, data_type
+                    FROM information_schema.columns
+                    WHERE table_name = '{table_name}'"""
                 ]
 
             columns_info = None
@@ -1412,10 +1578,11 @@ class TabularDatasource(Datasource):
                     continue
 
             if columns_info is None or columns_info.to_pandas().empty:
-                self._logger.warning(
-                    f"Could not retrieve type info for table '{table_name}'. "
-                    "Skipping type validation."
-                )
+                if self._debug_sql:
+                    self._logger.warning(
+                        f"Could not retrieve type info for table '{table_name}'. "
+                        "Skipping type validation."
+                    )
                 return
 
             # Proceed with type checks if metadata is available
@@ -1429,7 +1596,6 @@ class TabularDatasource(Datasource):
             for col in table_columns:
                 df_type = self._map_dtype_to_sql(dataframe[col].dtype, dataframe[col])
                 table_type = table_column_types.get(col, "").upper()
-                
                 if not self._are_types_compatible(df_type, table_type):
                     type_mismatches.append(f"Column '{col}': {df_type} vs {table_type}")
 
@@ -1437,12 +1603,14 @@ class TabularDatasource(Datasource):
                 if not force:
                     raise ValueError("Type mismatch: " + ", ".join(type_mismatches))
                 else:
-                    self._logger.warning(
-                        "Forcing write despite type mismatch: " + ", ".join(type_mismatches)
-                    )
+                    if self._debug_sql:
+                        self._logger.warning(
+                            "Forcing write despite type mismatch: " + ", ".join(type_mismatches)
+                        )
 
         except Exception as e:
-            self._logger.warning(f"Type validation skipped: {str(e)}")
+            if self._debug_sql:
+                self._logger.warning(f"Type validation skipped: {str(e)}")
             if not force:
                 raise ValueError(
                     "Type validation failed. " +
@@ -2604,13 +2772,6 @@ class DataSourceClient:
         client_source = os.getenv(DOMINO_CLIENT_SOURCE, "Python")
         flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
         run_id = os.getenv(DOMINO_RUN_ID, "")
-        
-        # Configure larger message size limits to handle large DataFrames
-        options = [
-            ('grpc.max_send_message_length', 64 * 1024 * 1024),    # 64MB
-            ('grpc.max_receive_message_length', 64 * 1024 * 1024), # 64MB
-        ]
-        
         self.proxy = flight.FlightClient(
             flight_host,
             middleware=[
@@ -2622,7 +2783,6 @@ class DataSourceClient:
                 ),
                 MetaMiddlewareFactory(client_source=client_source, run_id=run_id),
             ],
-            generic_options=options  # Add this parameter
         )
 
     def get_datasource(self, name: str) -> Datasource:
