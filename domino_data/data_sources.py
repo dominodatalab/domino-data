@@ -2087,17 +2087,19 @@ class TabularDatasource(Datasource):
     def _format_value(self, value) -> str:
         """
         Format value for SQL insertion with database-specific CAST operations.
-
+        
         Args:
             value: Value to format for SQL insertion
-
+            
         Returns:
-            str: SQL expression for the value (e.g., 'CAST(28.2 AS DOUBLE PRECISION)')
+            str: SQL expression for the value with appropriate database-specific casting
         """
         if pandas.isna(value):
             return "NULL"
 
         db_type = self.get_db_type()
+        
+        # Enhanced database-specific casting maps
         cast_map = {
             'postgresql': {
                 'float': 'DOUBLE PRECISION',
@@ -2105,7 +2107,8 @@ class TabularDatasource(Datasource):
                 'date': 'DATE',
                 'bool': 'BOOLEAN',
                 'int': 'INTEGER',
-                'str': 'VARCHAR'
+                'str': 'VARCHAR',
+                'json': 'JSONB'  # Enhanced: Explicit JSONB casting
             },
             'mysql': {
                 'float': 'DOUBLE',
@@ -2113,7 +2116,8 @@ class TabularDatasource(Datasource):
                 'date': 'DATE',
                 'bool': 'BOOLEAN',
                 'int': 'INTEGER',
-                'str': 'VARCHAR'
+                'str': 'VARCHAR',
+                'json': 'JSON'  # Enhanced: Native JSON casting
             },
             'db2': {
                 'float': 'DOUBLE',
@@ -2121,15 +2125,17 @@ class TabularDatasource(Datasource):
                 'date': 'DATE',
                 'bool': 'SMALLINT',
                 'int': 'INTEGER',
-                'str': 'VARCHAR'
+                'str': 'VARCHAR',
+                'json': 'CLOB'  # Enhanced: CLOB for JSON
             },
             'oracle': {
-                'float': 'BINARY_DOUBLE',  # or "NUMBER"
+                'float': 'BINARY_DOUBLE',
                 'datetime': 'TIMESTAMP',
                 'date': 'DATE',
-                'bool': 'NUMBER',  # Oracle does not have a native BOOLEAN; use 0/1
+                'bool': 'NUMBER',
                 'int': 'NUMBER',
-                'str': 'VARCHAR2'
+                'str': 'VARCHAR2',
+                'json': 'CLOB'  # Enhanced: CLOB for JSON
             },
             'sqlserver': {
                 'float': 'FLOAT',
@@ -2137,7 +2143,8 @@ class TabularDatasource(Datasource):
                 'date': 'DATE',
                 'bool': 'BIT',
                 'int': 'INT',
-                'str': 'NVARCHAR'
+                'str': 'NVARCHAR',
+                'json': 'NVARCHAR(MAX)'  # Enhanced: NVARCHAR(MAX) for JSON
             },
             'unknown': {
                 'float': 'FLOAT',
@@ -2145,12 +2152,14 @@ class TabularDatasource(Datasource):
                 'date': 'DATE',
                 'bool': 'BOOLEAN',
                 'int': 'INTEGER',
-                'str': 'VARCHAR'
+                'str': 'VARCHAR',
+                'json': 'VARCHAR(4000)'
             }
         }
 
         cast_types = cast_map.get(db_type, cast_map['unknown'])
 
+        # Boolean handling with database-specific logic
         if isinstance(value, bool):
             if db_type in ['db2']:
                 return f"CAST({1 if value else 0} AS {cast_types['bool']})"
@@ -2160,28 +2169,93 @@ class TabularDatasource(Datasource):
                 return f"CAST({1 if value else 0} AS {cast_types['bool']})"
             else:
                 return f"CAST({str(value).upper()} AS {cast_types['bool']})"
+
+        # Integer handling
         elif isinstance(value, (int, numpy.integer)):
             return f"CAST({value} AS {cast_types['int']})"
+
+        # Float handling
         elif isinstance(value, (float, numpy.floating)):
+            if numpy.isnan(value) or numpy.isinf(value):
+                return "NULL"
             return f"CAST({value} AS {cast_types['float']})"
+
+        # Datetime handling
         elif isinstance(value, datetime):
             timestamp_str = value.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
             return f"CAST('{timestamp_str}' AS {cast_types['datetime']})"
+
+        # Date handling
         elif isinstance(value, date):
             return f"CAST('{value.isoformat()}' AS {cast_types['date']})"
+
+        # Enhanced JSON/Dictionary/List handling with database-specific casting
         elif isinstance(value, (dict, list)):
-            json_str = json.dumps(value)
+            json_str = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
             escaped_str = json_str.replace("'", "''")
-            return f"CAST('{escaped_str}' AS {cast_types['str']})"
+            
+            # Database-specific JSON handling
+            if db_type == 'postgresql':
+                # PostgreSQL requires explicit JSONB casting
+                return f"'{escaped_str}'::jsonb"
+            elif db_type == 'mysql':
+                # MySQL can cast to JSON type
+                return f"CAST('{escaped_str}' AS JSON)"
+            elif db_type in ['db2', 'oracle']:
+                # DB2 and Oracle use CLOB for JSON storage
+                return f"CAST('{escaped_str}' AS CLOB)"
+            elif db_type == 'sqlserver':
+                # SQL Server uses NVARCHAR(MAX)
+                return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
+            else:
+                # Fallback for unknown databases
+                return f"CAST('{escaped_str}' AS VARCHAR(4000))"
+
+        # NumPy array handling
         elif isinstance(value, numpy.ndarray):
-            array_list = value.tolist()
-            array_str = str(array_list)
-            escaped_str = array_str.replace("'", "''")
-            return f"CAST('{escaped_str}' AS {cast_types['str']})"
+            try:
+                array_list = value.tolist()
+                json_str = json.dumps(array_list, ensure_ascii=False, separators=(',', ':'))
+                escaped_str = json_str.replace("'", "''")
+                
+                # Use same JSON casting logic as dict/list
+                if db_type == 'postgresql':
+                    return f"'{escaped_str}'::jsonb"
+                elif db_type == 'mysql':
+                    return f"CAST('{escaped_str}' AS JSON)"
+                elif db_type in ['db2', 'oracle']:
+                    return f"CAST('{escaped_str}' AS CLOB)"
+                elif db_type == 'sqlserver':
+                    return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
+                else:
+                    return f"CAST('{escaped_str}' AS VARCHAR(4000))"
+            except Exception:
+                # Fallback to string representation
+                str_value = str(value)
+                escaped_str = str_value.replace("'", "''")
+                return f"CAST('{escaped_str}' AS {cast_types['str']})"
+
+        # Enhanced string handling with length considerations
         else:
             str_value = str(value)
             escaped_str = str_value.replace("'", "''")
-            return f"CAST('{escaped_str}' AS {cast_types['str']})"
+            
+            # Handle very long strings that might exceed VARCHAR limits
+            if len(escaped_str) > 4000:
+                if db_type == 'postgresql':
+                    return f"CAST('{escaped_str}' AS TEXT)"
+                elif db_type == 'mysql':
+                    return f"CAST('{escaped_str}' AS LONGTEXT)"
+                elif db_type in ['db2', 'oracle']:
+                    return f"CAST('{escaped_str}' AS CLOB)"
+                elif db_type == 'sqlserver':
+                    return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
+                else:
+                    # Truncate for unknown databases to avoid errors
+                    truncated = escaped_str[:3900] + "..."
+                    return f"CAST('{truncated}' AS VARCHAR(4000))"
+            else:
+                return f"CAST('{escaped_str}' AS {cast_types['str']})"
 
 
 @attr.s
@@ -2530,6 +2604,13 @@ class DataSourceClient:
         client_source = os.getenv(DOMINO_CLIENT_SOURCE, "Python")
         flight_host = os.getenv(DOMINO_DATASOURCE_PROXY_FLIGHT_HOST)
         run_id = os.getenv(DOMINO_RUN_ID, "")
+        
+        # Configure larger message size limits to handle large DataFrames
+        options = [
+            ('grpc.max_send_message_length', 64 * 1024 * 1024),    # 64MB
+            ('grpc.max_receive_message_length', 64 * 1024 * 1024), # 64MB
+        ]
+        
         self.proxy = flight.FlightClient(
             flight_host,
             middleware=[
@@ -2541,6 +2622,7 @@ class DataSourceClient:
                 ),
                 MetaMiddlewareFactory(client_source=client_source, run_id=run_id),
             ],
+            generic_options=options  # Add this parameter
         )
 
     def get_datasource(self, name: str) -> Datasource:
@@ -2748,3 +2830,4 @@ class DataSourceClient:
     @backoff.on_exception(backoff.expo, flight.FlightUnauthenticatedError, max_time=60)
     def _do_get(self, ticket: str) -> flight.FlightStreamReader:
         return self.proxy.do_get(flight.Ticket(ticket))
+    
