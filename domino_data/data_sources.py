@@ -3,11 +3,14 @@
 from typing import Any, Dict, List, Optional, Type, Union, cast
 
 import configparser
+import contextlib
 import io
 import json
 import logging
 import os
 import tempfile
+import time
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -410,7 +413,10 @@ class Datasource:
 
 @attr.s
 class TabularDatasource(Datasource):
-    """Represents a tabular type datasource."""
+    """Represents a tabular type datasource with enhanced DataFrame support."""
+    
+    # Default staging table threshold
+    DEFAULT_STAGING_TABLE_CHUNK_THRESHOLD = 20
     
     _db_type_override = attr.ib(default=None, init=False, repr=False)
     _debug_sql = attr.ib(default=False, init=False, repr=False)
@@ -418,85 +424,9 @@ class TabularDatasource(Datasource):
     _type_map = attr.ib(factory=dict, init=False, repr=False)
     _varchar_small_threshold = attr.ib(default=50, init=False)
     _varchar_medium_threshold = attr.ib(default=255, init=False)
+    _db_type = attr.ib(default=None, init=False, repr=False)
+    _is_trino_cached = attr.ib(default=None, init=False, repr=False)
 
-    def query(self, query: str) -> Result:
-        """Execute a query against the datasource.
-        
-        Args:
-            query: SQL query to execute
-            
-        Returns:
-            Result: Query result object
-        """
-        if self._debug_sql:
-            self._logger.debug(f"Executing SQL: {query}")
-        return self.client.execute(
-            self.identifier,
-            query,
-            config=self._config_override.config(),
-            credential=self._get_credential_override(),
-        )
-    def wrap_passthrough_query(self, query: str) -> str:
-        """
-        Wrap a query for database passthrough to bypass query engine optimization.
-        
-        Uses system.query() table function to execute the query directly
-        on the data source, avoiding query engine transformations that may change
-        results or performance characteristics.
-        
-        Args:
-            query: The SQL query to wrap
-            
-        Returns:
-            str: Wrapped query using passthrough function
-            
-        Examples:
-            # Force a complex join to execute on the data source
-            complex_query = "SELECT * FROM users u JOIN orders o ON u.id = o.user_id ORDER BY u.created_date"
-            wrapped = ds.wrap_passthrough_query(complex_query)
-            result = ds.query(wrapped)
-            
-            # Use data source-specific (non-ANSI) functions
-            db_specific = "SELECT user_id, REGEXP_EXTRACT(email, '@(.*)') as domain FROM users"
-            wrapped = ds.wrap_passthrough_query(db_specific)
-            result = ds.query(wrapped)
-        """
-        # Escape single quotes in the query
-        escaped_query = query.replace("'", "''")
-        
-        # Wrap with system.query table function
-        return f"SELECT * FROM TABLE(system.query(query => '{escaped_query}'))"
-
-    def passthrough_query(self, query: str) -> Result:
-        """
-        Execute a query using database passthrough wrapper.
-        
-        This method wraps and executes the query with system.query() to:
-        - Force operations to execute on the data source
-        - Bypass query engine optimization that may change results
-        - Allow use of data source-specific (non-ANSI) functions
-        - Improve performance for complex operations
-        
-        Args:
-            query: SQL query to execute with passthrough
-            
-        Returns:
-            Result: Query result object
-            
-        Examples:
-            # Use instead of query() for complex operations
-            result = ds.passthrough_query("SELECT * FROM large_table ORDER BY complex_calculation(col1, col2)")
-            
-            # Force predicate pushdown
-            result = ds.passthrough_query("SELECT * FROM table1 t1 JOIN table2 t2 ON t1.id = t2.id WHERE t1.status = 'active'")
-        """
-        wrapped_query_str = self.wrap_passthrough_query(query)
-        
-        if self._debug_sql:
-            self._logger.debug(f"Executing passthrough query: {wrapped_query_str}")
-        
-        return self.query(wrapped_query_str)
-    
     def __attrs_post_init__(self):
         """Initialize database-specific type mappings."""
         self._type_mappings = {
@@ -508,21 +438,21 @@ class TabularDatasource(Datasource):
                 datetime: "TIMESTAMP",
                 date: "DATE",
                 Decimal: "NUMERIC",
-                dict: "JSONB",  # Improved: Use JSONB for better performance
-                list: "JSONB",  # Improved: Use JSONB for arrays
-                pandas.Int64Dtype: "BIGINT",  # Improved: Use BIGINT for large integers
+                dict: "JSONB",
+                list: "JSONB",
+                pandas.Int64Dtype: "BIGINT",
                 pandas.Float64Dtype: "DOUBLE PRECISION",
                 pandas.StringDtype: "VARCHAR(255)",
                 pandas.BooleanDtype: "BOOLEAN",
-                pandas.DatetimeTZDtype: "TIMESTAMPTZ",  # Improved: Use timezone-aware type
+                pandas.DatetimeTZDtype: "TIMESTAMPTZ",
                 numpy.int8: "SMALLINT",
                 numpy.int16: "SMALLINT",
                 numpy.int32: "INTEGER",
-                numpy.int64: "BIGINT",  # Improved: Use BIGINT for int64
+                numpy.int64: "BIGINT",
                 numpy.float32: "REAL",
                 numpy.float64: "DOUBLE PRECISION",
-                numpy.bool_: "BOOLEAN",  # Added: numpy boolean support
-                bytes: "BYTEA",  # Added: binary data support
+                numpy.bool_: "BOOLEAN",
+                bytes: "BYTEA",
             },
             'mysql': {
                 bool: "BOOLEAN",
@@ -531,34 +461,34 @@ class TabularDatasource(Datasource):
                 str: "VARCHAR(255)",
                 datetime: "DATETIME",
                 date: "DATE",
-                Decimal: "DECIMAL(65,30)",  # Improved: Specify precision
-                dict: "JSON",  # Improved: Use native JSON type
-                list: "JSON",  # Improved: Use native JSON type
-                pandas.Int64Dtype: "BIGINT",  # Improved: Use BIGINT for large integers
+                Decimal: "DECIMAL(65,30)",
+                dict: "JSON",
+                list: "JSON",
+                pandas.Int64Dtype: "BIGINT",
                 pandas.Float64Dtype: "DOUBLE",
                 pandas.StringDtype: "VARCHAR(255)",
                 pandas.BooleanDtype: "BOOLEAN",
                 pandas.DatetimeTZDtype: "DATETIME",
-                numpy.int8: "TINYINT",  # Improved: Use TINYINT for int8
+                numpy.int8: "TINYINT",
                 numpy.int16: "SMALLINT",
                 numpy.int32: "INTEGER",
-                numpy.int64: "BIGINT",  # Improved: Use BIGINT for int64
+                numpy.int64: "BIGINT",
                 numpy.float32: "FLOAT",
                 numpy.float64: "DOUBLE",
-                numpy.bool_: "BOOLEAN",  # Added: numpy boolean support
-                bytes: "LONGBLOB",  # Added: binary data support
+                numpy.bool_: "BOOLEAN",
+                bytes: "LONGBLOB",
             },
             'db2': {
-                bool: "SMALLINT",  # DB2 doesn't have native BOOLEAN
+                bool: "SMALLINT",
                 int: "INTEGER",
                 float: "DOUBLE",
                 str: "VARCHAR(255)",
                 datetime: "TIMESTAMP",
                 date: "DATE",
-                Decimal: "DECIMAL(31,0)",  # Improved: Specify DB2's max precision
-                dict: "CLOB",  # Improved: Use CLOB for large JSON objects
-                list: "CLOB",  # Improved: Use CLOB for large arrays
-                pandas.Int64Dtype: "BIGINT",  # Improved: Use BIGINT for large integers
+                Decimal: "DECIMAL(31,0)",
+                dict: "CLOB",
+                list: "CLOB",
+                pandas.Int64Dtype: "BIGINT",
                 pandas.Float64Dtype: "DOUBLE",
                 pandas.StringDtype: "VARCHAR(255)",
                 pandas.BooleanDtype: "SMALLINT",
@@ -566,11 +496,35 @@ class TabularDatasource(Datasource):
                 numpy.int8: "SMALLINT",
                 numpy.int16: "SMALLINT",
                 numpy.int32: "INTEGER",
-                numpy.int64: "BIGINT",  # Improved: DB2 supports BIGINT
+                numpy.int64: "BIGINT",
                 numpy.float32: "REAL",
                 numpy.float64: "DOUBLE",
-                numpy.bool_: "SMALLINT",  # Added: numpy boolean support
-                bytes: "BLOB",  # Added: binary data support
+                numpy.bool_: "SMALLINT",
+                bytes: "BLOB",
+            },
+            'trino': {
+                bool: "BOOLEAN",
+                int: "BIGINT",
+                float: "DOUBLE",
+                str: "VARCHAR",
+                datetime: "TIMESTAMP",
+                date: "DATE",
+                Decimal: "DECIMAL(38,10)",
+                dict: "JSON",
+                list: "JSON",
+                pandas.Int64Dtype: "BIGINT",
+                pandas.Float64Dtype: "DOUBLE",
+                pandas.StringDtype: "VARCHAR",
+                pandas.BooleanDtype: "BOOLEAN",
+                pandas.DatetimeTZDtype: "TIMESTAMP",
+                numpy.int8: "SMALLINT",
+                numpy.int16: "SMALLINT",
+                numpy.int32: "INTEGER",
+                numpy.int64: "BIGINT",
+                numpy.float32: "REAL",
+                numpy.float64: "DOUBLE",
+                numpy.bool_: "BOOLEAN",
+                bytes: "VARBINARY",
             },
             'oracle': {
                 bool: "NUMBER(1)",
@@ -579,22 +533,22 @@ class TabularDatasource(Datasource):
                 str: "VARCHAR2(255)",
                 datetime: "TIMESTAMP",
                 date: "DATE",
-                Decimal: "NUMBER(38,10)",  # Improved: Specify precision
-                dict: "CLOB",  # Improved: Use CLOB for JSON (Oracle 12c+ has JSON type)
-                list: "CLOB",  # Improved: Use CLOB for arrays
-                pandas.Int64Dtype: "NUMBER(19)",  # Improved: Specify precision for large integers
+                Decimal: "NUMBER(38,10)",
+                dict: "CLOB",
+                list: "CLOB",
+                pandas.Int64Dtype: "NUMBER(19)",
                 pandas.Float64Dtype: "BINARY_DOUBLE",
                 pandas.StringDtype: "VARCHAR2(255)",
                 pandas.BooleanDtype: "NUMBER(1)",
-                pandas.DatetimeTZDtype: "TIMESTAMP WITH TIME ZONE",  # Improved: Use timezone-aware type
-                numpy.int8: "NUMBER(3)",  # Improved: Specify precision
-                numpy.int16: "NUMBER(5)",  # Improved: Specify precision
-                numpy.int32: "NUMBER(10)",  # Improved: Specify precision
-                numpy.int64: "NUMBER(19)",  # Improved: Specify precision
+                pandas.DatetimeTZDtype: "TIMESTAMP WITH TIME ZONE",
+                numpy.int8: "NUMBER(3)",
+                numpy.int16: "NUMBER(5)",
+                numpy.int32: "NUMBER(10)",
+                numpy.int64: "NUMBER(19)",
                 numpy.float32: "BINARY_FLOAT",
                 numpy.float64: "BINARY_DOUBLE",
-                numpy.bool_: "NUMBER(1)",  # Added: numpy boolean support
-                bytes: "BLOB",  # Added: binary data support
+                numpy.bool_: "NUMBER(1)",
+                bytes: "BLOB",
             },
             'sqlserver': {
                 bool: "BIT",
@@ -603,9 +557,9 @@ class TabularDatasource(Datasource):
                 str: "NVARCHAR(255)",
                 datetime: "DATETIME2",
                 date: "DATE",
-                Decimal: "DECIMAL(38,10)",  # Improved: Specify precision
-                dict: "NVARCHAR(MAX)",  # Improved: Use MAX for large JSON
-                list: "NVARCHAR(MAX)",  # Improved: Use MAX for large arrays
+                Decimal: "DECIMAL(38,10)",
+                dict: "NVARCHAR(MAX)",
+                list: "NVARCHAR(MAX)",
                 pandas.Int64Dtype: "BIGINT",
                 pandas.Float64Dtype: "FLOAT",
                 pandas.StringDtype: "NVARCHAR(255)",
@@ -617,8 +571,8 @@ class TabularDatasource(Datasource):
                 numpy.int64: "BIGINT",
                 numpy.float32: "REAL",
                 numpy.float64: "FLOAT",
-                numpy.bool_: "BIT",  # Added: numpy boolean support
-                bytes: "VARBINARY(MAX)",  # Added: binary data support
+                numpy.bool_: "BIT",
+                bytes: "VARBINARY(MAX)",
             },
             'unknown': {
                 bool: "BOOLEAN",
@@ -641,8 +595,8 @@ class TabularDatasource(Datasource):
                 numpy.int64: "INTEGER",
                 numpy.float32: "REAL",
                 numpy.float64: "FLOAT",
-                numpy.bool_: "BOOLEAN",  # Added: numpy boolean support
-                bytes: "VARBINARY(4000)",  # Added: binary data support
+                numpy.bool_: "BOOLEAN",
+                bytes: "VARBINARY(4000)",
             }
         }
 
@@ -650,534 +604,35 @@ class TabularDatasource(Datasource):
         db_type = self.get_db_type()
         self._type_map = self._type_mappings.get(db_type, self._type_mappings['unknown'])
 
-    _db_type = None
-
-    def set_db_type_override(self, db_type: str) -> None:
-        """Override the detected database type. Use with caution.
-
+    def query(self, query: str) -> Result:
+        """Execute a query against the datasource.
+        
         Args:
-            db_type: Database type to force (e.g., 'db2', 'postgresql', 'mysql', 'oracle', 'sqlserver').
-                    Pass None to remove the override and re-enable auto-detection.
-
-        Raises:
-            ValueError: If an unsupported database type is provided.
-
-        Examples:
-            # Force DB2 detection
-            datasource.set_db_type_override('db2')
+            query: SQL query to execute
             
-            # Force PostgreSQL detection
-            datasource.set_db_type_override('postgresql')
-            
-            # Remove override and re-enable auto-detection
-            datasource.set_db_type_override(None)
+        Returns:
+            Result: Query result object
         """
-        if db_type is not None:
-            db_type_lower = db_type.lower()
-            supported_types = {'postgresql', 'mysql', 'db2', 'oracle', 'sqlserver', 'unknown'}
-            
-            if db_type_lower not in supported_types:
-                raise ValueError(
-                    f"Unsupported database type: '{db_type}'. "
-                    f"Supported types are: {', '.join(sorted(supported_types))}"
-                )
-            
-            self._db_type_override = db_type_lower
-            if self._debug_sql:
-                self._logger.info(f"Database type override set to: {db_type_lower}")
-        else:
-            self._db_type_override = None
-            if self._debug_sql:
-                self._logger.info("Database type override removed - auto-detection re-enabled")
-        
-        # Clear cached detection result to force re-detection
-        self._db_type = None
-        
-        # Update type mappings for the new database type
-        db_type_to_use = self.get_db_type()
-        self._type_map = self._type_mappings.get(db_type_to_use, self._type_mappings['unknown'])
-        
         if self._debug_sql:
-            self._logger.debug(f"Type mappings updated for database type: {db_type_to_use}")
-
-    def get_db_type_override(self) -> Optional[str]:
-        """Get the current database type override.
-
-        Returns:
-            str or None: Current database type override, or None if auto-detection is enabled.
-        """
-        return self._db_type_override
-
-    def get_supported_db_types(self) -> List[str]:
-        """Get list of supported database types for manual override.
-
-        Returns:
-            List[str]: List of supported database type identifiers.
-        """
-        return sorted(list(self._type_mappings.keys()))
-    
-    def reset_db_type_detection(self) -> None:
-        """Reset cached database type detection to force re-detection."""
-        self._db_type = None
-        self._db_type_override = None
-        # Update type mappings
-        db_type = self.get_db_type()
-        self._type_map = self._type_mappings.get(db_type, self._type_mappings['unknown'])
-        if self._debug_sql:
-            self._logger.info("Database type detection reset")
-
-    def get_db_type(self) -> str:
-        """Return the database type, respecting overrides.
-
-        Returns:
-            str: Detected or overridden database type.
-        """
-        if self._db_type_override is not None:
-            return self._db_type_override
-
-        if self._db_type is not None:
-            return self._db_type
-
-        # Try raw connection first with enhanced detection
-        try:
-            conn = self.client.raw_connection()
-            
-            if self._detect_postgresql_connection(conn):
-                self._db_type = 'postgresql'
-            elif self._detect_mysql_connection(conn):
-                self._db_type = 'mysql'
-            elif self._detect_db2_connection(conn):
-                self._db_type = 'db2'
-            elif self._detect_oracle_connection(conn):
-                self._db_type = 'oracle'
-            elif self._detect_sqlserver_connection(conn):
-                self._db_type = 'sqlserver'
-            else:
-                self._db_type = 'unknown'
-        except Exception:
-            self._db_type = 'unknown'
-
-        # Enhanced fallback to version query (only if needed)
-        if self._db_type == 'unknown':
-            try:
-                # Try PostgreSQL-specific version queries first
-                postgresql_version_queries = [
-                    "SELECT version()",
-                    "SHOW server_version",
-                    "SELECT current_setting('server_version')"
-                ]
-                
-                for query in postgresql_version_queries:
-                    try:
-                        version_info = self.query(query).to_pandas().iat[0, 0].lower()
-                        if any(indicator in version_info for indicator in ['postgresql', 'postgres']):
-                            self._db_type = 'postgresql'
-                            break
-                    except Exception:
-                        continue
-                
-                # Try MySQL-specific version queries
-                if self._db_type == 'unknown':
-                    mysql_version_queries = [
-                        "SELECT VERSION()",
-                        "SHOW VARIABLES LIKE 'version'",
-                        "SELECT @@version"
-                    ]
-                    
-                    for query in mysql_version_queries:
-                        try:
-                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
-                            if any(indicator in version_info for indicator in ['mysql', 'mariadb']):
-                                self._db_type = 'mysql'
-                                break
-                        except Exception:
-                            continue
-                
-                # Try SQL Server-specific version queries
-                if self._db_type == 'unknown':
-                    sqlserver_version_queries = [
-                        "SELECT @@VERSION",
-                        "SELECT SERVERPROPERTY('ProductVersion')",
-                        "SELECT SERVERPROPERTY('Edition')"
-                    ]
-                    
-                    for query in sqlserver_version_queries:
-                        try:
-                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
-                            if any(indicator in version_info for indicator in ['microsoft', 'sql server', 'azure sql']):
-                                self._db_type = 'sqlserver'
-                                break
-                        except Exception:
-                            continue
-                
-                # Try Oracle-specific version queries
-                if self._db_type == 'unknown':
-                    oracle_version_queries = [
-                        "SELECT BANNER FROM V$VERSION WHERE BANNER LIKE 'Oracle Database%'",
-                        "SELECT VERSION FROM PRODUCT_COMPONENT_VERSION WHERE PRODUCT LIKE 'Oracle Database%'",
-                        "SELECT VERSION FROM V$INSTANCE",
-                        "SELECT * FROM V$VERSION"
-                    ]
-                    
-                    for query in oracle_version_queries:
-                        try:
-                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
-                            if any(indicator in version_info for indicator in ['oracle', 'database']):
-                                self._db_type = 'oracle'
-                                break
-                        except Exception:
-                            continue
-                
-                # Try DB2-specific version queries
-                if self._db_type == 'unknown':
-                    db2_version_queries = [
-                        "SELECT SERVICE_LEVEL FROM SYSIBMADM.ENV_INST_INFO",
-                        "SELECT PROD_RELEASE FROM SYSIBM.SYSVERSIONS WHERE VERSION_TYPE = 'DB2'",
-                        "VALUES(DB2_VERSION())"
-                    ]
-                    
-                    for query in db2_version_queries:
-                        try:
-                            version_info = self.query(query).to_pandas().iat[0, 0].lower()
-                            if any(indicator in version_info for indicator in ['db2', 'ibm']):
-                                self._db_type = 'db2'
-                                break
-                        except Exception:
-                            continue
-            except Exception:
-                pass
-
-        # Enhanced database-specific fallback with multiple detection queries
-        if self._db_type == 'unknown':
-            # PostgreSQL detection queries
-            postgresql_detection_queries = [
-                "SELECT 1",
-                "SELECT current_database()",
-                "SELECT current_user",
-                "SHOW server_version_num"
-            ]
-            
-            for query in postgresql_detection_queries:
-                try:
-                    res = self.query(query)
-                    if not res.to_pandas().empty:
-                        self._db_type = 'postgresql'
-                        break
-                except Exception:
-                    continue
-
-        if self._db_type == 'unknown':
-            # MySQL detection queries
-            mysql_detection_queries = [
-                "SELECT 1",
-                "SELECT DATABASE()",
-                "SELECT USER()",
-                "SHOW STATUS LIKE 'Uptime'"
-            ]
-            
-            for query in mysql_detection_queries:
-                try:
-                    res = self.query(query)
-                    if not res.to_pandas().empty:
-                        self._db_type = 'mysql'
-                        break
-                except Exception:
-                    continue
-
-        if self._db_type == 'unknown':
-            # SQL Server detection queries
-            sqlserver_detection_queries = [
-                "SELECT 1",
-                "SELECT DB_NAME()",
-                "SELECT SUSER_NAME()",
-                "SELECT @@SERVERNAME"
-            ]
-            
-            for query in sqlserver_detection_queries:
-                try:
-                    res = self.query(query)
-                    if not res.to_pandas().empty:
-                        self._db_type = 'sqlserver'
-                        break
-                except Exception:
-                    continue
-
-        if self._db_type == 'unknown':
-            # Oracle detection queries
-            oracle_detection_queries = [
-                "SELECT 1 FROM DUAL",
-                "SELECT SYSDATE FROM DUAL",
-                "SELECT USER FROM DUAL",
-                "SELECT * FROM V$VERSION WHERE ROWNUM = 1",
-                "SELECT BANNER FROM V$VERSION WHERE ROWNUM = 1"
-            ]
-            
-            for query in oracle_detection_queries:
-                try:
-                    res = self.query(query)
-                    if not res.to_pandas().empty:
-                        self._db_type = 'oracle'
-                        break
-                except Exception:
-                    continue
-
-        if self._db_type == 'unknown':
-            # DB2 detection queries
-            db2_detection_queries = [
-                "SELECT CURRENT SERVER FROM SYSIBM.SYSDUMMY1",
-                "SELECT 1 FROM SYSIBM.SYSDUMMY1",
-                "VALUES(CURRENT SERVER)",
-                "SELECT CURRENT SCHEMA FROM SYSIBM.SYSDUMMY1",
-                "SELECT CURRENT TIMESTAMP FROM SYSIBM.SYSDUMMY1"
-            ]
-            
-            for query in db2_detection_queries:
-                try:
-                    res = self.query(query)
-                    if not res.to_pandas().empty:
-                        self._db_type = 'db2'
-                        break
-                except Exception:
-                    continue
-
-        if self._debug_sql:
-            self._logger.debug(f"Using database type: {self._db_type}")
-
-        return self._db_type
-
-    def _detect_postgresql_connection(self, conn) -> bool:
-        """Enhanced PostgreSQL connection detection.
-        
-        Args:
-            conn: Database connection object
-            
-        Returns:
-            bool: True if connection appears to be PostgreSQL
-        """
-        try:
-            # Check for PostgreSQL-specific attributes first
-            if hasattr(conn, 'pgconn'):
-                return True
-                
-            # Check connection type string with multiple indicators
-            conn_type_str = str(type(conn)).lower()
-            postgresql_indicators = [
-                'postgresql', 'postgres', 'psycopg', 'pg8000', 'py-postgresql'
-            ]
-            
-            if any(indicator in conn_type_str for indicator in postgresql_indicators):
-                return True
-                
-            # Check for PostgreSQL-specific connection attributes
-            if hasattr(conn, 'server_version'):
-                try:
-                    version_info = str(conn.server_version).lower()
-                    if 'postgresql' in version_info or 'postgres' in version_info:
-                        return True
-                except Exception:
-                    pass
-                    
-            # Check for PostgreSQL-specific methods
-            postgresql_methods = ['commit', 'rollback', 'cursor', 'close']
-            if all(hasattr(conn, method) for method in postgresql_methods):
-                # Additional PostgreSQL-specific attribute checks
-                if hasattr(conn, 'dsn') or hasattr(conn, 'encoding'):
-                    return True
-                    
-            return False
-            
-        except Exception:
-            return False
-
-    def _detect_mysql_connection(self, conn) -> bool:
-        """Enhanced MySQL connection detection.
-        
-        Args:
-            conn: Database connection object
-            
-        Returns:
-            bool: True if connection appears to be MySQL
-        """
-        try:
-            # Check connection type string with multiple indicators
-            conn_type_str = str(type(conn)).lower()
-            mysql_indicators = [
-                'mysql', 'mariadb', 'pymysql', 'mysqldb', 'mysql.connector',
-                'aiomysql', 'mysql-connector'
-            ]
-            
-            if any(indicator in conn_type_str for indicator in mysql_indicators):
-                return True
-                
-            # Check for MySQL-specific connection attributes
-            if hasattr(conn, 'get_server_info'):
-                try:
-                    server_info = str(conn.get_server_info()).lower()
-                    if 'mysql' in server_info or 'mariadb' in server_info:
-                        return True
-                except Exception:
-                    pass
-                    
-            # Check for MySQL-specific methods
-            mysql_methods = ['commit', 'rollback', 'cursor', 'ping']
-            if all(hasattr(conn, method) for method in mysql_methods):
-                # Additional MySQL-specific attribute checks
-                if hasattr(conn, 'charset') or hasattr(conn, 'autocommit'):
-                    return True
-                    
-            return False
-            
-        except Exception:
-            return False
-
-    def _detect_sqlserver_connection(self, conn) -> bool:
-        """Enhanced SQL Server connection detection.
-        
-        Args:
-            conn: Database connection object
-            
-        Returns:
-            bool: True if connection appears to be SQL Server
-        """
-        try:
-            # Check connection type string with multiple indicators
-            conn_type_str = str(type(conn)).lower()
-            sqlserver_indicators = [
-                'sqlserver', 'mssql', 'pyodbc', 'pymssql', 'turbodbc',
-                'microsoft', 'sql server', 'azure'
-            ]
-            
-            if any(indicator in conn_type_str for indicator in sqlserver_indicators):
-                return True
-                
-            # Check for SQL Server-specific connection attributes
-            if hasattr(conn, 'getinfo'):
-                try:
-                    # ODBC-specific check for SQL Server
-                    dbms_name = conn.getinfo(17)  # SQL_DBMS_NAME
-                    if 'microsoft' in str(dbms_name).lower() or 'sql server' in str(dbms_name).lower():
-                        return True
-                except Exception:
-                    pass
-                    
-            # Check for SQL Server-specific methods
-            sqlserver_methods = ['commit', 'rollback', 'cursor', 'execute']
-            if all(hasattr(conn, method) for method in sqlserver_methods):
-                # Additional SQL Server-specific attribute checks
-                if hasattr(conn, 'timeout') or hasattr(conn, 'autocommit'):
-                    return True
-                    
-            return False
-            
-        except Exception:
-            return False
-
-    def _detect_oracle_connection(self, conn) -> bool:
-        """Enhanced Oracle connection detection.
-        
-        Args:
-            conn: Database connection object
-            
-        Returns:
-            bool: True if connection appears to be Oracle
-        """
-        try:
-            # Check connection type string with multiple indicators
-            conn_type_str = str(type(conn)).lower()
-            oracle_indicators = [
-                'oracle', 'cx_oracle', 'oracledb', 'python-oracledb',
-                'thick', 'thin', 'oracle.jdbc'
-            ]
-            
-            if any(indicator in conn_type_str for indicator in oracle_indicators):
-                return True
-                
-            # Check for Oracle-specific connection attributes
-            if hasattr(conn, 'version'):
-                try:
-                    version_info = str(conn.version).lower()
-                    if 'oracle' in version_info:
-                        return True
-                except Exception:
-                    pass
-                    
-            # Check for Oracle-specific methods
-            oracle_methods = ['ping', 'commit', 'rollback', 'cursor']
-            if all(hasattr(conn, method) for method in oracle_methods):
-                # Additional Oracle-specific attribute checks
-                if hasattr(conn, 'dsn') or hasattr(conn, 'tnsentry'):
-                    return True
-                    
-            return False
-            
-        except Exception:
-            return False
-
-    def _detect_db2_connection(self, conn) -> bool:
-        """Enhanced DB2 connection detection.
-        
-        Args:
-            conn: Database connection object
-            
-        Returns:
-            bool: True if connection appears to be DB2
-        """
-        try:
-            # Check connection type string with multiple indicators
-            conn_type_str = str(type(conn)).lower()
-            db2_indicators = [
-                'db2', 'ibm_db', 'ibm_db_dbi', 'jaydebeapi',
-                'ibmdb', 'db2_cli', 'ibm_db_sa'
-            ]
-            
-            if any(indicator in conn_type_str for indicator in db2_indicators):
-                return True
-                
-            # Check for DB2-specific connection attributes
-            if hasattr(conn, 'server_info'):
-                try:
-                    server_info = str(conn.server_info()).lower()
-                    if 'db2' in server_info or 'ibm' in server_info:
-                        return True
-                except Exception:
-                    pass
-                    
-            # Check for DB2-specific methods
-            db2_methods = ['get_option', 'set_option', 'server_info']
-            if all(hasattr(conn, method) for method in db2_methods):
-                return True
-                
-            return False
-            
-        except Exception:
-            return False
-    
-    def table_exists(self, table_name: str) -> bool:
-        """Check if a table exists in the database.
-        
-        Args:
-            table_name: Name of the table to check
-            
-        Returns:
-            bool: True if the table exists, False otherwise
-        """
-        try:
-            escaped_table = self._escape_identifier(table_name)
-            self.query(f"SELECT 1 FROM {escaped_table} LIMIT 1")
-            return True
-        except DominoError:
-            return False
+            self._logger.debug(f"Executing SQL: {query}")
+        return self.client.execute(
+            self.identifier,
+            query,
+            config=self._config_override.config(),
+            credential=self._get_credential_override(),
+        )
 
     def write_dataframe(
         self,
         table_name: str,
         dataframe: pandas.DataFrame,
         if_table_exists: str = 'fail',
-        chunksize: Optional[int] = None,  # Changed: None means auto-optimize
+        chunksize: Optional[int] = None,
         handle_mixed_types: bool = True,
         force: bool = False,
-        auto_optimize_chunks: bool = True,  # New: Enable auto-optimization by default
-        max_message_size_mb: float = 4.0,  # New: gRPC message size limit
+        auto_optimize_chunks: bool = True,
+        max_message_size_mb: float = 4.0,
+        staging_table_chunk_threshold: Optional[int] = None,
     ) -> None:
         """
         Write DataFrame to a table in the datasource with automatic chunk size optimization.
@@ -1191,40 +646,43 @@ class TabularDatasource(Datasource):
             force: If True, attempt operation even if schema compatibility issues are detected.
             auto_optimize_chunks: If True and chunksize is None, automatically calculate optimal chunk size.
             max_message_size_mb: Maximum gRPC message size in MB for auto-optimization.
+            staging_table_chunk_threshold: Number of chunks above which to use staging table approach.
+                                        If None, uses DEFAULT_STAGING_TABLE_CHUNK_THRESHOLD (20).
 
         Raises:
             ValueError: If operation cannot be completed safely.
 
         Examples:
-            # Auto-optimized chunking (default behavior)
+            # Auto-optimized with default staging threshold (20 chunks)
             datasource.write_dataframe("my_table", df)
             
-            # Manual chunk size (overrides auto-optimization)
-            datasource.write_dataframe("my_table", df, chunksize=5000)
+            # Force direct insert even for large datasets
+            datasource.write_dataframe("my_table", df, staging_table_chunk_threshold=0)
             
-            # Auto-optimization with custom gRPC limit
-            datasource.write_dataframe("my_table", df, max_message_size_mb=2.0)
-            
-            # Disable auto-optimization, use default chunk size
-            datasource.write_dataframe("my_table", df, auto_optimize_chunks=False)
+            # Use staging if more than 5 chunks
+            datasource.write_dataframe("my_table", df, staging_table_chunk_threshold=5)
         """
-        import time
         start_time = time.perf_counter()
+        
+        # Use default threshold if not specified
+        if staging_table_chunk_threshold is None:
+            staging_table_chunk_threshold = self.DEFAULT_STAGING_TABLE_CHUNK_THRESHOLD
+        
+        # Handle mixed types if requested
+        if handle_mixed_types:
+            dataframe = self._handle_dataframe_mixed_types(dataframe)
         
         # Determine chunk size strategy
         if chunksize is not None:
-            # Manual chunk size provided - use it
             optimal_chunk_size = chunksize
             if self._debug_sql:
                 self._logger.debug(f"Using manual chunk size: {optimal_chunk_size:,} rows")
         elif auto_optimize_chunks:
-            # Auto-optimize chunk size
             optimal_chunk_size = self.calculate_optimal_chunk_size(
                 dataframe, 
                 max_message_size_mb=max_message_size_mb
             )
             
-            # Estimate message size with optimal chunk
             estimated_size_mb = self.estimate_message_size(dataframe, optimal_chunk_size)
             
             if self._debug_sql:
@@ -1234,17 +692,27 @@ class TabularDatasource(Datasource):
                 if estimated_size_mb > max_message_size_mb:
                     self._logger.warning(f"Estimated size ({estimated_size_mb:.2f} MB) exceeds limit ({max_message_size_mb} MB)")
         else:
-            # Use default chunk size
             optimal_chunk_size = 20000
             if self._debug_sql:
                 self._logger.debug(f"Using default chunk size: {optimal_chunk_size:,} rows")
 
+        # Calculate total chunks for logging and decision making
+        total_chunks = (len(dataframe) + optimal_chunk_size - 1) // optimal_chunk_size
+
+        # BUG FIX: Correctly determine what approach will be used
+        if staging_table_chunk_threshold == 0:
+            will_use_staging = False  # threshold=0 means never use staging
+        else:
+            will_use_staging = total_chunks > staging_table_chunk_threshold
+
         if self._debug_sql:
-            total_chunks = (len(dataframe) + optimal_chunk_size - 1) // optimal_chunk_size
             self._logger.debug(f"Write operation details:")
             self._logger.debug(f"  Table: {table_name}")
             self._logger.debug(f"  Rows: {len(dataframe):,}")
-            self._logger.debug(f"  Chunks: {total_chunks}")
+            self._logger.debug(f"  Chunk size: {optimal_chunk_size:,}")
+            self._logger.debug(f"  Total chunks: {total_chunks}")
+            self._logger.debug(f"  Staging threshold: {staging_table_chunk_threshold}")
+            self._logger.debug(f"  Will use: {'staging table' if will_use_staging else 'direct insert'}")
             self._logger.debug(f"  Mode: {if_table_exists}")
             self._logger.debug(f"  Auto-optimize: {auto_optimize_chunks}")
 
@@ -1257,11 +725,9 @@ class TabularDatasource(Datasource):
                 if if_table_exists == 'fail':
                     raise ValueError(f"Table '{table_name}' already exists.")
                 elif if_table_exists == 'replace':
-                    # Replace existing table
                     self._drop_and_create_table(table_name, dataframe)
                     table_created = True
                 elif if_table_exists == 'truncate':
-                    # Truncate existing table
                     if not force:
                         self._check_schema_compatibility(table_name, dataframe)
                     self._truncate_table(table_name)
@@ -1271,12 +737,11 @@ class TabularDatasource(Datasource):
                 else:
                     raise ValueError(f"Invalid option for if_table_exists: {if_table_exists}")
             else:
-                # Create new table
                 self._create_table(table_name, dataframe)
                 table_created = True
 
-            # Insert data with optimized chunk size
-            self._insert_dataframe(table_name, dataframe, optimal_chunk_size)
+            # Insert data with optimized chunk size and staging threshold
+            self._insert_dataframe(table_name, dataframe, optimal_chunk_size, staging_table_chunk_threshold)
             
             # Performance metrics
             if self._debug_sql:
@@ -1295,86 +760,29 @@ class TabularDatasource(Datasource):
             if table_created:
                 self._drop_table_quietly(table_name)
             
-            # Enhanced error context
             if self._debug_sql:
                 self._logger.error(f"Write operation failed: {str(e)}")
                 if "grpc: received message larger than max" in str(e):
                     self._logger.error(f"Suggestion: Try reducing max_message_size_mb parameter or manual chunksize")
             
-            raise  # Re-raise after cleanup
-
-    def _drop_table_quietly(self, table_name: str) -> None:
-        """Attempt to drop table without raising errors."""
-        try:
-            escaped_table = self._escape_identifier(table_name)
-            self.query(f"DROP TABLE {escaped_table}")
-            if self._debug_sql:
-                self._logger.debug(f"Cleaned up table after failed write: {table_name}")
-        except Exception as drop_error:
-            self._logger.error(
-                f"Failed to clean up table {table_name} after error: {str(drop_error)}"
-            )
-
-    def _drop_and_create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """
-        Drop existing table and create a new one with the DataFrame's schema.
-
-        Args:
-            table_name: Name of the table to replace.
-            dataframe: DataFrame containing the new schema and data.
-        """
-        escaped_table = self._escape_identifier(table_name)
-        
-        # Drop existing table
-        try:
-            self.query(f"DROP TABLE {escaped_table}")
-        except Exception as e:
-            self._logger.warning(f"Error dropping table {table_name}: {str(e)}")
             raise
 
-        # Create new table
-        self._create_table(table_name, dataframe)
-
-    def _create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Create a new table with the DataFrame's schema."""
-        escaped_table = self._escape_identifier(table_name)
-        schema = self._generate_schema(dataframe)
-        create_query = f"CREATE TABLE {escaped_table} ({schema})"
-        if self._debug_sql:
-            self._logger.debug(f"Executing SQL: {create_query}")
-        self.query(create_query)
-
-    def _truncate_table(self, table_name: str) -> None:
-        """Truncate an existing table."""
-        escaped_table = self._escape_identifier(table_name)
-        
-        # Try TRUNCATE first, fall back to DELETE
-        truncate_query = f"TRUNCATE TABLE {escaped_table}"
-        if self._debug_sql:
-            self._logger.debug(f"Executing SQL: {truncate_query}")
-        try:
-            self.query(truncate_query)
-        except Exception as e:
-            # Some databases don't support TRUNCATE, fall back to DELETE
-            delete_query = f"DELETE FROM {escaped_table}"
-            if self._debug_sql:
-                self._logger.debug(f"TRUNCATE failed, executing SQL: {delete_query}")
-            self.query(delete_query)
-
-    def calculate_optimal_chunk_size(self, dataframe: pandas.DataFrame, max_message_size_mb: float = 4.0, safety_factor: float = 0.8) -> int:
+    def calculate_optimal_chunk_size(self, dataframe: pandas.DataFrame, 
+                                    max_message_size_mb: float = 4.0,
+                                    safety_factor: float = 0.8) -> int:
         """
         Calculate optimal chunk size to maximize performance while staying under gRPC limits.
         
         Args:
             dataframe: DataFrame to analyze
-            max_message_size_mb: Maximum message size in MB (default 3.5MB to stay under 4MB limit)
+            max_message_size_mb: Maximum message size in MB (default 4MB)
             safety_factor: Safety multiplier to account for serialization overhead (default 0.8)
         
         Returns:
             int: Optimal chunk size in number of rows
         """
         if len(dataframe) == 0:
-            return 1000  # Default fallback
+            return 1000
         
         # Calculate memory usage per row
         total_memory_bytes = dataframe.memory_usage(deep=True).sum()
@@ -1391,8 +799,8 @@ class TabularDatasource(Datasource):
         optimal_rows = int(safe_message_bytes / estimated_serialized_per_row)
         
         # Apply reasonable bounds
-        min_chunk_size = 100    # Don't go too small (too many round trips)
-        max_chunk_size = 50000  # Don't go too large (memory concerns)
+        min_chunk_size = 100
+        max_chunk_size = 50000
         
         optimal_chunk_size = max(min_chunk_size, min(optimal_rows, max_chunk_size))
         
@@ -1446,36 +854,441 @@ class TabularDatasource(Datasource):
         
         return estimated_mb
 
-    def set_grpc_message_limits(self, max_message_size_mb: float = 64.0) -> None:
-        """
-        Update the default gRPC message size limits for this datasource.
+    def get_db_type(self) -> str:
+        """Return the database type, respecting overrides."""
+        if self._db_type_override is not None:
+            return self._db_type_override
+
+        if self._db_type is not None:
+            return self._db_type
+
+        # Try to detect database type
+        try:
+            # Check for Trino first
+            if self._detect_trino():
+                self._db_type = 'trino'
+                return self._db_type
+            
+            # Try database-specific queries
+            detection_queries = [
+                # PostgreSQL
+                ("SELECT version()", ['postgresql', 'postgres']),
+                # MySQL
+                ("SELECT VERSION()", ['mysql', 'mariadb']),
+                # SQL Server
+                ("SELECT @@VERSION", ['microsoft', 'sql server']),
+                # Oracle
+                ("SELECT * FROM V$VERSION WHERE ROWNUM = 1", ['oracle']),
+                # DB2
+                ("VALUES(CURRENT SERVER)", ['db2']),
+            ]
+            
+            for query, indicators in detection_queries:
+                try:
+                    result = self.query(query).to_pandas()
+                    result_str = str(result).lower()
+                    if any(ind in result_str for ind in indicators):
+                        self._db_type = indicators[0]
+                        return self._db_type
+                except:
+                    continue
+            
+        except:
+            pass
         
-        Args:
-            max_message_size_mb: Maximum message size in MB (default 64MB)
+        # Default to unknown
+        self._db_type = 'unknown'
+        return self._db_type
+
+    def _detect_trino(self) -> bool:
+        """Detect if we're running through Trino."""
+        if self._is_trino_cached is not None:
+            return self._is_trino_cached
         
-        Note:
-            This affects the auto-optimization calculations for future write operations.
-            The actual gRPC client limits are set at the DataSourceClient level.
-        """
-        self._default_grpc_limit_mb = max_message_size_mb
+        try:
+            # Try Trino-specific query
+            self.query("SHOW CATALOGS")
+            self._is_trino_cached = True
+            return True
+        except:
+            self._is_trino_cached = False
+            return False
+
+    def set_db_type_override(self, db_type: Optional[str]) -> None:
+        """Override the detected database type."""
+        if db_type is not None:
+            db_type_lower = db_type.lower()
+            supported_types = {'postgresql', 'mysql', 'db2', 'oracle', 'sqlserver', 'trino', 'unknown'}
+            
+            if db_type_lower not in supported_types:
+                raise ValueError(
+                    f"Unsupported database type: '{db_type}'. "
+                    f"Supported types are: {', '.join(sorted(supported_types))}"
+                )
+            
+            self._db_type_override = db_type_lower
+            if self._debug_sql:
+                self._logger.info(f"Database type override set to: {db_type_lower}")
+        else:
+            self._db_type_override = None
+            if self._debug_sql:
+                self._logger.info("Database type override removed - auto-detection re-enabled")
+        
+        # Clear cached detection result
+        self._db_type = None
+        
+        # Update type mappings
+        db_type_to_use = self.get_db_type()
+        self._type_map = self._type_mappings.get(db_type_to_use, self._type_mappings['unknown'])
+
+    def enable_sql_debug(self, enabled: bool = True) -> None:
+        """Enable or disable SQL debug logging."""
+        self._debug_sql = enabled
+        if enabled:
+            if not self._logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                handler.setFormatter(formatter)
+                self._logger.addHandler(handler)
+            
+            self._logger.setLevel(logging.DEBUG)
+            self._logger.info("SQL debugging enabled")
+
+    def table_exists(self, table_name: str) -> bool:
+        """Check if a table exists in the database."""
+        try:
+            escaped_table = self._escape_identifier(table_name)
+            self.query(f"SELECT 1 FROM {escaped_table} LIMIT 1")
+            return True
+        except DominoError:
+            return False
+
+    def table(self, table_name: str) -> 'TableQuery':
+        """Get a table interface for fluent querying."""
+        return TableQuery(self, table_name)
+
+    def wrap_passthrough_query(self, query: str) -> str:
+        """Wrap a query for database passthrough to bypass query engine optimization."""
+        escaped_query = query.replace("'", "''")
+        return f"SELECT * FROM TABLE(system.query(query => '{escaped_query}'))"
+
+    def passthrough_query(self, query: str) -> Result:
+        """Execute a query using database passthrough wrapper."""
+        wrapped_query_str = self.wrap_passthrough_query(query)
         
         if self._debug_sql:
-            self._logger.debug(f"Updated default gRPC message limit to {max_message_size_mb} MB")
+            self._logger.debug(f"Executing passthrough query: {wrapped_query_str}")
+        
+        return self.query(wrapped_query_str)
+
+    def register_type(self, python_type: Type, sql_type: str) -> None:
+        """Register a custom type mapping."""
+        self._type_map[python_type] = sql_type
+
+    def get_type_mappings(self) -> Dict[str, str]:
+        """Return all registered type mappings."""
+        return {getattr(k, '__name__', str(k)): v for k, v in self._type_map.items()}
+
+    # Performance tracking context manager
+    @contextlib.contextmanager
+    def _performance_tracking(self, operation: str, row_count: int):
+        """Track and log performance metrics for database operations."""
+        if self._debug_sql:
+            start_time = time.time()
+            self._logger.debug(f"Starting {operation}")
+            
+        yield
+        
+        if self._debug_sql:
+            elapsed = time.time() - start_time
+            rows_per_sec = row_count / elapsed if elapsed > 0 else 0
+            self._logger.debug(
+                f"{operation} completed: {row_count:,} rows in {elapsed:.1f}s "
+                f"({rows_per_sec:,.0f} rows/sec)"
+            )
+
+    # Insert methods
+    def _insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, 
+                         chunksize: int, staging_threshold: int) -> None:
+        """Insert DataFrame using bulk methods with configurable staging threshold."""
+        if len(dataframe) > 1000:
+            self._bulk_insert_dataframe(table_name, dataframe, chunksize, staging_threshold)
+        else:
+            self._fallback_bulk_insert(table_name, dataframe, chunksize)
+
+    def _bulk_insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, 
+                              chunksize: int, staging_threshold: int) -> None:
+        """Perform optimized bulk inserts based on database type."""
+        db_type = self.get_db_type()
+        
+        try:
+            if db_type in ['postgresql', 'mysql', 'sqlserver', 'db2', 'oracle', 'trino']:
+                self._database_bulk_insert(table_name, dataframe, chunksize, db_type, staging_threshold)
+            else:
+                self._fallback_bulk_insert(table_name, dataframe, chunksize)
+        except Exception as e:
+            self._logger.warning(f"Bulk insert failed for {db_type}, falling back to standard insert: {e}")
+            self._fallback_bulk_insert(table_name, dataframe, chunksize)
+
+    def _database_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, 
+                             chunk_size: int, db_type: str, staging_threshold: int) -> None:
+        """Universal bulk insert method for all database types."""
+        total_chunks = (len(dataframe) + chunk_size - 1) // chunk_size
+        
+        if self._debug_sql:
+            self._logger.debug(
+                f"{db_type.upper()} bulk insert: {len(dataframe):,} rows, "
+                f"{total_chunks} chunks, threshold={staging_threshold}"
+            )
+        
+        if staging_threshold == 0 or total_chunks <= staging_threshold:
+            # Direct insert using enhanced fallback
+            self._fallback_bulk_insert(table_name, dataframe, chunk_size)
+        else:
+            # Use staging table
+            self._generic_staging_bulk_insert(table_name, dataframe, chunk_size, db_type)
+
+    def _fallback_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """Optimized multi-row INSERT that works as both fallback and direct insert."""
+        escaped_table = self._escape_identifier(table_name)
+        escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+        
+        # Detect database type for optimization
+        db_type = self.get_db_type()
+        
+        with self._performance_tracking(f"{db_type} bulk insert", len(dataframe)):
+            rows_inserted = 0
+            for i in range(0, len(dataframe), chunksize):
+                chunk = dataframe.iloc[i:i+chunksize]
+                
+                # Build INSERT query
+                insert_query = self._build_insert_query(
+                    escaped_table, 
+                    escaped_columns, 
+                    chunk, 
+                    db_type
+                )
+                
+                if self._debug_sql:
+                    query_size = len(insert_query.encode('utf-8'))
+                    self._logger.debug(
+                        f"Chunk {(i//chunksize)+1}: {len(chunk)} rows, {query_size:,} bytes"
+                    )
+                    
+                self.query(insert_query)
+                rows_inserted += len(chunk)
+
+    def _generic_staging_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, 
+                                    chunk_size: int, db_type: str) -> None:
+        """Universal staging table approach for all databases."""
+        escaped_target = self._escape_identifier(table_name)
+        columns = [self._escape_identifier(col) for col in dataframe.columns]
+        columns_str = ', '.join(columns)
+        
+        with self._performance_tracking(f"{db_type} staging insert", len(dataframe)):
+            staging_table = None
+            escaped_staging = None
+            
+            try:
+                # Create staging table
+                schema_def = self._generate_schema(dataframe)
+                staging_table, escaped_staging = self._create_staging_table(db_type, schema_def, dataframe)
+                
+                # Insert into staging with larger chunks
+                staging_chunk_size = self._get_staging_chunk_size(chunk_size, db_type)
+                
+                for i in range(0, len(dataframe), staging_chunk_size):
+                    batch = dataframe.iloc[i:i+staging_chunk_size]
+                    
+                    insert_query = self._build_insert_query(
+                        escaped_staging if db_type != 'sqlserver' else staging_table,
+                        columns_str,
+                        batch,
+                        db_type
+                    )
+                    
+                    if self._debug_sql:
+                        self._logger.debug(f"Inserting chunk into staging: {len(batch)} rows")
+                    
+                    self.query(insert_query)
+                
+                # Optional optimization
+                self._optimize_staging_table(db_type, escaped_staging, len(dataframe))
+                
+                # Transfer to target
+                if self._debug_sql:
+                    self._logger.debug("Transferring from staging to target table")
+                
+                if db_type == 'sqlserver':
+                    transfer_query = f"INSERT INTO {escaped_target} ({columns_str}) SELECT {columns_str} FROM {staging_table}"
+                else:
+                    transfer_query = f"INSERT INTO {escaped_target} ({columns_str}) SELECT {columns_str} FROM {escaped_staging}"
+                
+                self.query(transfer_query)
+                
+            finally:
+                # Always cleanup
+                if staging_table and escaped_staging:
+                    self._drop_staging_table(db_type, staging_table, escaped_staging)
+
+    def _create_staging_table(self, db_type: str, schema_def: str, dataframe: pandas.DataFrame) -> tuple[str, str]:
+        """Create staging table and return (staging_table_name, escaped_name)."""
+        unique_suffix = uuid.uuid4().hex[:8]
+        
+        # Generate table name
+        if db_type == 'sqlserver':
+            staging_table = f"#staging_{unique_suffix}"
+            escaped_staging = staging_table
+        elif db_type == 'oracle':
+            staging_table = f"STG_{unique_suffix[:8]}"
+            escaped_staging = self._escape_identifier(staging_table)
+        else:
+            staging_table = f"staging_{unique_suffix}"
+            escaped_staging = self._escape_identifier(staging_table)
+        
+        # Build CREATE query
+        if db_type == 'postgresql':
+            create_query = f"CREATE UNLOGGED TABLE {escaped_staging} ({schema_def})"
+        elif db_type == 'mysql':
+            engine = "MEMORY" if len(dataframe) < 100000 else "InnoDB"
+            create_query = f"CREATE TABLE {escaped_staging} ({schema_def}) ENGINE={engine}"
+        elif db_type == 'sqlserver':
+            create_query = f"CREATE TABLE {staging_table} ({schema_def})"
+        elif db_type == 'oracle':
+            create_query = f"CREATE GLOBAL TEMPORARY TABLE {escaped_staging} ({schema_def}) ON COMMIT PRESERVE ROWS"
+        else:
+            create_query = f"CREATE TABLE {escaped_staging} ({schema_def})"
+        
+        if self._debug_sql:
+            self._logger.debug(f"Creating staging table: {staging_table}")
+        
+        self.query(create_query)
+        return staging_table, escaped_staging
+
+    def _drop_staging_table(self, db_type: str, staging_table: str, escaped_staging: str) -> None:
+        """Drop staging table with database-specific syntax."""
+        try:
+            if db_type == 'sqlserver':
+                self.query(f"DROP TABLE IF EXISTS {staging_table}")
+            elif db_type == 'oracle':
+                self.query(f"DROP TABLE {escaped_staging} PURGE")
+            else:
+                self.query(f"DROP TABLE IF EXISTS {escaped_staging}")
+        except:
+            if self._debug_sql:
+                self._logger.debug("Staging table cleanup skipped (may be auto-cleaned)")
+
+    def _optimize_staging_table(self, db_type: str, escaped_staging: str, row_count: int) -> None:
+        """Run optimizer on staging table if beneficial."""
+        if row_count > 50000:
+            try:
+                if db_type == 'postgresql':
+                    self.query(f"ANALYZE {escaped_staging}")
+                elif db_type == 'mysql':
+                    self.query(f"ANALYZE TABLE {escaped_staging}")
+            except:
+                pass
+
+    def _get_staging_chunk_size(self, base_chunk_size: int, db_type: str) -> int:
+        """Get optimal chunk size for staging inserts based on database type."""
+        if db_type in ['postgresql', 'mysql']:
+            return base_chunk_size * 3
+        elif db_type == 'sqlserver':
+            return base_chunk_size * 2
+        elif db_type in ['db2', 'trino']:
+            return base_chunk_size * 2
+        elif db_type == 'oracle':
+            return base_chunk_size * 2
+        else:
+            return base_chunk_size
+
+    def _build_insert_query(self, table_name: str, columns_str: str, 
+                           batch: pandas.DataFrame, db_type: str) -> str:
+        """Build database-optimized INSERT query."""
+        # Build VALUES rows
+        values_rows = []
+        for _, row in batch.iterrows():
+            formatted_values = [self._format_value(val) for val in row]
+            values_rows.append(f"({', '.join(formatted_values)})")
+        
+        if db_type in ['db2', 'trino']:
+            # DB2/Trino prefer INSERT...SELECT FROM VALUES
+            values_str = ',\n       '.join(values_rows)
+            return f"""
+            INSERT INTO {table_name} ({columns_str})
+            SELECT * FROM (
+            VALUES {values_str}
+            ) AS t({columns_str})
+            """
+        
+        elif db_type == 'oracle' and len(values_rows) > 1:
+            # Oracle INSERT ALL for multiple rows
+            insert_parts = []
+            for values_row in values_rows:
+                insert_parts.append(f"INTO {table_name} ({columns_str}) VALUES {values_row}")
+            
+            return f"""
+            INSERT ALL
+            {chr(10).join(insert_parts)}
+            SELECT 1 FROM DUAL
+            """
+        
+        else:
+            # Standard INSERT VALUES
+            values_str = ',\n'.join(values_rows)
+            return f"INSERT INTO {table_name} ({columns_str}) VALUES {values_str}"
+
+    # Schema and table management methods
+    def _drop_and_create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Drop existing table and create a new one."""
+        escaped_table = self._escape_identifier(table_name)
+        
+        try:
+            self.query(f"DROP TABLE {escaped_table}")
+        except Exception as e:
+            self._logger.warning(f"Error dropping table {table_name}: {str(e)}")
+            raise
+
+        self._create_table(table_name, dataframe)
+
+    def _create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+        """Create a new table with the DataFrame's schema."""
+        escaped_table = self._escape_identifier(table_name)
+        schema = self._generate_schema(dataframe)
+        create_query = f"CREATE TABLE {escaped_table} ({schema})"
+        if self._debug_sql:
+            self._logger.debug(f"Executing SQL: {create_query}")
+        self.query(create_query)
+
+    def _truncate_table(self, table_name: str) -> None:
+        """Truncate an existing table."""
+        escaped_table = self._escape_identifier(table_name)
+        
+        truncate_query = f"TRUNCATE TABLE {escaped_table}"
+        if self._debug_sql:
+            self._logger.debug(f"Executing SQL: {truncate_query}")
+        try:
+            self.query(truncate_query)
+        except Exception as e:
+            # Some databases don't support TRUNCATE, fall back to DELETE
+            delete_query = f"DELETE FROM {escaped_table}"
+            if self._debug_sql:
+                self._logger.debug(f"TRUNCATE failed, executing SQL: {delete_query}")
+            self.query(delete_query)
+
+    def _drop_table_quietly(self, table_name: str) -> None:
+        """Attempt to drop table without raising errors."""
+        try:
+            escaped_table = self._escape_identifier(table_name)
+            self.query(f"DROP TABLE {escaped_table}")
+            if self._debug_sql:
+                self._logger.debug(f"Cleaned up table after failed write: {table_name}")
+        except Exception as drop_error:
+            self._logger.error(f"Failed to clean up table {table_name} after error: {str(drop_error)}")
 
     def _check_schema_compatibility(self, table_name: str, dataframe: pandas.DataFrame, force: bool = False) -> None:
-        """
-        Check schema compatibility between DataFrame and existing table.
-
-        Args:
-            table_name: Name of the table to check.
-            dataframe: DataFrame to check compatibility with.
-            force: If True, skip schema mismatch checks and proceed with warning.
-
-        Raises:
-            ValueError: If schema mismatch detected and force=False.
-        """
+        """Check schema compatibility between DataFrame and existing table."""
         try:
-            # Get existing table columns
             escaped_table = self._escape_identifier(table_name)
             schema_query = f"SELECT * FROM {escaped_table} LIMIT 0"
             result = self.query(schema_query)
@@ -1483,7 +1296,6 @@ class TabularDatasource(Datasource):
 
             df_columns = dataframe.columns.tolist()
 
-            # Check for missing/extra columns
             missing = set(table_columns) - set(df_columns)
             extra = set(df_columns) - set(table_columns)
 
@@ -1501,27 +1313,7 @@ class TabularDatasource(Datasource):
                     )
                 else:
                     if self._debug_sql:
-                        self._logger.warning(
-                            "Forcing write despite schema mismatch: " + " | ".join(error_msg)
-                        )
-
-            return
-
-            # Check column types (if metadata available)
-            try:
-                self._check_column_types(table_name, dataframe, table_columns, force)
-            except Exception as type_err:
-                if not force:
-                    raise ValueError(
-                        "Type mismatch detected. " +
-                        str(type_err) +
-                        "\nUse force=True to attempt the operation anyway."
-                    )
-                else:
-                    if self._debug_sql:
-                        self._logger.warning(
-                            f"Forcing write despite type mismatch: {str(type_err)}"
-                        )
+                        self._logger.warning("Forcing write despite schema mismatch: " + " | ".join(error_msg))
 
         except Exception as e:
             if self._debug_sql:
@@ -1532,162 +1324,32 @@ class TabularDatasource(Datasource):
                     "Use force=True to attempt the operation anyway."
                 ) from e
 
-
-    def _check_column_types(self, table_name: str, dataframe: pandas.DataFrame, table_columns: list, force: bool = False) -> None:
-        """
-        Check column type compatibility between DataFrame and existing table.
-
-        Args:
-            table_name: Name of the table to check.
-            dataframe: DataFrame to check compatibility with.
-            table_columns: List of column names in the table.
-            force: If True, skip type mismatch checks and proceed with warning.
-
-        Raises:
-            ValueError: If type mismatch detected and force=False.
-        """
-        try:
-            # Try different ways to get column metadata
-            queries_to_try = []
-            if '.' in table_name:
-                schema_part, table_part = table_name.split('.', 1)
-                queries_to_try = [
-                    f"""SELECT column_name, data_type
-                    FROM information_schema.columns
-                    WHERE table_schema = '{schema_part}'
-                    AND table_name = '{table_part}'""",
-                    f"""SELECT column_name, data_type
-                    FROM information_schema.columns
-                    WHERE LOWER(table_schema) = LOWER('{schema_part}')
-                    AND LOWER(table_name) = LOWER('{table_part}')""",
-                ]
-            else:
-                queries_to_try = [
-                    f"""SELECT column_name, data_type
-                    FROM information_schema.columns
-                    WHERE table_name = '{table_name}'"""
-                ]
-
-            columns_info = None
-            for query in queries_to_try:
-                try:
-                    columns_info = self.query(query.strip())
-                    if columns_info.to_pandas().shape[0] > 0:
-                        break
-                except Exception:
-                    continue
-
-            if columns_info is None or columns_info.to_pandas().empty:
-                if self._debug_sql:
-                    self._logger.warning(
-                        f"Could not retrieve type info for table '{table_name}'. "
-                        "Skipping type validation."
-                    )
-                return
-
-            # Proceed with type checks if metadata is available
-            columns_df = columns_info.to_pandas()
-            table_column_types = {
-                row['column_name']: row['data_type']
-                for row in columns_df.to_dict('records')
-            }
-
-            type_mismatches = []
-            for col in table_columns:
-                df_type = self._map_dtype_to_sql(dataframe[col].dtype, dataframe[col])
-                table_type = table_column_types.get(col, "").upper()
-                if not self._are_types_compatible(df_type, table_type):
-                    type_mismatches.append(f"Column '{col}': {df_type} vs {table_type}")
-
-            if type_mismatches:
-                if not force:
-                    raise ValueError("Type mismatch: " + ", ".join(type_mismatches))
-                else:
-                    if self._debug_sql:
-                        self._logger.warning(
-                            "Forcing write despite type mismatch: " + ", ".join(type_mismatches)
-                        )
-
-        except Exception as e:
-            if self._debug_sql:
-                self._logger.warning(f"Type validation skipped: {str(e)}")
-            if not force:
-                raise ValueError(
-                    "Type validation failed. " +
-                    str(e) +
-                    "\nUse force=True to attempt the operation anyway."
-                )
-
-    def _are_types_compatible(self, sql_type: str, table_type: str) -> bool:
-        """Check if two SQL types are compatible for appending data."""
-        # Exact match
-        if sql_type == table_type:
-            return True
-            
-        # Integer types can be safely inserted into wider integer types
-        if "SMALLINT" in sql_type and any(t in table_type for t in ["INTEGER", "BIGINT"]):
-            return True
-        if "INTEGER" in sql_type and "BIGINT" in table_type:
-            return True
-            
-        # Numeric types can go into wider numeric types
-        if "INTEGER" in sql_type and any(t in table_type for t in ["FLOAT", "DOUBLE", "NUMERIC"]):
-            return True
-            
-        # String types can go into wider string types
-        if "VARCHAR" in sql_type and "TEXT" in table_type:
-            return True
-        if "VARCHAR" in sql_type and "VARCHAR" in table_type:
-            # Check VARCHAR length
-            try:
-                df_length = int(sql_type.replace("VARCHAR(", "").replace(")", ""))
-                table_length = int(table_type.replace("VARCHAR(", "").replace(")", ""))
-                return df_length <= table_length
-            except:
-                # If we can't parse the lengths, assume incompatible
-                return False
-                
-        # Default to incompatible
-        return False
-
     def _escape_identifier(self, identifier: str) -> str:
-        """Escape an SQL identifier (table or column name).
-        
-        Handles schema.table notation properly for cross-database compatibility.
-        Uses SQL standard double quotes which work across most database systems.
-        
-        Args:
-            identifier: The identifier to escape
-            
-        Returns:
-            str: The escaped identifier
-        """
-        # Handle schema.table notation
+        """Escape an SQL identifier (table or column name)."""
         if '.' in identifier:
-            parts = identifier.split('.', 1)  # Split only on first dot to handle cases like catalog.schema.table
+            parts = identifier.split('.', 1)
             schema = parts[0].strip()
             table = parts[1].strip()
             
-            # Remove existing quotes if present and re-quote properly
             schema = schema.strip('"').strip('`').strip('[').strip(']')
             table = table.strip('"').strip('`').strip('[').strip(']')
             
-            # Return properly quoted schema.table using SQL standard double quotes
             return f'"{schema}"."{table}"'
         else:
-            # Single identifier - remove existing quotes and re-quote with double quotes
             clean_identifier = identifier.strip('"').strip('`').strip('[').strip(']')
             return f'"{clean_identifier}"'
 
+    def _generate_schema(self, dataframe: pandas.DataFrame) -> str:
+        """Generate SQL schema from DataFrame."""
+        columns = []
+        for col, dtype in dataframe.dtypes.items():
+            escaped_col = self._escape_identifier(col)
+            sql_type = self._map_dtype_to_sql(dtype, dataframe[col])
+            columns.append(f"{escaped_col} {sql_type}")
+        return ", ".join(columns)
+
     def _handle_dataframe_mixed_types(self, dataframe: pandas.DataFrame) -> pandas.DataFrame:
-        """Process a DataFrame to handle mixed types in object columns.
-        
-        Args:
-            dataframe: DataFrame to process
-            
-        Returns:
-            pandas.DataFrame: DataFrame with mixed types handled
-        """
+        """Process a DataFrame to handle mixed types in object columns."""
         result = dataframe.copy()
         
         for col in dataframe.select_dtypes(include=['object']).columns:
@@ -1717,14 +1379,7 @@ class TabularDatasource(Datasource):
         if len(types) <= 1:
             return series, None, False
 
-        numeric_types = {
-            int,
-            float,
-            numpy.int64,
-            numpy.float64,
-            numpy.int32,
-            numpy.float32
-        }
+        numeric_types = {int, float, numpy.int64, numpy.float64, numpy.int32, numpy.float32}
         series_types = set(types.index)
 
         if series_types.issubset(numeric_types):
@@ -1751,22 +1406,6 @@ class TabularDatasource(Datasource):
             handled = series.astype(str)
             return handled, "VARCHAR(4000)", True
 
-    def _generate_schema(self, dataframe: pandas.DataFrame) -> str:
-        """Generate SQL schema from DataFrame.
-        
-        Args:
-            dataframe: DataFrame to generate schema from
-            
-        Returns:
-            str: SQL schema definition
-        """
-        columns = []
-        for col, dtype in dataframe.dtypes.items():
-            escaped_col = self._escape_identifier(col)
-            sql_type = self._map_dtype_to_sql(dtype, dataframe[col])
-            columns.append(f"{escaped_col} {sql_type}")
-        return ", ".join(columns)
-
     def _map_dtype_to_sql(self, dtype, series=None) -> str:
         """Map pandas dtype to a cross-database compatible SQL type."""
         
@@ -1791,33 +1430,22 @@ class TabularDatasource(Datasource):
             elif dtype.name == 'string':
                 return self._get_varchar_type_by_length(series)
 
-        # Booleans
+        # Standard type checks
         if pandas.api.types.is_bool_dtype(dtype):
             return self._type_map.get(bool, "BOOLEAN")
-
-        # Integers with range-based sizing
         if pandas.api.types.is_integer_dtype(dtype):
             return self._get_integer_type_by_range(series)
-
-        # Floats: database-specific handling
         if pandas.api.types.is_float_dtype(dtype):
             return self._get_float_type_by_database()
-
-        # Datetimes with timezone awareness
         if pandas.api.types.is_datetime64_any_dtype(dtype):
             if hasattr(dtype, 'tz') and dtype.tz is not None:
                 return self._get_timezone_aware_timestamp()
             return self._type_map.get(datetime, "TIMESTAMP")
-
-        # Strings and objects: enhanced size-based VARCHAR
         if pandas.api.types.is_string_dtype(dtype) or pandas.api.types.is_object_dtype(dtype):
             return self._get_varchar_type_by_length(series)
-
-        # Binary data
         if dtype == 'bytes' or str(dtype).startswith('bytes'):
             return self._type_map.get(bytes, "VARBINARY(4000)")
 
-        # Fallback
         return "VARCHAR(255)"
 
     def _get_integer_type_by_range(self, series) -> str:
@@ -1827,22 +1455,15 @@ class TabularDatasource(Datasource):
                 mn, mx = series.min(), series.max()
                 db_type = self.get_db_type()
                 
-                # TINYINT range: -128 to 127 (or 0 to 255 unsigned)
                 if mn >= -128 and mx <= 127:
                     if db_type in ['mysql', 'sqlserver']:
                         return "TINYINT"
                     else:
                         return "SMALLINT"
-                
-                # SMALLINT range: -32,768 to 32,767
                 elif mn >= -32768 and mx <= 32767:
                     return "SMALLINT"
-                
-                # INTEGER range: -2,147,483,648 to 2,147,483,647
                 elif mn >= -2147483648 and mx <= 2147483647:
                     return "INTEGER"
-                
-                # BIGINT for larger values
                 else:
                     return "BIGINT"
             except Exception:
@@ -1855,7 +1476,7 @@ class TabularDatasource(Datasource):
         db_type = self.get_db_type()
         if db_type == 'postgresql':
             return "DOUBLE PRECISION"
-        elif db_type in ['mysql', 'db2']:
+        elif db_type in ['mysql', 'db2', 'trino']:
             return "DOUBLE"
         elif db_type == 'oracle':
             return "BINARY_DOUBLE"
@@ -1882,7 +1503,7 @@ class TabularDatasource(Datasource):
             try:
                 # Check for JSON-like content
                 if series.astype(str).str.contains(r'^\s*[\{\[]').any() and \
-                series.astype(str).str.contains(r'[\}\]]\s*$').any():
+                   series.astype(str).str.contains(r'[\}\]]\s*$').any():
                     return self._get_json_type()
                 
                 max_len = series.astype(str).str.len().max()
@@ -1916,7 +1537,7 @@ class TabularDatasource(Datasource):
         db_type = self.get_db_type()
         if db_type == 'postgresql':
             return "JSONB"
-        elif db_type == 'mysql':
+        elif db_type in ['mysql', 'trino']:
             return "JSON"
         elif db_type in ['db2', 'oracle']:
             return "CLOB"
@@ -1925,349 +1546,13 @@ class TabularDatasource(Datasource):
         else:
             return "VARCHAR(4000)"
 
-
-    def table(self, table_name: str):
-        """Get a table interface for fluent querying.
-        
-        Args:
-            table_name: Name of the table to query
-            
-        Returns:
-            TableQuery: A TableQuery object for fluent querying
-            
-        Examples:
-            # Select all rows from a table
-            result = datasource.table("my_table").all()
-            
-            # Select with filtering
-            result = datasource.table("my_table").filter("age > 30").all()
-            
-            # Select specific columns
-            result = datasource.table("my_table").select("name, age").all()
-            
-            # Order results
-            result = datasource.table("my_table").order_by("age DESC").all()
-            
-            # Limit results
-            result = datasource.table("my_table").limit(10).all()
-        """
-        return TableQuery(self, table_name)
-
-    def enable_sql_debug(self, enabled: bool = True) -> None:
-        """Enable or disable SQL debug logging.
-        
-        Args:
-            enabled: If True, SQL statements will be logged at DEBUG level.
-        """
-        self._debug_sql = enabled
-        if enabled:
-            # Set up logging if not already configured
-            if not self._logger.handlers:
-                handler = logging.StreamHandler()
-                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-                handler.setFormatter(formatter)
-                self._logger.addHandler(handler)
-            
-            # Ensure logger level is set to DEBUG
-            self._logger.setLevel(logging.DEBUG)
-            self._logger.info("SQL debugging enabled")
-
-    def register_type(self, python_type: Type, sql_type: str) -> None:
-        """Register a custom type mapping.
-        
-        Args:
-            python_type: The Python type to map
-            sql_type: The SQL type to map to
-            
-        Examples:
-            # Register a custom type
-            datasource.register_type(UUID, "UUID")
-            
-            # Register a custom class
-            datasource.register_type(MyCustomClass, "JSON")
-        """
-        self._type_map[python_type] = sql_type
-    
-    def get_type_mappings(self) -> Dict[str, str]:
-        """Return all registered type mappings.
-        
-        Returns:
-            dict: A dictionary mapping Python type names to SQL types
-        """
-        return {getattr(k, '__name__', str(k)): v for k, v in self._type_map.items()}
-
-    def _insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
-        """Insert DataFrame using bulk methods when possible."""
-        if len(dataframe) > 1000:
-            self._bulk_insert_dataframe(table_name, dataframe, chunksize)
-        else:
-            # Use standard chunked inserts for small datasets
-            self._fallback_bulk_insert(table_name, dataframe, chunksize)
-
-    def _bulk_insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
-        """Perform optimized bulk inserts based on database type."""
-        db_type = self.get_db_type()
-        
-        try:
-            if db_type == 'postgresql':
-                self._postgresql_bulk_insert(table_name, dataframe)
-            elif db_type == 'mysql':
-                self._mysql_bulk_insert(table_name, dataframe)
-            elif db_type == 'sqlserver':
-                self._sqlserver_bulk_insert(table_name, dataframe)
-            elif db_type == 'db2':
-                self._db2_bulk_insert(table_name, dataframe)
-            elif db_type == 'oracle':
-                self._oracle_bulk_insert(table_name, dataframe)
-            else:
-                self._fallback_bulk_insert(table_name, dataframe, chunksize)
-        except Exception as e:
-            self._logger.warning(f"Bulk insert failed for {db_type}, falling back to standard insert: {e}")
-            self._fallback_bulk_insert(table_name, dataframe, chunksize)
-
-    def _fallback_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
-        """Fallback to optimized multi-row INSERTs for unsupported databases."""
-        escaped_table = self._escape_identifier(table_name)
-        escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
-        
-        if self._debug_sql:
-            self._logger.debug(f"Starting fallback bulk insert for table: {escaped_table}")
-            self._logger.debug(f"Row count: {len(dataframe)}, chunksize: {chunksize}")
-
-        for i in range(0, len(dataframe), chunksize):
-            chunk = dataframe.iloc[i:i+chunksize]
-            values = ", ".join(
-                f"({', '.join(map(self._format_value, row))})" 
-                for _, row in chunk.iterrows()
-            )
-            
-            insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
-            
-            if self._debug_sql:
-                self._logger.debug(f"Executing fallback bulk insert for {len(chunk)} rows")
-                
-            self.query(insert_query)
-        
-        if self._debug_sql:
-            self._logger.debug(f"Fallback bulk insert completed for {len(dataframe)} rows into {table_name}")
-
-    def _postgresql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use PostgreSQL's COPY command for high-speed bulk inserts.
-
-        Args:
-            table_name: Name of the table to insert into.
-            dataframe: DataFrame containing the data to insert.
-        """
-        escaped_table = self._escape_identifier(table_name)
-        columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
-        
-        conn = None
-        cursor = None
-        try:
-            if self._debug_sql:
-                self._logger.debug(f"Starting PostgreSQL COPY for table: {escaped_table}")
-                self._logger.debug(f"Columns: {columns}")
-                self._logger.debug(f"Row count: {len(dataframe)}")
-
-            # Get a raw connection and set up transaction
-            conn = self.client.raw_connection()
-            conn.set_session(autocommit=False)
-            cursor = conn.cursor()
-
-            # Convert DataFrame to CSV buffer
-            csv_buffer = io.StringIO()
-            dataframe.to_csv(csv_buffer, index=False, header=False, sep='\t', na_rep='\\N')
-            csv_buffer.seek(0)
-
-            # Execute COPY
-            copy_query = f"COPY {escaped_table} ({columns}) FROM STDIN WITH CSV DELIMITER '\t' NULL '\\N'"
-            if self._debug_sql:
-                self._logger.debug(f"Executing COPY: {copy_query}")
-            cursor.copy_expert(copy_query, csv_buffer)
-            conn.commit()
-            
-            if self._debug_sql:
-                self._logger.debug(f"PostgreSQL COPY inserted {len(dataframe)} rows into {table_name}")
-                
-        except Exception as e:
-            if conn is not None:
-                conn.rollback()
-            self._logger.error(f"PostgreSQL bulk insert failed: {e}")
-            raise
-        finally:
-            if cursor is not None:
-                cursor.close()
-            if conn is not None:
-                conn.close()
-
-
-    def _mysql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use MySQL's LOAD DATA LOCAL INFILE for fast bulk inserts."""
-        escaped_table = self._escape_identifier(table_name)
-        
-        tmp_path = None
-        try:
-            if self._debug_sql:
-                self._logger.debug(f"Starting MySQL LOAD DATA for table: {escaped_table}")
-                self._logger.debug(f"Row count: {len(dataframe)}")
-
-            # Write DataFrame to temp file
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as tmpfile:
-                dataframe.to_csv(tmpfile, index=False, header=False, na_rep='\\N')
-                tmp_path = tmpfile.name
-            
-            # Build and execute LOAD DATA query
-            load_query = f"""
-                LOAD DATA LOCAL INFILE '{tmp_path}'
-                INTO TABLE {escaped_table}
-                FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
-                LINES TERMINATED BY '\\n'
-            """
-            if self._debug_sql:
-                self._logger.debug(f"Executing LOAD DATA: {load_query.strip()}")
-            self.query(load_query)
-            
-            if self._debug_sql:
-                self._logger.debug(f"MySQL LOAD DATA inserted {len(dataframe)} rows into {table_name}")
-                
-        except Exception as e:
-            self._logger.error(f"MySQL bulk insert failed: {e}")
-            raise
-        finally:
-            if tmp_path and os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
-    def _sqlserver_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use SQL Server's BULK INSERT for optimized performance."""
-        escaped_table = self._escape_identifier(table_name)
-        
-        tmp_path = None
-        try:
-            if self._debug_sql:
-                self._logger.debug(f"Starting SQL Server BULK INSERT for table: {escaped_table}")
-                self._logger.debug(f"Row count: {len(dataframe)}")
-
-            # Write DataFrame to temp file
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv') as tmpfile:
-                dataframe.to_csv(tmpfile, index=False, header=False, na_rep='NULL')
-                tmp_path = tmpfile.name
-            
-            # Build and execute BULK INSERT query
-            bulk_query = f"""
-                BULK INSERT {escaped_table}
-                FROM '{tmp_path}'
-                WITH (
-                    FIELDTERMINATOR = ',',
-                    ROWTERMINATOR = '\\n',
-                    TABLOCK,
-                    KEEPNULLS
-                )
-            """
-            if self._debug_sql:
-                self._logger.debug(f"Executing BULK INSERT: {bulk_query.strip()}")
-            self.query(bulk_query)
-            
-            if self._debug_sql:
-                self._logger.debug(f"SQL Server BULK INSERT inserted {len(dataframe)} rows into {table_name}")
-                
-        except Exception as e:
-            self._logger.error(f"SQL Server bulk insert failed: {e}")
-            raise
-        finally:
-            if tmp_path and os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
-    def _db2_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use DB2's ADMIN_CMD for efficient bulk inserts.
-
-        Note:
-            DB2 expects pipe-delimited files for ADMIN_CMD(IMPORT).
-        """
-        escaped_table = self._escape_identifier(table_name)
-        
-        tmp_path = None
-        try:
-            if self._debug_sql:
-                self._logger.debug(f"Starting DB2 IMPORT for table: {escaped_table}")
-                self._logger.debug(f"Row count: {len(dataframe)}")
-
-            # Write DataFrame to temp file with pipe delimiter (DB2 preference)
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.del') as tmpfile:
-                dataframe.to_csv(tmpfile, index=False, header=False, sep='|', na_rep='')
-                tmp_path = tmpfile.name
-            
-            # Execute DB2 IMPORT command
-            import_query = f"""
-                CALL SYSPROC.ADMIN_CMD('IMPORT FROM {tmp_path} OF DEL 
-                    MODIFIED BY COLDEL| 
-                    INSERT INTO {escaped_table}')
-            """
-            if self._debug_sql:
-                self._logger.debug(f"Executing IMPORT: {import_query.strip()}")
-            self.query(import_query)
-            
-            if self._debug_sql:
-                self._logger.debug(f"DB2 IMPORT inserted {len(dataframe)} rows into {table_name}")
-                
-        except Exception as e:
-            self._logger.error(f"DB2 bulk insert failed: {e}")
-            raise
-        finally:
-            if tmp_path and os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
-    def _oracle_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use Oracle's multi-row INSERT ALL for bulk inserts.
-
-        Note:
-            For very large datasets, consider using SQL*Loader externally.
-        """
-        escaped_table = self._escape_identifier(table_name)
-        escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
-
-        if self._debug_sql:
-            self._logger.debug(f"Starting Oracle INSERT ALL for table: {escaped_table}")
-            self._logger.debug(f"Row count: {len(dataframe)}")
-
-        # Oracle supports INSERT ALL for multi-row inserts
-        # Split into chunks to avoid hitting Oracle's SQL length limit
-        chunk_size = 1000
-        for i in range(0, len(dataframe), chunk_size):
-            chunk = dataframe.iloc[i:i+chunk_size]
-            values = []
-            for _, row in chunk.iterrows():
-                values.append(
-                    "SELECT " + ', '.join(map(self._format_value, row)) + " FROM DUAL"
-                )
-            insert_all_query = f"""
-                INSERT ALL
-                INTO {escaped_table} ({escaped_columns}) VALUES {values[0]}
-                {"".join(f" INTO {escaped_table} ({escaped_columns}) VALUES {v}" for v in values[1:])}
-                SELECT * FROM DUAL
-            """
-            if self._debug_sql:
-                self._logger.debug(f"Executing INSERT ALL for {len(chunk)} rows")
-            self.query(insert_all_query)
-        
-        if self._debug_sql:
-            self._logger.debug(f"Oracle INSERT ALL completed for {len(dataframe)} rows into {table_name}")
-
     def _format_value(self, value) -> str:
-        """
-        Format value for SQL insertion with database-specific CAST operations.
-        
-        Args:
-            value: Value to format for SQL insertion
-            
-        Returns:
-            str: SQL expression for the value with appropriate database-specific casting
-        """
+        """Format value for SQL insertion with database-specific CAST operations."""
         if pandas.isna(value):
             return "NULL"
 
         db_type = self.get_db_type()
         
-        # Enhanced database-specific casting maps
         cast_map = {
             'postgresql': {
                 'float': 'DOUBLE PRECISION',
@@ -2276,7 +1561,7 @@ class TabularDatasource(Datasource):
                 'bool': 'BOOLEAN',
                 'int': 'INTEGER',
                 'str': 'VARCHAR',
-                'json': 'JSONB'  # Enhanced: Explicit JSONB casting
+                'json': 'JSONB'
             },
             'mysql': {
                 'float': 'DOUBLE',
@@ -2285,7 +1570,7 @@ class TabularDatasource(Datasource):
                 'bool': 'BOOLEAN',
                 'int': 'INTEGER',
                 'str': 'VARCHAR',
-                'json': 'JSON'  # Enhanced: Native JSON casting
+                'json': 'JSON'
             },
             'db2': {
                 'float': 'DOUBLE',
@@ -2294,7 +1579,16 @@ class TabularDatasource(Datasource):
                 'bool': 'SMALLINT',
                 'int': 'INTEGER',
                 'str': 'VARCHAR',
-                'json': 'CLOB'  # Enhanced: CLOB for JSON
+                'json': 'CLOB'
+            },
+            'trino': {
+                'float': 'DOUBLE',
+                'datetime': 'TIMESTAMP',
+                'date': 'DATE',
+                'bool': 'BOOLEAN',
+                'int': 'BIGINT',
+                'str': 'VARCHAR',
+                'json': 'JSON'
             },
             'oracle': {
                 'float': 'BINARY_DOUBLE',
@@ -2303,7 +1597,7 @@ class TabularDatasource(Datasource):
                 'bool': 'NUMBER',
                 'int': 'NUMBER',
                 'str': 'VARCHAR2',
-                'json': 'CLOB'  # Enhanced: CLOB for JSON
+                'json': 'CLOB'
             },
             'sqlserver': {
                 'float': 'FLOAT',
@@ -2312,7 +1606,7 @@ class TabularDatasource(Datasource):
                 'bool': 'BIT',
                 'int': 'INT',
                 'str': 'NVARCHAR',
-                'json': 'NVARCHAR(MAX)'  # Enhanced: NVARCHAR(MAX) for JSON
+                'json': 'NVARCHAR(MAX)'
             },
             'unknown': {
                 'float': 'FLOAT',
@@ -2327,7 +1621,7 @@ class TabularDatasource(Datasource):
 
         cast_types = cast_map.get(db_type, cast_map['unknown'])
 
-        # Boolean handling with database-specific logic
+        # Boolean handling
         if isinstance(value, bool):
             if db_type in ['db2']:
                 return f"CAST({1 if value else 0} AS {cast_types['bool']})"
@@ -2357,26 +1651,20 @@ class TabularDatasource(Datasource):
         elif isinstance(value, date):
             return f"CAST('{value.isoformat()}' AS {cast_types['date']})"
 
-        # Enhanced JSON/Dictionary/List handling with database-specific casting
+        # JSON/Dictionary/List handling
         elif isinstance(value, (dict, list)):
             json_str = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
             escaped_str = json_str.replace("'", "''")
             
-            # Database-specific JSON handling - THIS IS THE KEY FIX!
             if db_type == 'postgresql':
-                # PostgreSQL requires explicit JSONB casting using :: syntax
                 return f"'{escaped_str}'::jsonb"
             elif db_type == 'mysql':
-                # MySQL can cast to JSON type
                 return f"CAST('{escaped_str}' AS JSON)"
             elif db_type in ['db2', 'oracle']:
-                # DB2 and Oracle use CLOB for JSON storage
                 return f"CAST('{escaped_str}' AS CLOB)"
             elif db_type == 'sqlserver':
-                # SQL Server uses NVARCHAR(MAX)
                 return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
             else:
-                # Fallback for unknown databases
                 return f"CAST('{escaped_str}' AS VARCHAR(4000))"
 
         # NumPy array handling
@@ -2386,7 +1674,6 @@ class TabularDatasource(Datasource):
                 json_str = json.dumps(array_list, ensure_ascii=False, separators=(',', ':'))
                 escaped_str = json_str.replace("'", "''")
                 
-                # Use same JSON casting logic as dict/list
                 if db_type == 'postgresql':
                     return f"'{escaped_str}'::jsonb"
                 elif db_type == 'mysql':
@@ -2398,17 +1685,15 @@ class TabularDatasource(Datasource):
                 else:
                     return f"CAST('{escaped_str}' AS VARCHAR(4000))"
             except Exception:
-                # Fallback to string representation
                 str_value = str(value)
                 escaped_str = str_value.replace("'", "''")
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
 
-        # Enhanced string handling with length considerations
+        # String handling
         else:
             str_value = str(value)
             escaped_str = str_value.replace("'", "''")
             
-            # Handle very long strings that might exceed VARCHAR limits
             if len(escaped_str) > 4000:
                 if db_type == 'postgresql':
                     return f"CAST('{escaped_str}' AS TEXT)"
@@ -2419,12 +1704,11 @@ class TabularDatasource(Datasource):
                 elif db_type == 'sqlserver':
                     return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
                 else:
-                    # Truncate for unknown databases to avoid errors
                     truncated = escaped_str[:3900] + "..."
                     return f"CAST('{truncated}' AS VARCHAR(4000))"
             else:
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
-        
+
 
 @attr.s
 class TableQuery:
