@@ -436,6 +436,7 @@ class TabularDatasource(Datasource):
             config=self._config_override.config(),
             credential=self._get_credential_override(),
         )
+    
     def wrap_passthrough_query(self, query: str) -> str:
         """
         Wrap a query for database passthrough to bypass query engine optimization.
@@ -2005,8 +2006,14 @@ class TabularDatasource(Datasource):
             self._fallback_bulk_insert(table_name, dataframe, chunksize)
 
     def _bulk_insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
-        """Perform optimized bulk inserts based on database type."""
+        """
+        Perform optimized bulk inserts based on database type.
+        Gracefully falls back to standard method if database-specific method fails.
+        """
         db_type = self.get_db_type()
+        
+        # Track if we're using native method or fallback
+        using_native_method = True
         
         try:
             if db_type == 'postgresql':
@@ -2020,10 +2027,39 @@ class TabularDatasource(Datasource):
             elif db_type == 'oracle':
                 self._oracle_bulk_insert(table_name, dataframe)
             else:
+                using_native_method = False
                 self._fallback_bulk_insert(table_name, dataframe, chunksize)
+                
+            # Log success with method used
+            if self._debug_sql:
+                method_name = f"{db_type} native" if using_native_method else "standard"
+                self._logger.info(f"✅ Bulk insert completed using {method_name} method")
+                
         except Exception as e:
-            self._logger.warning(f"Bulk insert failed for {db_type}, falling back to standard insert: {e}")
-            self._fallback_bulk_insert(table_name, dataframe, chunksize)
+            if using_native_method:
+                # Native method failed, try fallback
+                if self._debug_sql:
+                    self._logger.warning(f"{db_type} native bulk insert failed, attempting standard method...")
+                
+                try:
+                    self._fallback_bulk_insert(table_name, dataframe, chunksize)
+                    
+                    # Fallback succeeded
+                    if self._debug_sql:
+                        self._logger.info("✅ Bulk insert completed successfully using standard fallback method")
+                        self._logger.info(f"   Table: {table_name}")
+                        self._logger.info(f"   Rows inserted: {len(dataframe):,}")
+                        
+                except Exception as fallback_error:
+                    # Both methods failed
+                    self._logger.error(f"❌ Both native and fallback bulk insert methods failed")
+                    self._logger.error(f"   Native method error: {str(e)}")
+                    self._logger.error(f"   Fallback method error: {str(fallback_error)}")
+                    raise fallback_error
+            else:
+                # Fallback method failed (no native method was attempted)
+                self._logger.error(f"❌ Bulk insert failed: {str(e)}")
+                raise
 
     def _fallback_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
         """Fallback to optimized multi-row INSERTs for unsupported databases."""
@@ -2031,25 +2067,41 @@ class TabularDatasource(Datasource):
         escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
         
         if self._debug_sql:
-            self._logger.debug(f"Starting fallback bulk insert for table: {escaped_table}")
+            self._logger.debug(f"Starting standard bulk insert for table: {escaped_table}")
             self._logger.debug(f"Row count: {len(dataframe)}, chunksize: {chunksize}")
 
-        for i in range(0, len(dataframe), chunksize):
-            chunk = dataframe.iloc[i:i+chunksize]
-            values = ", ".join(
-                f"({', '.join(map(self._format_value, row))})" 
-                for _, row in chunk.iterrows()
-            )
-            
-            insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
+        total_rows = len(dataframe)
+        rows_inserted = 0
+        
+        try:
+            for i in range(0, total_rows, chunksize):
+                chunk = dataframe.iloc[i:i+chunksize]
+                values = ", ".join(
+                    f"({', '.join(map(self._format_value, row))})" 
+                    for _, row in chunk.iterrows()
+                )
+                
+                insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
+                
+                if self._debug_sql and i == 0:
+                    self._logger.debug(f"Executing bulk insert for first {len(chunk)} rows")
+                    
+                self.query(insert_query)
+                rows_inserted += len(chunk)
+                
+                # Progress for large datasets
+                if self._debug_sql and rows_inserted % 10000 == 0:
+                    progress = (rows_inserted / total_rows) * 100
+                    self._logger.debug(f"Progress: {rows_inserted:,}/{total_rows:,} rows ({progress:.1f}%)")
             
             if self._debug_sql:
-                self._logger.debug(f"Executing fallback bulk insert for {len(chunk)} rows")
+                self._logger.debug(f"Standard bulk insert completed: {rows_inserted:,} rows into {table_name}")
                 
-            self.query(insert_query)
-        
-        if self._debug_sql:
-            self._logger.debug(f"Fallback bulk insert completed for {len(dataframe)} rows into {table_name}")
+        except Exception as e:
+            error_msg = f"Failed at row {rows_inserted} of {total_rows}: {str(e)}"
+            if self._debug_sql:
+                self._logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
 
     def _postgresql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
         """Use PostgreSQL's COPY command for high-speed bulk inserts.
@@ -2059,11 +2111,18 @@ class TabularDatasource(Datasource):
             dataframe: DataFrame containing the data to insert.
         """
         escaped_table = self._escape_identifier(table_name)
-        columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
         
         conn = None
         cursor = None
         try:
+            # Check if raw_connection is available (won't be for proxy connections)
+            if not hasattr(self.client, 'raw_connection'):
+                if self._debug_sql:
+                    self._logger.info("PostgreSQL COPY not available (proxy connection) - using standard bulk insert")
+                raise AttributeError("raw_connection not available")
+                
+            columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+            
             if self._debug_sql:
                 self._logger.debug(f"Starting PostgreSQL COPY for table: {escaped_table}")
                 self._logger.debug(f"Columns: {columns}")
@@ -2088,11 +2147,13 @@ class TabularDatasource(Datasource):
             
             if self._debug_sql:
                 self._logger.debug(f"PostgreSQL COPY inserted {len(dataframe)} rows into {table_name}")
-                
-        except Exception as e:
+                    
+        except (AttributeError, Exception) as e:
             if conn is not None:
                 conn.rollback()
-            self._logger.error(f"PostgreSQL bulk insert failed: {e}")
+            if self._debug_sql:
+                self._logger.info(f"PostgreSQL native bulk insert not available: {type(e).__name__}: {str(e)}")
+                self._logger.info("Falling back to standard bulk insert method")
             raise
         finally:
             if cursor is not None:
@@ -2129,9 +2190,11 @@ class TabularDatasource(Datasource):
             
             if self._debug_sql:
                 self._logger.debug(f"MySQL LOAD DATA inserted {len(dataframe)} rows into {table_name}")
-                
+                    
         except Exception as e:
-            self._logger.error(f"MySQL bulk insert failed: {e}")
+            if self._debug_sql:
+                self._logger.info(f"MySQL native bulk insert not available: {type(e).__name__}: {str(e)}")
+                self._logger.info("Falling back to standard bulk insert method")
             raise
         finally:
             if tmp_path and os.path.exists(tmp_path):
@@ -2169,9 +2232,11 @@ class TabularDatasource(Datasource):
             
             if self._debug_sql:
                 self._logger.debug(f"SQL Server BULK INSERT inserted {len(dataframe)} rows into {table_name}")
-                
+                    
         except Exception as e:
-            self._logger.error(f"SQL Server bulk insert failed: {e}")
+            if self._debug_sql:
+                self._logger.info(f"SQL Server native bulk insert not available: {type(e).__name__}: {str(e)}")
+                self._logger.info("Falling back to standard bulk insert method")
             raise
         finally:
             if tmp_path and os.path.exists(tmp_path):
@@ -2187,6 +2252,10 @@ class TabularDatasource(Datasource):
         
         tmp_path = None
         try:
+            # First do a quick test to see if ADMIN_CMD is available
+            test_query = "SELECT 1 FROM SYSIBM.SYSDUMMY1"
+            self.query(test_query)
+            
             if self._debug_sql:
                 self._logger.debug(f"Starting DB2 IMPORT for table: {escaped_table}")
                 self._logger.debug(f"Row count: {len(dataframe)}")
@@ -2208,9 +2277,18 @@ class TabularDatasource(Datasource):
             
             if self._debug_sql:
                 self._logger.debug(f"DB2 IMPORT inserted {len(dataframe)} rows into {table_name}")
-                
+                    
         except Exception as e:
-            self._logger.error(f"DB2 bulk insert failed: {e}")
+            error_str = str(e).lower()
+            if 'procedure not registered' in error_str or 'admin_cmd' in error_str:
+                if self._debug_sql:
+                    self._logger.info("DB2 ADMIN_CMD not available (likely Trino proxy) - using standard bulk insert")
+            else:
+                if self._debug_sql:
+                    self._logger.info(f"DB2 native bulk insert failed: {type(e).__name__}: {str(e)}")
+            
+            if self._debug_sql:
+                self._logger.info("Falling back to standard bulk insert method")
             raise
         finally:
             if tmp_path and os.path.exists(tmp_path):
@@ -2229,28 +2307,35 @@ class TabularDatasource(Datasource):
             self._logger.debug(f"Starting Oracle INSERT ALL for table: {escaped_table}")
             self._logger.debug(f"Row count: {len(dataframe)}")
 
-        # Oracle supports INSERT ALL for multi-row inserts
-        # Split into chunks to avoid hitting Oracle's SQL length limit
-        chunk_size = 1000
-        for i in range(0, len(dataframe), chunk_size):
-            chunk = dataframe.iloc[i:i+chunk_size]
-            values = []
-            for _, row in chunk.iterrows():
-                values.append(
-                    "SELECT " + ', '.join(map(self._format_value, row)) + " FROM DUAL"
-                )
-            insert_all_query = f"""
-                INSERT ALL
-                INTO {escaped_table} ({escaped_columns}) VALUES {values[0]}
-                {"".join(f" INTO {escaped_table} ({escaped_columns}) VALUES {v}" for v in values[1:])}
-                SELECT * FROM DUAL
-            """
+        try:
+            # Oracle supports INSERT ALL for multi-row inserts
+            # Split into chunks to avoid hitting Oracle's SQL length limit
+            chunk_size = 1000
+            for i in range(0, len(dataframe), chunk_size):
+                chunk = dataframe.iloc[i:i+chunk_size]
+                values = []
+                for _, row in chunk.iterrows():
+                    values.append(
+                        "SELECT " + ', '.join(map(self._format_value, row)) + " FROM DUAL"
+                    )
+                insert_all_query = f"""
+                    INSERT ALL
+                    INTO {escaped_table} ({escaped_columns}) VALUES {values[0]}
+                    {"".join(f" INTO {escaped_table} ({escaped_columns}) VALUES {v}" for v in values[1:])}
+                    SELECT * FROM DUAL
+                """
+                if self._debug_sql:
+                    self._logger.debug(f"Executing INSERT ALL for {len(chunk)} rows")
+                self.query(insert_all_query)
+            
             if self._debug_sql:
-                self._logger.debug(f"Executing INSERT ALL for {len(chunk)} rows")
-            self.query(insert_all_query)
-        
-        if self._debug_sql:
-            self._logger.debug(f"Oracle INSERT ALL completed for {len(dataframe)} rows into {table_name}")
+                self._logger.debug(f"Oracle INSERT ALL completed for {len(dataframe)} rows into {table_name}")
+                
+        except Exception as e:
+            if self._debug_sql:
+                self._logger.info(f"Oracle native bulk insert failed: {type(e).__name__}: {str(e)}")
+                self._logger.info("Falling back to standard bulk insert method")
+            raise
 
     def _format_value(self, value) -> str:
         """
@@ -2425,7 +2510,7 @@ class TabularDatasource(Datasource):
             else:
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
         
-
+        
 @attr.s
 class TableQuery:
     """Provides a fluent query interface for tables."""
