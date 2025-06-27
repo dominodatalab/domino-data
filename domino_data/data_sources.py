@@ -1181,33 +1181,38 @@ class TabularDatasource(Datasource):
         max_message_size_mb: float = 4.0,  # New: gRPC message size limit
     ) -> None:
         """
-        Write DataFrame to a table in the datasource with automatic chunk size optimization.
+        Write a DataFrame to a table in the datasource.
 
         Args:
-            table_name: Name of the table to write to.
-            dataframe: DataFrame containing the data to write.
-            if_table_exists: Action if table exists ('fail', 'replace', 'append', 'truncate')
-            chunksize: Number of rows per chunk. If None, auto-optimize based on data characteristics.
-            handle_mixed_types: If True, detect and handle mixed types in object columns.
-            force: If True, attempt operation even if schema compatibility issues are detected.
-            auto_optimize_chunks: If True and chunksize is None, automatically calculate optimal chunk size.
-            max_message_size_mb: Maximum gRPC message size in MB for auto-optimization.
+            table_name: Name of the table to write to
+            dataframe: DataFrame containing the data to write
+            if_table_exists: Action if table exists:
+                - 'fail': Raise an error if table exists (default)
+                - 'replace': Drop and recreate the table
+                - 'append': Append data to the existing table
+                - 'truncate': Empty the table but keep its structure
+            chunksize: Number of rows to insert in each batch for large DataFrames
+            handle_mixed_types: If True, detect and handle mixed types in object columns
+            force: If True, attempt to append data even if schema compatibility issues are detected
 
         Raises:
-            ValueError: If operation cannot be completed safely.
+            ValueError: If operation cannot be completed safely
 
         Examples:
-            # Auto-optimized chunking (default behavior)
+            # Create a new table, fail if it already exists (default)
             datasource.write_dataframe("my_table", df)
-            
-            # Manual chunk size (overrides auto-optimization)
-            datasource.write_dataframe("my_table", df, chunksize=5000)
-            
-            # Auto-optimization with custom gRPC limit
-            datasource.write_dataframe("my_table", df, max_message_size_mb=2.0)
-            
-            # Disable auto-optimization, use default chunk size
-            datasource.write_dataframe("my_table", df, auto_optimize_chunks=False)
+
+            # Replace an existing table if it exists
+            datasource.write_dataframe("my_table", df, if_table_exists='replace')
+
+            # Append data to an existing table (will check schema compatibility)
+            datasource.write_dataframe("my_table", df, if_table_exists='append')
+
+            # Truncate an existing table and add new data
+            datasource.write_dataframe("my_table", df, if_table_exists='truncate')
+
+            # Force append even if there are schema compatibility issues (not recommended)
+            datasource.write_dataframe("my_table", df, if_table_exists='append', force=True)
         """
         import time
         start_time = time.perf_counter()
@@ -2017,15 +2022,15 @@ class TabularDatasource(Datasource):
         
         try:
             if db_type == 'postgresql':
-                self._postgresql_bulk_insert(table_name, dataframe)
+                self._postgresql_bulk_insert(table_name, dataframe, chunksize)
             elif db_type == 'mysql':
-                self._mysql_bulk_insert(table_name, dataframe)
+                self._mysql_bulk_insert(table_name, dataframe, chunksize)
             elif db_type == 'sqlserver':
-                self._sqlserver_bulk_insert(table_name, dataframe)
+                self._sqlserver_bulk_insert(table_name, dataframe, chunksize)
             elif db_type == 'db2':
-                self._db2_bulk_insert(table_name, dataframe)
+                self._db2_bulk_insert(table_name, dataframe, chunksize)
             elif db_type == 'oracle':
-                self._oracle_bulk_insert(table_name, dataframe)
+                self._oracle_bulk_insert(table_name, dataframe, chunksize)
             else:
                 using_native_method = False
                 self._fallback_bulk_insert(table_name, dataframe, chunksize)
@@ -2103,66 +2108,115 @@ class TabularDatasource(Datasource):
                 self._logger.error(error_msg)
             raise RuntimeError(error_msg) from e
 
-    def _postgresql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use PostgreSQL's COPY command for high-speed bulk inserts.
-
-        Args:
-            table_name: Name of the table to insert into.
-            dataframe: DataFrame containing the data to insert.
-        """
+    def _postgresql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """PostgreSQL bulk insert using most performant PostgreSQL-specific methods."""
         escaped_table = self._escape_identifier(table_name)
+        columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
         
-        conn = None
-        cursor = None
+        if self._debug_sql:
+            self._logger.debug(f"Starting PostgreSQL bulk insert for table: {escaped_table}")
+            self._logger.debug(f"Row count: {len(dataframe)}, chunk size: {chunksize:,}")
+        
+        # Method 1: Try COPY with inline data (most performant PostgreSQL command)
         try:
-            # Check if raw_connection is available (won't be for proxy connections)
-            if not hasattr(self.client, 'raw_connection'):
-                if self._debug_sql:
-                    self._logger.info("PostgreSQL COPY not available (proxy connection) - using standard bulk insert")
-                raise AttributeError("raw_connection not available")
+            if self._debug_sql:
+                self._logger.debug("Attempting PostgreSQL COPY with inline data")
+            
+            # Pre-process DataFrame to handle numpy types and complex objects
+            processed_df = dataframe.copy()
+            for col in processed_df.select_dtypes(include=['object']).columns:
+                # Convert dict/list columns to JSON strings
+                if processed_df[col].apply(lambda x: isinstance(x, (dict, list)) if pandas.notna(x) else False).any():
+                    processed_df[col] = processed_df[col].apply(
+                        lambda x: json.dumps(x, ensure_ascii=False) if isinstance(x, (dict, list)) else x
+                    )
+                # Handle numpy string types
+                processed_df[col] = processed_df[col].apply(
+                    lambda x: str(x) if hasattr(x, 'item') else x  # Convert numpy scalars
+                )
+            
+            # Convert DataFrame to tab-separated format
+            output = io.StringIO()
+            processed_df.to_csv(output, sep='\t', header=False, index=False, na_rep='\\N', lineterminator='\n')
+            csv_data = output.getvalue()
+            
+            # PostgreSQL COPY with inline data
+            copy_query = f"""COPY {escaped_table} ({columns}) FROM STDIN WITH (FORMAT CSV, DELIMITER E'\\t', NULL '\\N');
+            {csv_data}\\.
+            """
+            
+            self.query(copy_query)
+            
+            if self._debug_sql:
+                self._logger.debug(f"PostgreSQL COPY successful for {len(dataframe)} rows")
+            return
+            
+        except Exception as e:
+            if self._debug_sql:
+                self._logger.warning(f"COPY with inline data failed: {str(e)}, trying UNNEST method")
+        
+        # Method 2: UNNEST with arrays (second most performant)
+        try:
+            if self._debug_sql:
+                self._logger.debug("Using PostgreSQL UNNEST array method")
+            
+            for i in range(0, len(dataframe), chunksize):
+                chunk = dataframe.iloc[i:i + chunksize]
                 
-            columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
-            
-            if self._debug_sql:
-                self._logger.debug(f"Starting PostgreSQL COPY for table: {escaped_table}")
-                self._logger.debug(f"Columns: {columns}")
-                self._logger.debug(f"Row count: {len(dataframe)}")
-
-            # Get a raw connection and set up transaction
-            conn = self.client.raw_connection()
-            conn.set_session(autocommit=False)
-            cursor = conn.cursor()
-
-            # Convert DataFrame to CSV buffer
-            csv_buffer = io.StringIO()
-            dataframe.to_csv(csv_buffer, index=False, header=False, sep='\t', na_rep='\\N')
-            csv_buffer.seek(0)
-
-            # Execute COPY
-            copy_query = f"COPY {escaped_table} ({columns}) FROM STDIN WITH CSV DELIMITER '\t' NULL '\\N'"
-            if self._debug_sql:
-                self._logger.debug(f"Executing COPY: {copy_query}")
-            cursor.copy_expert(copy_query, csv_buffer)
-            conn.commit()
-            
-            if self._debug_sql:
-                self._logger.debug(f"PostgreSQL COPY inserted {len(dataframe)} rows into {table_name}")
+                # Build arrays for each column
+                arrays = []
+                for col in chunk.columns:
+                    values = []
+                    dtype = chunk[col].dtype
                     
-        except (AttributeError, Exception) as e:
-            if conn is not None:
-                conn.rollback()
+                    for val in chunk[col]:
+                        if pandas.isna(val):
+                            values.append("NULL")
+                        elif isinstance(val, bool):
+                            values.append(str(val).upper())
+                        elif isinstance(val, str):
+                            escaped = val.replace("'", "''")
+                            values.append(f"'{escaped}'")
+                        elif isinstance(val, datetime):
+                            values.append(f"'{val.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}'")
+                        elif isinstance(val, date):
+                            values.append(f"'{val.isoformat()}'")
+                        elif isinstance(val, (dict, list)):
+                            json_str = json.dumps(val, ensure_ascii=False).replace("'", "''")
+                            values.append(f"'{json_str}'")
+                        else:
+                            values.append(str(val))
+                    
+                    # Determine PostgreSQL array type
+                    sql_type = self._map_dtype_to_sql(dtype, chunk[col])
+                    array_str = f"ARRAY[{', '.join(values)}]::{sql_type}[]"
+                    arrays.append(array_str)
+                
+                # Use UNNEST to insert from arrays
+                unnest_query = f"""
+                INSERT INTO {escaped_table} ({columns})
+                SELECT * FROM UNNEST(
+                    {', '.join(arrays)}
+                )
+                """
+                
+                self.query(unnest_query)
+                
+                # Progress logging for large datasets
+                if self._debug_sql and i > 0 and (i + chunksize) % 50000 == 0:
+                    self._logger.debug(f"Progress: {min(i + chunksize, len(dataframe)):,}/{len(dataframe):,} rows")
+            
             if self._debug_sql:
-                self._logger.info(f"PostgreSQL native bulk insert not available: {type(e).__name__}: {str(e)}")
+                self._logger.debug(f"PostgreSQL UNNEST insert completed for {len(dataframe)} rows")
+            return
+            
+        except Exception as e:
+            if self._debug_sql:
+                self._logger.info(f"PostgreSQL UNNEST method failed: {str(e)}")
                 self._logger.info("Falling back to standard bulk insert method")
             raise
-        finally:
-            if cursor is not None:
-                cursor.close()
-            if conn is not None:
-                conn.close()
 
-
-    def _mysql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+    def _mysql_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
         """Use MySQL's LOAD DATA LOCAL INFILE for fast bulk inserts."""
         escaped_table = self._escape_identifier(table_name)
         
@@ -2190,7 +2244,7 @@ class TabularDatasource(Datasource):
             
             if self._debug_sql:
                 self._logger.debug(f"MySQL LOAD DATA inserted {len(dataframe)} rows into {table_name}")
-                    
+                        
         except Exception as e:
             if self._debug_sql:
                 self._logger.info(f"MySQL native bulk insert not available: {type(e).__name__}: {str(e)}")
@@ -2200,7 +2254,7 @@ class TabularDatasource(Datasource):
             if tmp_path and os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-    def _sqlserver_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
+    def _sqlserver_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
         """Use SQL Server's BULK INSERT for optimized performance."""
         escaped_table = self._escape_identifier(table_name)
         
@@ -2232,7 +2286,7 @@ class TabularDatasource(Datasource):
             
             if self._debug_sql:
                 self._logger.debug(f"SQL Server BULK INSERT inserted {len(dataframe)} rows into {table_name}")
-                    
+                        
         except Exception as e:
             if self._debug_sql:
                 self._logger.info(f"SQL Server native bulk insert not available: {type(e).__name__}: {str(e)}")
@@ -2242,95 +2296,58 @@ class TabularDatasource(Datasource):
             if tmp_path and os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-    def _db2_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use DB2's ADMIN_CMD for efficient bulk inserts.
-
-        Note:
-            DB2 expects pipe-delimited files for ADMIN_CMD(IMPORT).
-        """
-        escaped_table = self._escape_identifier(table_name)
+    def _db2_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """DB2 bulk insert - skip native method for Trino proxy, use optimized standard insert."""
+        if self._debug_sql:
+            self._logger.info("DB2 uses Trino proxy - using standard bulk insert with optimized chunk size")
+            self._logger.info(f"Row count: {len(dataframe):,}, chunk size: {chunksize:,}")
         
-        tmp_path = None
-        try:
-            # First do a quick test to see if ADMIN_CMD is available
-            test_query = "SELECT 1 FROM SYSIBM.SYSDUMMY1"
-            self.query(test_query)
-            
-            if self._debug_sql:
-                self._logger.debug(f"Starting DB2 IMPORT for table: {escaped_table}")
-                self._logger.debug(f"Row count: {len(dataframe)}")
+        # DB2 always uses Trino, which has smaller query limits
+        # Cap chunk size for better performance
+        trino_chunk_size = min(chunksize, 2000)
+        
+        if trino_chunk_size != chunksize and self._debug_sql:
+            self._logger.debug(f"Reduced chunk size from {chunksize:,} to {trino_chunk_size:,} for Trino")
+        
+        # Directly use fallback with optimized chunk size
+        self._fallback_bulk_insert(table_name, dataframe, trino_chunk_size)
 
-            # Write DataFrame to temp file with pipe delimiter (DB2 preference)
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.del') as tmpfile:
-                dataframe.to_csv(tmpfile, index=False, header=False, sep='|', na_rep='')
-                tmp_path = tmpfile.name
-            
-            # Execute DB2 IMPORT command
-            import_query = f"""
-                CALL SYSPROC.ADMIN_CMD('IMPORT FROM {tmp_path} OF DEL 
-                    MODIFIED BY COLDEL| 
-                    INSERT INTO {escaped_table}')
-            """
-            if self._debug_sql:
-                self._logger.debug(f"Executing IMPORT: {import_query.strip()}")
-            self.query(import_query)
-            
-            if self._debug_sql:
-                self._logger.debug(f"DB2 IMPORT inserted {len(dataframe)} rows into {table_name}")
-                    
-        except Exception as e:
-            error_str = str(e).lower()
-            if 'procedure not registered' in error_str or 'admin_cmd' in error_str:
-                if self._debug_sql:
-                    self._logger.info("DB2 ADMIN_CMD not available (likely Trino proxy) - using standard bulk insert")
-            else:
-                if self._debug_sql:
-                    self._logger.info(f"DB2 native bulk insert failed: {type(e).__name__}: {str(e)}")
-            
-            if self._debug_sql:
-                self._logger.info("Falling back to standard bulk insert method")
-            raise
-        finally:
-            if tmp_path and os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
-    def _oracle_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame) -> None:
-        """Use Oracle's multi-row INSERT ALL for bulk inserts.
-
-        Note:
-            For very large datasets, consider using SQL*Loader externally.
-        """
+    def _oracle_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """Use Oracle's multi-row INSERT ALL for bulk inserts."""
         escaped_table = self._escape_identifier(table_name)
         escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
 
         if self._debug_sql:
             self._logger.debug(f"Starting Oracle INSERT ALL for table: {escaped_table}")
-            self._logger.debug(f"Row count: {len(dataframe)}")
+            self._logger.debug(f"Row count: {len(dataframe)}, chunk size: {chunksize:,}")
 
         try:
-            # Oracle supports INSERT ALL for multi-row inserts
-            # Split into chunks to avoid hitting Oracle's SQL length limit
-            chunk_size = 1000
-            for i in range(0, len(dataframe), chunk_size):
-                chunk = dataframe.iloc[i:i+chunk_size]
-                values = []
+            # Oracle INSERT ALL has a limit of 1000 rows per statement
+            oracle_chunk_size = min(chunksize, 1000)
+            
+            for i in range(0, len(dataframe), oracle_chunk_size):
+                chunk = dataframe.iloc[i:i + oracle_chunk_size]
+                
+                # Build INSERT ALL statement
+                insert_parts = []
                 for _, row in chunk.iterrows():
-                    values.append(
-                        "SELECT " + ', '.join(map(self._format_value, row)) + " FROM DUAL"
-                    )
+                    values = ', '.join(map(self._format_value, row))
+                    insert_parts.append(f"INTO {escaped_table} ({escaped_columns}) VALUES ({values})")
+                
                 insert_all_query = f"""
-                    INSERT ALL
-                    INTO {escaped_table} ({escaped_columns}) VALUES {values[0]}
-                    {"".join(f" INTO {escaped_table} ({escaped_columns}) VALUES {v}" for v in values[1:])}
-                    SELECT * FROM DUAL
+                INSERT ALL
+                {chr(10).join(insert_parts)}
+                SELECT * FROM DUAL
                 """
-                if self._debug_sql:
-                    self._logger.debug(f"Executing INSERT ALL for {len(chunk)} rows")
+                
+                if self._debug_sql and i == 0:
+                    self._logger.debug(f"Executing INSERT ALL for first {len(chunk)} rows")
+                
                 self.query(insert_all_query)
             
             if self._debug_sql:
                 self._logger.debug(f"Oracle INSERT ALL completed for {len(dataframe)} rows into {table_name}")
-                
+                    
         except Exception as e:
             if self._debug_sql:
                 self._logger.info(f"Oracle native bulk insert failed: {type(e).__name__}: {str(e)}")
@@ -2509,8 +2526,8 @@ class TabularDatasource(Datasource):
                     return f"CAST('{truncated}' AS VARCHAR(4000))"
             else:
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
-        
-        
+
+
 @attr.s
 class TableQuery:
     """Provides a fluent query interface for tables."""
