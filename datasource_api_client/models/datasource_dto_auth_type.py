@@ -14,6 +14,7 @@ class DatasourceDtoAuthType(str, Enum):
     OAUTH = "OAuth"
     OAUTHTOKEN = "OAuthToken"
     PERSONALTOKEN = "PersonalToken"
+    CERTAUTH = "CertAuth"
 
     def __str__(self) -> str:
         return str(self.value)
