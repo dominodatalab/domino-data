@@ -218,6 +218,7 @@ components:
             - ClientIdSecret
             - PersonalToken
             - CertAuth
+            - KeyPair
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         dataSourceType:
