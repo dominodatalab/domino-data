@@ -9,6 +9,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     DATABRICKSCONFIG = "DatabricksConfig"
     DATASETCONFIG = "DatasetConfig"
     DB2CONFIG = "DB2Config"
+    DB2NATIVECONFIG = "DB2NativeConfig"
     DRUIDCONFIG = "DruidConfig"
     GCSCONFIG = "GCSConfig"
     GENERICJDBCCONFIG = "GenericJDBCConfig"

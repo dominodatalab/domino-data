@@ -231,6 +231,7 @@ components:
             - DatabricksConfig
             - DatasetConfig
             - DB2Config
+            - DB2NativeConfig
             - DruidConfig
             - GCSConfig
             - GenericJDBCConfig
