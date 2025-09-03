@@ -1,4 +1,3 @@
 [submodule "services"]
 	path = services
 	url = git@github.com:cerebrotech/data-services.git
-	branch = ajr.DOM-69585.add-db2
