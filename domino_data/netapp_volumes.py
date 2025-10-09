@@ -215,14 +215,14 @@ class RemoteFSClient:
 
     def list_snapshots(
         self,
-        volume_unique_name: Optional[str] = None,
+        volume_id: str,
         offset: Optional[int] = None,
         limit: Optional[int] = None,
     ) -> List[RemotefsSnapshot]:
-        """List volume snapshots that a user has access to.
+        """List snapshots in a specified volume that a user has access to.
 
         Args:
-            volume_unique_name: unique name of a volume (optional filter)
+            volume_id: volume ID
             offset: optional offset
             limit: optional limit
 
@@ -234,13 +234,27 @@ class RemoteFSClient:
             kwargs['offset'] = offset
         if limit is not None:
             kwargs['limit'] = limit
-        if volume_unique_name is not None:
-            kwargs['volume_id'] = [volume_unique_name]
+        kwargs['volume_id'] = [volume_id]
 
         response = self.snapshots_api.snapshots_get(**kwargs)
 
         return response.data if response.data else []
 
+
+    def get_volume_by_unique_name(
+        self,
+        unique_name: str
+    ) -> RemotefsVolume:
+        """Fetch a volume by unique name.
+
+        Args:
+            unique_name: volume unique name
+        Returns:
+            remotefs volume.
+        """
+        response = self.volumes_api.volumes_unique_name_unique_name_get(unique_name)
+
+        return response.data
 
 @attr.s
 class Volume:
@@ -517,7 +531,8 @@ class VolumeClient:
             UnauthenticatedError: if the request has invalid authentication
         """
         logger.info("list_snapshots", volume_unique_name=volume_unique_name, offset=offset, limit=limit)
+        volume = self.remotefs_client.get_volume_by_unique_name(unique_name=volume_unique_name)
         return self.remotefs_client.list_snapshots(
-            volume_unique_name=volume_unique_name, offset=offset, limit=limit
+            volume_id=volume.id, offset=offset, limit=limit
         )
 
