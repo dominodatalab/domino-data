@@ -256,6 +256,7 @@ components:
             - TeradataConfig
             - TrinoConfig
             - VerticaConfig
+            - NetAppVolumeConfig
         description:
           type: string
           nullable: true

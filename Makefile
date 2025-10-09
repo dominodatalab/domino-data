@@ -57,10 +57,6 @@ update-featurestore:
 install-remotefs:
 	swagger-codegen generate -i $(REMOTEFS_YAML) -l python -o ./data-remotefs-client
 
-.PHONY: update-remotefs
-update-remotefs:
-	swagger-codegen generate -i $(REMOTEFS_YAML) -l python -o ./data-remotefs-client
-
 #* Formatters
 .PHONY: codestyle
 codestyle:

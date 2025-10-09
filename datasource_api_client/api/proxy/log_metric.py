@@ -1,6 +1,5 @@
-from typing import Any, Dict, Optional, Union
-
 from http import HTTPStatus
+from typing import Any, Dict, Optional, Union
 
 import httpx
 

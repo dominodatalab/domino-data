@@ -8,14 +8,14 @@ class DatasourceDtoAuthType(str, Enum):
     AWSIAMROLEWITHUSERNAME = "AWSIAMRoleWithUsername"
     AZUREBASIC = "AzureBasic"
     BASIC = "Basic"
+    CERTAUTH = "CertAuth"
     CLIENTIDSECRET = "ClientIdSecret"
     GCPBASIC = "GCPBasic"
+    KEYPAIR = "KeyPair"
     NOAUTH = "NoAuth"
     OAUTH = "OAuth"
     OAUTHTOKEN = "OAuthToken"
     PERSONALTOKEN = "PersonalToken"
-    CERTAUTH = "CertAuth"
-    KEYPAIR = "KeyPair"
 
     def __str__(self) -> str:
         return str(self.value)

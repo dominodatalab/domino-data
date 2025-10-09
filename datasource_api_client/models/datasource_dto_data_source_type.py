@@ -19,6 +19,7 @@ class DatasourceDtoDataSourceType(str, Enum):
     MARIADBCONFIG = "MariaDBConfig"
     MONGODBCONFIG = "MongoDBConfig"
     MYSQLCONFIG = "MySQLConfig"
+    NETAPPVOLUMECONFIG = "NetAppVolumeConfig"
     NETEZZACONFIG = "NetezzaConfig"
     ORACLECONFIG = "OracleConfig"
     PALANTIRCONFIG = "PalantirConfig"
