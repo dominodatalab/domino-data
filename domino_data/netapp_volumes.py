@@ -244,6 +244,7 @@ class RemoteFSClient:
 
         Args:
             unique_name: volume unique name
+
         Returns:
             remotefs volume.
         """
