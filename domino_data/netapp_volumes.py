@@ -9,12 +9,11 @@ import attr
 import backoff
 import httpx
 import urllib3
+from swagger_client import ApiClient, Configuration, SnapshotsApi, VolumesApi
+from swagger_client.models import RemotefsSnapshot, RemotefsVolume
 
 import domino_data.configuration_gen
 from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
-
-from swagger_client import ApiClient, Configuration, VolumesApi, SnapshotsApi
-from swagger_client.models import RemotefsSnapshot, RemotefsVolume
 
 from .auth import AuthenticatedClient, get_jwt_token
 from .configuration_gen import Config, VolumeConfig
@@ -206,9 +205,9 @@ class RemoteFSClient:
         """
         kwargs = {}
         if offset is not None:
-            kwargs['offset'] = offset
+            kwargs["offset"] = offset
         if limit is not None:
-            kwargs['limit'] = limit
+            kwargs["limit"] = limit
         response = self.volumes_api.volumes_get(**kwargs)
 
         return response.data if response.data else []
@@ -231,20 +230,16 @@ class RemoteFSClient:
         """
         kwargs = {}
         if offset is not None:
-            kwargs['offset'] = offset
+            kwargs["offset"] = offset
         if limit is not None:
-            kwargs['limit'] = limit
-        kwargs['volume_id'] = [volume_id]
+            kwargs["limit"] = limit
+        kwargs["volume_id"] = [volume_id]
 
         response = self.snapshots_api.snapshots_get(**kwargs)
 
         return response.data if response.data else []
 
-
-    def get_volume_by_unique_name(
-        self,
-        unique_name: str
-    ) -> RemotefsVolume:
+    def get_volume_by_unique_name(self, unique_name: str) -> RemotefsVolume:
         """Fetch a volume by unique name.
 
         Args:
@@ -255,6 +250,7 @@ class RemoteFSClient:
         response = self.volumes_api.volumes_unique_name_unique_name_get(unique_name)
 
         return response.data
+
 
 @attr.s
 class Volume:
@@ -530,9 +526,8 @@ class VolumeClient:
             Exception: if the response from RemoteFS is not 200
             UnauthenticatedError: if the request has invalid authentication
         """
-        logger.info("list_snapshots", volume_unique_name=volume_unique_name, offset=offset, limit=limit)
-        volume = self.remotefs_client.get_volume_by_unique_name(unique_name=volume_unique_name)
-        return self.remotefs_client.list_snapshots(
-            volume_id=volume.id, offset=offset, limit=limit
+        logger.info(
+            "list_snapshots", volume_unique_name=volume_unique_name, offset=offset, limit=limit
         )
-
+        volume = self.remotefs_client.get_volume_by_unique_name(unique_name=volume_unique_name)
+        return self.remotefs_client.list_snapshots(volume_id=volume.id, offset=offset, limit=limit)
