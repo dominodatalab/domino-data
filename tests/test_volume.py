@@ -173,9 +173,11 @@ def test_volume_client_initialization(monkeypatch):
     monkeypatch.setenv("DOMINO_API_PROXY", "http://proxy")
     monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
 
-    with patch("domino_data.netapp_volumes.AuthenticatedClient"), patch(
-        "domino_data.netapp_volumes.DataSourceClient"
-    ), patch("domino_data.netapp_volumes.RemoteFSClient"):
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient"),
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
         client = vol.VolumeClient()
 
         assert client.token_file == "/path/to/token"
@@ -186,9 +188,11 @@ def test_volume_client_get_volume(monkeypatch):
     """VolumeClient can get a volume by name."""
     monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
 
-    with patch("domino_data.netapp_volumes.AuthenticatedClient"), patch(
-        "domino_data.netapp_volumes.DataSourceClient"
-    ) as mock_ds_client, patch("domino_data.netapp_volumes.RemoteFSClient"):
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient") as mock_ds_client,
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
         client = vol.VolumeClient()
 
         # Mock datasource client
@@ -207,9 +211,11 @@ def test_volume_client_list_volumes(monkeypatch):
     """VolumeClient can list volumes."""
     monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
 
-    with patch("domino_data.netapp_volumes.AuthenticatedClient"), patch(
-        "domino_data.netapp_volumes.DataSourceClient"
-    ), patch("domino_data.netapp_volumes.RemoteFSClient"):
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient"),
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
         client = vol.VolumeClient()
 
         mock_volumes = [
@@ -229,9 +235,11 @@ def test_volume_client_list_snapshots(monkeypatch):
     """VolumeClient can list snapshots for a volume."""
     monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
 
-    with patch("domino_data.netapp_volumes.AuthenticatedClient"), patch(
-        "domino_data.netapp_volumes.DataSourceClient"
-    ), patch("domino_data.netapp_volumes.RemoteFSClient"):
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient"),
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
         client = vol.VolumeClient()
 
         mock_volume = create_mock_volume("vol-1", "test-volume")
