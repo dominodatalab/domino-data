@@ -25,29 +25,32 @@ def test_blob_transfer():
     # Mock the HTTP client to avoid real network calls
     mock_http = MagicMock(spec=urllib3.PoolManager)
 
-    # Track request count to handle initial size check vs data chunks
-    request_count = [0]
-
     def mock_request(method, url, headers=None, preload_content=True):
-        request_count[0] += 1
-
-        # First request is to get content size (Range: bytes=0-0)
-        if request_count[0] == 1:
+        # Check if this is the initial size check request
+        if headers and headers.get("Range") == "bytes=0-0":
             mock_response = MagicMock()
             mock_response.headers = {"Content-Range": "bytes 0-0/21821"}
             return mock_response
 
-        # Subsequent requests are for actual data chunks
-        mock_response = MagicMock()
+        # For actual data chunk requests, return a file-like object
+        # that shutil.copyfileobj can read from
         if headers and "Range" in headers:
             # Parse the range to determine how much data to return
             range_header = headers["Range"].replace("bytes=", "")
             start, end = map(int, range_header.split("-"))
             size = end - start + 1
-            mock_response.read = MagicMock(return_value=b"x" * size)
-        else:
-            mock_response.read = MagicMock(return_value=b"x" * 1024)
+            # Create a BytesIO object that acts as a file-like response
+            data = io.BytesIO(b"x" * size)
+            # Mock the response object with the necessary methods
+            mock_response = MagicMock()
+            mock_response.read = data.read
+            mock_response.__iter__ = lambda self: iter(data)
+            mock_response.release_connection = MagicMock()
+            return mock_response
 
+        # Fallback
+        mock_response = MagicMock()
+        mock_response.read = MagicMock(return_value=b"")
         mock_response.release_connection = MagicMock()
         return mock_response
 

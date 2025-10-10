@@ -58,7 +58,7 @@ class BlobTransfer:
         self._lock = threading.Lock()
 
         with ThreadPoolExecutor(max_workers) as pool:
-            pool.map(self._get_part, split_range(0, self.content_size, chunk_size))
+            pool.map(self._get_part, split_range(0, self.content_size - 1, chunk_size))
 
     def _get_content_size(self) -> int:
         headers = self.headers.copy()
