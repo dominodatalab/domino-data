@@ -9,14 +9,14 @@ import attr
 import backoff
 import httpx
 import urllib3
-from swagger_client import ApiClient, Configuration, SnapshotsApi, VolumesApi
-from swagger_client.models import RemotefsSnapshot, RemotefsVolume
+from remotefs_api_client import ApiClient, Configuration, SnapshotsApi, VolumesApi
+from remotefs_api_client.models import RemotefsSnapshot, RemotefsVolume
 
 import domino_data.configuration_gen
 from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 
 from .auth import AuthenticatedClient, get_jwt_token
-from .configuration_gen import Config, VolumeConfig
+from .configuration_gen import Config, NetAppVolumeConfig
 from .logging import logger
 from .transfer import MAX_WORKERS, BlobTransfer
 
@@ -24,9 +24,9 @@ ACCEPT_HEADERS = {"Accept": "application/json"}
 
 DOMINO_API_HOST = "DOMINO_API_HOST"
 DOMINO_API_PROXY = "DOMINO_API_PROXY"
-DOMINO_USER_API_KEY = "DOMINO_USER_API_KEY"
 DOMINO_USER_HOST = "DOMINO_USER_HOST"
 DOMINO_TOKEN_FILE = "DOMINO_TOKEN_FILE"
+DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT = "DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT"
 
 
 def __getattr__(name: str) -> Any:
@@ -124,6 +124,40 @@ class _File:
                 content_size += len(data)
                 fileobj.write(data)
 
+    def put(self, content: bytes) -> None:
+        """Upload content to object.
+
+        Args:
+            content: bytes content
+        """
+        url = self.volume.datasource.get_key_url(self.name, True)
+        headers = self._get_headers()
+        res = self.http().put(url, content=content, headers=headers)
+        res.raise_for_status()
+
+    def upload_file(self, filename: str) -> None:
+        """Upload content of file at filename to object.
+
+        Args:
+            filename: path of file to upload.
+        """
+        url = self.volume.datasource.get_key_url(self.name, True)
+        headers = self._get_headers()
+        with open(filename, "rb") as file:
+            res = self.http().put(url, content=file, headers=headers)
+        res.raise_for_status()
+
+    def upload_fileobj(self, fileobj: Any) -> None:
+        """Upload content of file like object to object.
+
+        Args:
+            fileobj: bytes-like object or an iterable producing bytes.
+        """
+        url = self.volume.datasource.get_key_url(self.name, True)
+        headers = self._get_headers()
+        res = self.http().put(url, content=fileobj, headers=headers)
+        res.raise_for_status()
+
     def _get_headers(self) -> dict:
         headers = {}
 
@@ -140,9 +174,6 @@ class _File:
                 jwt = token_file.readline().rstrip()
             headers = {"Authorization": f"Bearer {jwt}"}
 
-        if self.volume.client.api_key:
-            headers = {"X-Domino-Api-Key": self.volume.client.api_key}
-
         if self.volume.client.token is not None:
             headers = {"Authorization": f"Bearer {self.volume.client.token}"}
 
@@ -153,7 +184,6 @@ class _File:
 class RemoteFSClient:
     """RemoteFS API client for volumes and snapshots."""
 
-    api_key: Optional[str] = attr.ib()
     token_file: Optional[str] = attr.ib()
     token_url: Optional[str] = attr.ib()
     token: Optional[str] = attr.ib()
@@ -170,9 +200,7 @@ class RemoteFSClient:
         self.api_client = ApiClient(configuration=remotefs_config)
 
         # Set up authentication headers
-        if self.api_key:
-            self.api_client.set_default_header("X-Domino-Api-Key", self.api_key)
-        elif self.token:
+        if self.token:
             self.api_client.set_default_header("Authorization", f"Bearer {self.token}")
         elif self.token_file and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
@@ -248,9 +276,7 @@ class RemoteFSClient:
         Returns:
             remotefs volume.
         """
-        response = self.volumes_api.volumes_unique_name_unique_name_get(unique_name)
-
-        return response.data
+        return self.volumes_api.volumes_unique_name_unique_name_get(unique_name)
 
 
 @attr.s
@@ -270,7 +296,7 @@ class Volume:
         """Urllib3 pool manager for range downloads."""
         return urllib3.PoolManager()
 
-    def update(self, config: VolumeConfig) -> None:
+    def update(self, config: NetAppVolumeConfig) -> None:
         """Store configuration override for future query calls.
 
         Args:
@@ -286,7 +312,7 @@ class Volume:
         """Return a file with given name and volume client."""
         return _File(volume=self, name=file_name)
 
-    def list_files(self, prefix: str = "", page_size: int = 1000) -> List[_File]:
+    def list_files(self, prefix: str = "", page_size: int = 100) -> List[_File]:
         """List files in the volume.
 
         Args:
@@ -357,12 +383,38 @@ class Volume:
         """
         self.File(volume_file_name).download_fileobj(fileobj)
 
+    def put(self, file_name: str, content: bytes) -> None:
+        """Upload content to file.
+
+        Args:
+            file_name: name of the file in the volume
+            content: bytes content
+        """
+        self.File(file_name).put(content)
+
+    def upload_file(self, volume_file_name: str, local_file_name: str) -> None:
+        """Upload content of local file to volume file.
+
+        Args:
+            volume_file_name: name of the file in the volume
+            local_file_name: path of local file to upload
+        """
+        self.File(volume_file_name).upload_file(local_file_name)
+
+    def upload_fileobj(self, volume_file_name: str, fileobj: Any) -> None:
+        """Upload content of file like object to volume file.
+
+        Args:
+            volume_file_name: name of the file in the volume
+            fileobj: A file-like object to upload from.
+                At a minimum, it must implement the read method and must return bytes.
+        """
+        self.File(volume_file_name).upload_fileobj(fileobj)
 
 @attr.s
 class VolumeClient:
     """API client and bindings."""
 
-    api_key: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_USER_API_KEY))
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_TOKEN_FILE))
     token_url: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_API_PROXY))
     token: Optional[str] = attr.ib(default=None)
@@ -375,15 +427,17 @@ class VolumeClient:
         domino_host = os.getenv(
             DOMINO_API_PROXY, os.getenv(DOMINO_API_HOST, os.getenv(DOMINO_USER_HOST, ""))
         )
+        remotefs_host = os.getenv(DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT, "")
 
         logger.info(
             "initializing volume client with host",
             domino_host=domino_host,
+            remotefs_host=remotefs_host,
         )
 
         self.domino = AuthenticatedClient(
             base_url=f"{domino_host}/v4",
-            api_key=self.api_key,
+            api_key=None,
             token_file=self.token_file,
             token_url=self.token_url,
             token=self.token,
@@ -393,18 +447,17 @@ class VolumeClient:
         )
 
         self.datasource_client = DataSourceClient(
-            api_key=self.api_key,
+            api_key=None,
             token_file=self.token_file,
             token_url=self.token_url,
             token=self.token,
         )
 
         self.remotefs_client = RemoteFSClient(
-            api_key=self.api_key,
             token_file=self.token_file,
             token_url=self.token_url,
             token=self.token,
-            base_url=f"{domino_host}/v1",
+            base_url=f"{remotefs_host}/remotefs/v1",
         )
 
     def get_volume(self, name: str) -> Volume:
