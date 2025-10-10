@@ -9,11 +9,11 @@ import attr
 import backoff
 import httpx
 import urllib3
-from remotefs_api_client import ApiClient, Configuration, SnapshotsApi, VolumesApi
-from remotefs_api_client.models import RemotefsSnapshot, RemotefsVolume
 
 import domino_data.configuration_gen
 from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
+from remotefs_api_client import ApiClient, Configuration, SnapshotsApi, VolumesApi
+from remotefs_api_client.models import RemotefsSnapshot, RemotefsVolume
 
 from .auth import AuthenticatedClient, get_jwt_token
 from .configuration_gen import Config, NetAppVolumeConfig
@@ -410,6 +410,7 @@ class Volume:
                 At a minimum, it must implement the read method and must return bytes.
         """
         self.File(volume_file_name).upload_fileobj(fileobj)
+
 
 @attr.s
 class VolumeClient:
