@@ -8,17 +8,14 @@ from os.path import exists
 import attr
 import backoff
 import httpx
-import urllib3
 
 import domino_data.configuration_gen
-from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
+from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource, _Object
 from remotefs_api_client import ApiClient, Configuration, SnapshotsApi, VolumesApi
 from remotefs_api_client.models import RemotefsSnapshot, RemotefsVolume
 
 from .auth import AuthenticatedClient, get_jwt_token
-from .configuration_gen import Config, NetAppVolumeConfig
 from .logging import logger
-from .transfer import MAX_WORKERS, BlobTransfer
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 
@@ -46,9 +43,6 @@ class DominoError(Exception):
 
 class UnauthenticatedError(DominoError):
     """To handle exponential backoff."""
-
-
-from domino_data.data_sources import _Object
 
 
 class _File(_Object):
