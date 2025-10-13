@@ -48,136 +48,13 @@ class UnauthenticatedError(DominoError):
     """To handle exponential backoff."""
 
 
-@attr.s
-class _File:
-    """Represents a file in a volume."""
+from domino_data.data_sources import _Object
 
-    volume: "Volume" = attr.ib(repr=False)
-    name: str = attr.ib(repr=False)
 
-    def http(self) -> httpx.Client:
-        """Get volume http client."""
-        return self.volume.http()
+class _File(_Object):
+    """Represents a file in a volume - wraps _Object with volume-specific auth."""
 
-    def pool_manager(self) -> urllib3.PoolManager:
-        """Get volume http pool manager."""
-        return self.volume.pool_manager()
-
-    def get(self) -> bytes:
-        """Get object content as bytes."""
-        url = self.volume.get_file_url(self.name)
-        headers = self._get_headers()
-
-        res = self.http().get(url, headers=headers)
-        res.raise_for_status()
-
-        return res.content
-
-    def download_file(self, filename: str) -> None:
-        """Download object content to file located at filename.
-
-        The file will be created if it does not exist.
-
-        Args:
-            filename: path of file to write content to.
-        """
-        url = self.volume.get_file_url(self.name)
-        headers = self._get_headers()
-
-        content_size = 0
-        with (
-            self.http().stream("GET", url, headers=headers) as stream,
-            open(filename, "wb") as file,
-        ):
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                file.write(data)
-
-    def download(self, filename: str, max_workers: int = MAX_WORKERS) -> None:
-        """Download object content to file with multithreaded support.
-
-        The file will be created if it does not exist. File will be overwritten if it exists.
-
-        Args:
-            filename: path of file to write content to
-            max_workers: max parallelism for high speed download
-        """
-        url = self.volume.get_file_url(self.name)
-        headers = self._get_headers()
-        with open(filename, "wb") as file:
-            BlobTransfer(
-                url, file, headers=headers, max_workers=max_workers, http=self.pool_manager()
-            )
-
-    def download_fileobj(self, fileobj: Any) -> None:
-        """Download object content to file like object.
-
-        Args:
-            fileobj: A file-like object to download into.
-                At a minimum, it must implement the write method and must accept bytes.
-        """
-        url = self.volume.get_file_url(self.name)
-        headers = self._get_headers()
-        content_size = 0
-        with self.http().stream("GET", url, headers=headers) as stream:
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                fileobj.write(data)
-
-    def put(self, content: bytes) -> None:
-        """Upload content to object.
-
-        Args:
-            content: bytes content
-        """
-        url = self.volume.datasource.get_key_url(self.name, True)
-        headers = self._get_headers()
-        res = self.http().put(url, content=content, headers=headers)
-        res.raise_for_status()
-
-    def upload_file(self, filename: str) -> None:
-        """Upload content of file at filename to object.
-
-        Args:
-            filename: path of file to upload.
-        """
-        url = self.volume.datasource.get_key_url(self.name, True)
-        headers = self._get_headers()
-        with open(filename, "rb") as file:
-            res = self.http().put(url, content=file, headers=headers)
-        res.raise_for_status()
-
-    def upload_fileobj(self, fileobj: Any) -> None:
-        """Upload content of file like object to object.
-
-        Args:
-            fileobj: bytes-like object or an iterable producing bytes.
-        """
-        url = self.volume.datasource.get_key_url(self.name, True)
-        headers = self._get_headers()
-        res = self.http().put(url, content=fileobj, headers=headers)
-        res.raise_for_status()
-
-    def _get_headers(self) -> dict:
-        headers = {}
-
-        if self.volume.client.token_url is not None:
-            try:
-                jwt = get_jwt_token(self.volume.client.token_url)
-            except httpx.HTTPStatusError:
-                pass
-            else:
-                headers = {"Authorization": f"Bearer {jwt}"}
-
-        if self.volume.client.token_file and exists(self.volume.client.token_file):
-            with open(self.volume.client.token_file, encoding="ascii") as token_file:
-                jwt = token_file.readline().rstrip()
-            headers = {"Authorization": f"Bearer {jwt}"}
-
-        if self.volume.client.token is not None:
-            headers = {"Authorization": f"Bearer {self.volume.client.token}"}
-
-        return headers
+    pass
 
 
 @attr.s
@@ -280,37 +157,14 @@ class RemoteFSClient:
 
 
 @attr.s
-class Volume:
+class Volume(ObjectStoreDatasource):
     """Represents a Domino volume."""
 
-    # pylint: disable=too-many-instance-attributes
-
-    client: "VolumeClient" = attr.ib(repr=False)
-    datasource: ObjectStoreDatasource = attr.ib(repr=False)
-
-    def http(self) -> httpx.Client:
-        """Singleton http client built for the volume."""
-        return self.datasource.http()
-
-    def pool_manager(self) -> urllib3.PoolManager:
-        """Urllib3 pool manager for range downloads."""
-        return urllib3.PoolManager()
-
-    def update(self, config: NetAppVolumeConfig) -> None:
-        """Store configuration override for future query calls.
-
-        Args:
-            config: volume config class
-        """
-        self.datasource._config_override = config
-
-    def reset_config(self) -> None:
-        """Reset the configuration override."""
-        self.datasource._config_override = Config()
+    volume_client: "VolumeClient" = attr.ib(repr=False)
 
     def File(self, file_name: str) -> _File:  # pylint: disable=invalid-name
         """Return a file with given name and volume client."""
-        return _File(volume=self, name=file_name)
+        return _File(datasource=self, key=file_name, include_auth_headers=True)
 
     def list_files(self, prefix: str = "", page_size: int = 100) -> List[_File]:
         """List files in the volume.
@@ -322,9 +176,8 @@ class Volume:
         Returns:
             List of files
         """
-        objects = self.datasource.list_objects(prefix=prefix, page_size=page_size)
-
-        return [_File(volume=self, name=obj.key) for obj in objects]
+        objects = self.list_objects(prefix=prefix, page_size=page_size)
+        return [_File(datasource=self, key=obj.key, include_auth_headers=True) for obj in objects]
 
     def get_file_url(self, file_name: str) -> str:
         """Get a signed URL for the given key.
@@ -335,81 +188,7 @@ class Volume:
         Returns:
             URL for the given file
         """
-        return self.datasource.get_key_url(object_key=file_name, is_read_write=False)
-
-    def get(self, file_name: str) -> bytes:
-        """Get file contents as bytes.
-
-        Args:
-            file_name: name of the file
-
-        Returns:
-            file contents as bytes
-        """
-        return self.File(file_name).get()
-
-    def download_file(self, volume_file_name: str, local_file_name: str) -> None:
-        """Download file content to file located at local_file_name.
-
-        The file will be created if it does not exist.
-
-        Args:
-            volume_file_name: name of the file in the volume to download.
-            local_file_name: path of file to write content to.
-        """
-        self.File(volume_file_name).download_file(local_file_name)
-
-    def download(
-        self, volume_file_name: str, local_file_name: str, max_workers: int = MAX_WORKERS
-    ) -> None:
-        """Download file content to file located at filename.
-
-        The file will be created if it does not exist.
-
-        Args:
-            volume_file_name: name of the file in the volume to download.
-            local_file_name: path of file to write content to
-            max_workers: max parallelism for high speed download
-        """
-        self.File(volume_file_name).download(local_file_name, max_workers)
-
-    def download_fileobj(self, volume_file_name: str, fileobj: Any) -> None:
-        """Download file contents to file like object.
-
-        Args:
-            volume_file_name: name of the file in the volume to download.
-            fileobj: A file-like object to download into.
-                At a minimum, it must implement the write method and must accept bytes.
-        """
-        self.File(volume_file_name).download_fileobj(fileobj)
-
-    def put(self, file_name: str, content: bytes) -> None:
-        """Upload content to file.
-
-        Args:
-            file_name: name of the file in the volume
-            content: bytes content
-        """
-        self.File(file_name).put(content)
-
-    def upload_file(self, volume_file_name: str, local_file_name: str) -> None:
-        """Upload content of local file to volume file.
-
-        Args:
-            volume_file_name: name of the file in the volume
-            local_file_name: path of local file to upload
-        """
-        self.File(volume_file_name).upload_file(local_file_name)
-
-    def upload_fileobj(self, volume_file_name: str, fileobj: Any) -> None:
-        """Upload content of file like object to volume file.
-
-        Args:
-            volume_file_name: name of the file in the volume
-            fileobj: A file-like object to upload from.
-                At a minimum, it must implement the read method and must return bytes.
-        """
-        self.File(volume_file_name).upload_fileobj(fileobj)
+        return self.get_key_url(object_key=file_name, is_read_write=False)
 
 
 @attr.s
@@ -476,7 +255,17 @@ class VolumeClient:
         logger.info("get_volume", volume_name=name)
 
         data_source = self.datasource_client.get_datasource(name)
-        return Volume(client=self, datasource=data_source)
+        # Volume inherits from ObjectStoreDatasource, so we pass datasource attributes
+        return Volume(
+            auth_type=data_source.auth_type,
+            client=data_source.client,
+            config=data_source.config,
+            datasource_type=data_source.datasource_type,
+            identifier=data_source.identifier,
+            name=data_source.name,
+            owner=data_source.owner,
+            volume_client=self,
+        )
 
     @backoff.on_exception(backoff.expo, UnauthenticatedError, max_time=60)
     def list_files(

@@ -1,13 +1,8 @@
 """NetApp Volume tests."""
 
-import io
-from unittest.mock import MagicMock, Mock, patch
-
-import httpx
-import pytest
+from unittest.mock import Mock, patch
 
 from domino_data import netapp_volumes as vol
-from remotefs_api_client.models import RemotefsSnapshot, RemotefsVolume
 
 
 # Helper functions for creating mock objects
@@ -197,13 +192,20 @@ def test_volume_client_get_volume(monkeypatch):
 
         # Mock datasource client
         mock_datasource = Mock()
+        mock_datasource.auth_type = "oauth"
+        mock_datasource.client = Mock()
+        mock_datasource.config = {}
+        mock_datasource.datasource_type = "NetAppVolumeConfig"
+        mock_datasource.identifier = "vol-id"
+        mock_datasource.name = "test-volume"
+        mock_datasource.owner = "test-owner"
         client.datasource_client.get_datasource = Mock(return_value=mock_datasource)
 
         volume = client.get_volume("test-volume")
 
         assert isinstance(volume, vol.Volume)
-        assert volume.client == client
-        assert volume.datasource == mock_datasource
+        assert volume.volume_client == client
+        assert volume.name == "test-volume"
         client.datasource_client.get_datasource.assert_called_once_with("test-volume")
 
 
@@ -263,187 +265,70 @@ def test_volume_client_list_snapshots(monkeypatch):
 
 
 # Volume Tests
-def test_volume_update_config():
-    """Volume can update configuration."""
-    mock_client = Mock()
-    mock_datasource = Mock()
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-    config = vol.NetAppVolumeConfig(snapshot_version="1")
-
-    volume.update(config)
-
-    assert volume.datasource._config_override == config
-
-
-def test_volume_reset_config():
-    """Volume can reset configuration."""
-    mock_client = Mock()
-    mock_datasource = Mock()
-    mock_datasource._config_override = vol.NetAppVolumeConfig(snapshot_version="1")
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-
-    volume.reset_config()
-
-    assert isinstance(volume.datasource._config_override, vol.Config)
-
-
 def test_volume_file_creation():
-    """Volume can create File objects."""
-    mock_client = Mock()
-    mock_datasource = Mock()
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
+    """Volume can create File objects with auth headers enabled."""
+    volume = vol.Volume(
+        auth_type="oauth",
+        client=Mock(),
+        config={},
+        datasource_type="NetAppVolumeConfig",
+        identifier="vol-id",
+        name="test-volume",
+        owner="test-owner",
+        volume_client=Mock(),
+    )
     file = volume.File("test-file.txt")
 
     assert isinstance(file, vol._File)
-    assert file.volume == volume
-    assert file.name == "test-file.txt"
+    assert file.datasource == volume
+    assert file.key == "test-file.txt"
+    assert file.include_auth_headers == True
 
 
 def test_volume_list_files():
-    """Volume can list files."""
-    mock_client = Mock()
-    mock_datasource = Mock()
+    """Volume can list files with auth headers enabled."""
+    volume = vol.Volume(
+        auth_type="oauth",
+        client=Mock(),
+        config={},
+        datasource_type="NetAppVolumeConfig",
+        identifier="vol-id",
+        name="test-volume",
+        owner="test-owner",
+        volume_client=Mock(),
+    )
 
     mock_objects = [Mock(key="file1.txt"), Mock(key="file2.txt")]
-    mock_datasource.list_objects = Mock(return_value=mock_objects)
+    volume.list_objects = Mock(return_value=mock_objects)
 
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
     files = volume.list_files(prefix="test", page_size=50)
 
     assert len(files) == 2
-    assert files[0].name == "file1.txt"
-    assert files[1].name == "file2.txt"
-    mock_datasource.list_objects.assert_called_once_with(prefix="test", page_size=50)
+    assert files[0].key == "file1.txt"
+    assert files[1].key == "file2.txt"
+    assert files[0].include_auth_headers == True
+    assert files[1].include_auth_headers == True
+    volume.list_objects.assert_called_once_with(prefix="test", page_size=50)
 
 
 def test_volume_get_file_url():
     """Volume can get file URL."""
-    mock_client = Mock()
-    mock_datasource = Mock()
-    mock_datasource.get_key_url = Mock(return_value="http://example.com/file.txt")
+    volume = vol.Volume(
+        auth_type="oauth",
+        client=Mock(),
+        config={},
+        datasource_type="NetAppVolumeConfig",
+        identifier="vol-id",
+        name="test-volume",
+        owner="test-owner",
+        volume_client=Mock(),
+    )
+    volume.get_key_url = Mock(return_value="http://example.com/file.txt")
 
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
     url = volume.get_file_url("file.txt")
 
     assert url == "http://example.com/file.txt"
-    mock_datasource.get_key_url.assert_called_once_with(object_key="file.txt", is_read_write=False)
-
-
-def test_volume_get_file():
-    """Volume can get file contents."""
-    mock_client = Mock()
-    mock_client.token = "test-token"
-    mock_client.token_file = None
-    mock_client.token_url = None
-
-    mock_datasource = Mock()
-    mock_datasource.get_key_url = Mock(return_value="http://example.com/file.txt")
-
-    mock_http = Mock()
-    mock_response = Mock()
-    mock_response.content = b"file contents"
-    mock_http.get = Mock(return_value=mock_response)
-    mock_datasource.http = Mock(return_value=mock_http)
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-
-    with patch.object(vol._File, "get", return_value=b"file contents"):
-        content = volume.get("file.txt")
-
-    assert content == b"file contents"
-
-
-def test_volume_put_file():
-    """Volume can upload file contents."""
-    mock_client = Mock()
-    mock_client.token = "test-token"
-    mock_client.token_file = None
-    mock_client.token_url = None
-
-    mock_datasource = Mock()
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-
-    with patch.object(vol._File, "put") as mock_put:
-        volume.put("file.txt", b"content")
-        mock_put.assert_called_once_with(b"content")
-
-
-def test_volume_upload_file(tmp_path):
-    """Volume can upload file from local path."""
-    mock_client = Mock()
-    mock_client.token = "test-token"
-    mock_client.token_file = None
-    mock_client.token_url = None
-
-    mock_datasource = Mock()
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-
-    # Create a temp file
-    test_file = tmp_path / "test.txt"
-    test_file.write_bytes(b"test content")
-
-    with patch.object(vol._File, "upload_file") as mock_upload:
-        volume.upload_file("remote.txt", str(test_file))
-        mock_upload.assert_called_once_with(str(test_file))
-
-
-def test_volume_download_file(tmp_path):
-    """Volume can download file to local path."""
-    mock_client = Mock()
-    mock_client.token = "test-token"
-    mock_client.token_file = None
-    mock_client.token_url = None
-
-    mock_datasource = Mock()
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-
-    test_file = tmp_path / "download.txt"
-
-    with patch.object(vol._File, "download_file") as mock_download:
-        volume.download_file("remote.txt", str(test_file))
-        mock_download.assert_called_once_with(str(test_file))
-
-
-def test_volume_download_fileobj():
-    """Volume can download file to file object."""
-    mock_client = Mock()
-    mock_client.token = "test-token"
-    mock_client.token_file = None
-    mock_client.token_url = None
-
-    mock_datasource = Mock()
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-
-    fileobj = io.BytesIO()
-
-    with patch.object(vol._File, "download_fileobj") as mock_download:
-        volume.download_fileobj("remote.txt", fileobj)
-        mock_download.assert_called_once_with(fileobj)
-
-
-def test_volume_upload_fileobj():
-    """Volume can upload from file object."""
-    mock_client = Mock()
-    mock_client.token = "test-token"
-    mock_client.token_file = None
-    mock_client.token_url = None
-
-    mock_datasource = Mock()
-
-    volume = vol.Volume(client=mock_client, datasource=mock_datasource)
-
-    fileobj = io.BytesIO(b"content")
-
-    with patch.object(vol._File, "upload_fileobj") as mock_upload:
-        volume.upload_fileobj("remote.txt", fileobj)
-        mock_upload.assert_called_once_with(fileobj)
+    volume.get_key_url.assert_called_once_with(object_key="file.txt", is_read_write=False)
 
 
 # Error handling tests
