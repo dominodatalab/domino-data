@@ -135,7 +135,7 @@ class _Object:
         """Get auth headers if needed for direct storage access.
 
         When include_auth_headers is True, this method retrieves authentication headers
-        This is used for volume operations that need to authenticate for requests to the webvfs service.
+        This is used for volume operations that need to authenticate directly to webvfs.
         """
         if not self.include_auth_headers:
             return {}
