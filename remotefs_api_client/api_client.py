@@ -639,7 +639,7 @@ class ApiClient:
             return string
         except ValueError:
             raise rest.ApiException(
-                status=0, reason=(f"Failed to parse `{string}` as datetime object")
+                status=0, reason=("Failed to parse `{}` as datetime object".format(string))
             )
 
     def __hasattr(self, object, name):

@@ -380,7 +380,7 @@ class ApiException(Exception):
         """Custom error messages for exception"""
         error_message = "({})\n" "Reason: {}\n".format(self.status, self.reason)
         if self.headers:
-            error_message += f"HTTP response headers: {self.headers}\n"
+            error_message += "HTTP response headers: {}\n".format(self.headers)
 
         if self.body:
             error_message += f"HTTP response body: {self.body}\n"

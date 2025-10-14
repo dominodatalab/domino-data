@@ -206,7 +206,7 @@ class Configuration(metaclass=TypeWithDefault):
         if key:
             prefix = self.api_key_prefix.get(identifier)
             if prefix:
-                return f"{prefix} {key}"
+                return "{} {}".format(prefix, key)
             else:
                 return key
 
