@@ -57,6 +57,7 @@ class BlobTransfer:
 
         self._lock = threading.Lock()
 
+        # Use content_size - 1 because HTTP byte ranges are inclusive (0-indexed)
         with ThreadPoolExecutor(max_workers) as pool:
             pool.map(self._get_part, split_range(0, self.content_size - 1, chunk_size))
 

@@ -18,6 +18,7 @@ from .auth import AuthenticatedClient, get_jwt_token
 from .logging import logger
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
+AUTHORIZATION_HEADER = "Authorization"
 
 DOMINO_API_HOST = "DOMINO_API_HOST"
 DOMINO_API_PROXY = "DOMINO_API_PROXY"
@@ -72,15 +73,15 @@ class RemoteFSClient:
 
         # Set up authentication headers
         if self.token:
-            self.api_client.set_default_header("Authorization", f"Bearer {self.token}")
+            self.api_client.set_default_header(AUTHORIZATION_HEADER, f"Bearer {self.token}")
         elif self.token_file and exists(self.token_file):
             with open(self.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
-            self.api_client.set_default_header("Authorization", f"Bearer {jwt}")
+            self.api_client.set_default_header(AUTHORIZATION_HEADER, f"Bearer {jwt}")
         elif self.token_url:
             try:
                 jwt = get_jwt_token(self.token_url)
-                self.api_client.set_default_header("Authorization", f"Bearer {jwt}")
+                self.api_client.set_default_header(AUTHORIZATION_HEADER, f"Bearer {jwt}")
             except httpx.HTTPStatusError:
                 pass
 
@@ -154,13 +155,13 @@ class RemoteFSClient:
 class Volume(ObjectStoreDatasource):
     """Represents a Domino volume."""
 
-    volume_client: "VolumeClient" = attr.ib(repr=False)
+    volume_client: "NetAppVolumeClient" = attr.ib(repr=False)
 
     def File(self, file_name: str) -> _File:  # pylint: disable=invalid-name
         """Return a file with given name and volume client."""
         return _File(datasource=self, key=file_name, include_auth_headers=True)
 
-    def list_files(self, prefix: str = "", page_size: int = 100) -> List[_File]:
+    def list_files(self, prefix: str = "", page_size: int = 1000) -> List[_File]:
         """List files in the volume.
 
         Args:
@@ -186,7 +187,7 @@ class Volume(ObjectStoreDatasource):
 
 
 @attr.s
-class VolumeClient:
+class NetAppVolumeClient:
     """API client and bindings."""
 
     token_file: Optional[str] = attr.ib(factory=lambda: os.getenv(DOMINO_TOKEN_FILE))
@@ -293,7 +294,7 @@ class VolumeClient:
         )
 
     @backoff.on_exception(backoff.expo, UnauthenticatedError, max_time=60)
-    def get_file_url(  # pylint: disable=too-many-arguments
+    def get_file_url(
         self,
         volume_unique_name: str,
         file_name: str,

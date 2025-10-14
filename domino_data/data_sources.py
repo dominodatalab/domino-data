@@ -39,6 +39,7 @@ from .transfer import MAX_WORKERS, BlobTransfer
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
+AUTHORIZATION_HEADER = "Authorization"
 
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
@@ -131,7 +132,11 @@ class _Object:
         return self.datasource.pool_manager()
 
     def _get_headers(self) -> dict:
-        """Get auth headers if needed for direct storage access."""
+        """Get auth headers if needed for direct storage access.
+
+        When include_auth_headers is True, this method retrieves authentication headers
+        This is used for volume operations that need to authenticate for requests to the webvfs service.
+        """
         if not self.include_auth_headers:
             return {}
 
@@ -139,20 +144,20 @@ class _Object:
         client = self.datasource.client
 
         if client.token is not None:
-            return {"Authorization": f"Bearer {client.token}"}
-
-        if client.token_url is not None:
-            try:
-                jwt = get_jwt_token(client.token_url)
-            except httpx.HTTPStatusError:
-                pass
-            else:
-                return {"Authorization": f"Bearer {jwt}"}
+            return {AUTHORIZATION_HEADER: f"Bearer {client.token}"}
 
         if client.token_file and exists(client.token_file):
             with open(client.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
-            return {"Authorization": f"Bearer {jwt}"}
+            return {AUTHORIZATION_HEADER: f"Bearer {jwt}"}
+
+        if client.token_url is not None:
+            try:
+                jwt = get_jwt_token(client.token_url)
+                return {AUTHORIZATION_HEADER: f"Bearer {jwt}"}
+            except httpx.HTTPStatusError:
+                # Log the error and return empty headers
+                logger.opt(exception=True).warning("Failed to get JWT token from token URL")
 
         return headers
 
