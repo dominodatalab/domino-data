@@ -40,16 +40,3 @@ git_push.sh
 .gitlab-ci.yml
 tox.ini
 README.md
-
-# Ignore unused APIs
-remotefs_api_client/api/filesystems_api.py
-remotefs_api_client/api/tasks_api.py
-remotefs_api_client/api/authz_api.py
-remotefs_api_client/api/downloads_api.py
-remotefs_api_client/api/data_transfers_api.py
-
-# Ignore unused models
-remotefs_api_client/models/*filesystem*.py
-remotefs_api_client/models/*task*.py
-remotefs_api_client/models/*data_transfer*.py
-remotefs_api_client/models/*download*.py
