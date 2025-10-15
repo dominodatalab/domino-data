@@ -10,6 +10,7 @@ class DatasourceDtoAuthType(str, Enum):
     BASIC = "Basic"
     CERTAUTH = "CertAuth"
     CLIENTIDSECRET = "ClientIdSecret"
+    CUSTOMDSN = "CustomDSN"
     GCPBASIC = "GCPBasic"
     KEYPAIR = "KeyPair"
     NOAUTH = "NoAuth"
