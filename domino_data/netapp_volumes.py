@@ -157,7 +157,9 @@ class Volume(ObjectStoreDatasource):
 
     volume_client: "NetAppVolumeClient" = attr.ib(repr=False)
 
-    def Object(self, key: str, include_auth_headers: bool = True) -> _File:  # pylint: disable=invalid-name
+    def Object(
+        self, key: str, include_auth_headers: bool = True
+    ) -> _File:  # pylint: disable=invalid-name
         """Return a file object with authentication headers enabled by default.
 
         Args:
