@@ -22,6 +22,7 @@ packages = [
     { include = "datasource_api_client" },
     { include = "training_set_api_client" },
     { include = "feature_store_api_client" },
+    { include = "remotefs_api_client" },
 ]
 
 # Keywords description https://python-poetry.org/docs/pyproject/#keywords

@@ -1,3 +1,6 @@
 [submodule "services"]
 	path = services
 	url = git@github.com:cerebrotech/data-services.git
+[submodule "remotefs"]
+	path = remotefs
+	url = git@github.com:cerebrotech/data-remotefs-service.git

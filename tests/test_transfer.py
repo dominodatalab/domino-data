@@ -1,6 +1,8 @@
 import io
+from unittest.mock import MagicMock
 
 import pytest
+import urllib3
 
 from domino_data import transfer
 
@@ -20,11 +22,46 @@ def test_split_range(start, end, step, expected):
 
 
 def test_blob_transfer():
+    # Mock the HTTP client to avoid real network calls
+    mock_http = MagicMock(spec=urllib3.PoolManager)
+
+    def mock_request(method, url, headers=None, preload_content=True):
+        # Check if this is the initial size check request
+        if headers and headers.get("Range") == "bytes=0-0":
+            mock_response = MagicMock()
+            mock_response.headers = {"Content-Range": "bytes 0-0/21821"}
+            return mock_response
+
+        # For actual data chunk requests, return a file-like object
+        # that shutil.copyfileobj can read from
+        if headers and "Range" in headers:
+            # Parse the range to determine how much data to return
+            range_header = headers["Range"].replace("bytes=", "")
+            start, end = map(int, range_header.split("-"))
+            size = end - start + 1
+            # Create a BytesIO object that acts as a file-like response
+            data = io.BytesIO(b"x" * size)
+            # Mock the response object with the necessary methods
+            mock_response = MagicMock()
+            mock_response.read = data.read
+            mock_response.__iter__ = lambda self: iter(data)
+            mock_response.release_connection = MagicMock()
+            return mock_response
+
+        # Fallback
+        mock_response = MagicMock()
+        mock_response.read = MagicMock(return_value=b"")
+        mock_response.release_connection = MagicMock()
+        return mock_response
+
+    mock_http.request = mock_request
+
     with io.BytesIO() as dest:
         transfer.BlobTransfer(
             "https://murat-secure-test.s3.us-west-2.amazonaws.com/9095835.png",
             dest,
             chunk_size=1024,
+            http=mock_http,
         )
 
         assert 21821 == len(dest.getvalue())
