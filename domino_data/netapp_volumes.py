@@ -157,6 +157,18 @@ class Volume(ObjectStoreDatasource):
 
     volume_client: "NetAppVolumeClient" = attr.ib(repr=False)
 
+    def Object(self, key: str, include_auth_headers: bool = True) -> _File:  # pylint: disable=invalid-name
+        """Return a file object with authentication headers enabled by default.
+
+        Args:
+            key: unique key of the file
+            include_auth_headers: whether to include auth headers (default: True for volumes)
+
+        Returns:
+            File object
+        """
+        return _File(datasource=self, key=key, include_auth_headers=include_auth_headers)
+
     def File(self, file_name: str) -> _File:  # pylint: disable=invalid-name
         """Return a file with given name and volume client."""
         return _File(datasource=self, key=file_name, include_auth_headers=True)
@@ -266,8 +278,8 @@ class NetAppVolumeClient:
     def list_files(
         self,
         volume_unique_name: str,
-        prefix: str,
-        page_size: int,
+        prefix: str = "",
+        page_size: int = 1000,
     ) -> List[str]:
         """List files in a volume.
 
@@ -285,8 +297,10 @@ class NetAppVolumeClient:
         """
         logger.info("list_files", volume_unique_name=volume_unique_name)
 
+        datasource = self.datasource_client.get_datasource(volume_unique_name)
+
         return self.datasource_client.list_keys(
-            datasource_id=volume_unique_name,
+            datasource_id=datasource.identifier,
             prefix=prefix,
             page_size=page_size,
             config={},
@@ -314,8 +328,10 @@ class NetAppVolumeClient:
         """
         logger.info("get_file_url", volume_unique_name=volume_unique_name, file_name=file_name)
 
+        datasource = self.datasource_client.get_datasource(volume_unique_name)
+
         return self.datasource_client.get_key_url(
-            datasource_id=volume_unique_name,
+            datasource_id=datasource.identifier,
             object_key=file_name,
             is_read_write=False,
             config={},
