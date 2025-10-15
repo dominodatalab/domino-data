@@ -121,7 +121,7 @@ class _Object:
 
     datasource: "ObjectStoreDatasource" = attr.ib(repr=False)
     key: str = attr.ib()
-    include_auth_headers: bool = attr.ib(default=False)
+    include_auth_headers: bool = attr.ib(default=False, repr=False)
 
     def http(self) -> httpx.Client:
         """Get datasource http client."""
