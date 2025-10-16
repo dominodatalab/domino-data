@@ -219,6 +219,7 @@ components:
             - PersonalToken
             - CertAuth
             - KeyPair
+            - CustomDSN
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         dataSourceType:
