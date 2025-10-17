@@ -466,6 +466,27 @@ def test_object_store_list_objects():
     assert objs[0].key == "gabrieltest.csv"
 
 
+def test_object_store_list_objects_returns_empty_list_when_none(env, respx_mock, datafx):
+    """Object datasource returns empty list when list_keys returns None."""
+    env.delenv("DOMINO_API_PROXY")
+    respx_mock.get("http://token-proxy/access-token").mock(
+        return_value=httpx.Response(200, content=b"jwt")
+    )
+    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
+        return_value=httpx.Response(200, json=datafx("s3")),
+    )
+    # Mock list_keys returning None (simulating empty datasource)
+    respx_mock.post("http://proxy/objectstore/list").mock(
+        return_value=httpx.Response(200, json=None),
+    )
+
+    s3d = ds.DataSourceClient().get_datasource("s3")
+    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+    objs = s3d.list_objects()
+
+    assert objs == []
+
+
 @pytest.mark.vcr
 def test_object_store_upload_file(tmp_path):
     """Object datasource can put file content to object."""

@@ -495,6 +495,8 @@ class ObjectStoreDatasource(Datasource):
             config=self._config_override.config(),
             credential=self._get_credential_override(),
         )
+        if not keys:
+            return []
         return [
             _Object(
                 datasource=self,
