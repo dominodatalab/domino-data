@@ -466,25 +466,30 @@ def test_object_store_list_objects():
     assert objs[0].key == "gabrieltest.csv"
 
 
-def test_object_store_list_objects_returns_empty_list_when_none(env, respx_mock, datafx):
-    """Object datasource returns empty list when list_keys returns None."""
-    env.delenv("DOMINO_API_PROXY")
-    respx_mock.get("http://token-proxy/access-token").mock(
-        return_value=httpx.Response(200, content=b"jwt")
-    )
-    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
-        return_value=httpx.Response(200, json=datafx("s3")),
-    )
-    # Mock list_keys returning None (simulating empty datasource)
-    respx_mock.post("http://proxy/objectstore/list").mock(
-        return_value=httpx.Response(200, json=None),
+def test_object_store_list_objects_handles_none():
+    """Object datasource returns empty list when client.list_keys returns None."""
+    from unittest.mock import Mock
+
+    # Create a mock client
+    mock_client = Mock()
+    mock_client.list_keys.return_value = None
+
+    # Create an ObjectStoreDatasource with the mock client
+    s3d = ds.ObjectStoreDatasource(
+        auth_type="oauth",
+        client=mock_client,
+        config={},
+        datasource_type="S3Config",
+        identifier="test-id",
+        name="test-datasource",
+        owner="test-owner",
     )
 
-    s3d = ds.DataSourceClient().get_datasource("s3")
-    s3d = ds.cast(ds.ObjectStoreDatasource, s3d)
+    # Call list_objects - should return empty list instead of raising TypeError
     objs = s3d.list_objects()
 
     assert objs == []
+    mock_client.list_keys.assert_called_once()
 
 
 @pytest.mark.vcr
