@@ -123,7 +123,16 @@ class _File:
                 fileobj.write(data)
 
     def _get_headers(self) -> dict:
-        headers = {}
+        if self.dataset.client.token is not None:
+            return {"Authorization": f"Bearer {self.dataset.client.token}"}
+
+        if self.dataset.client.api_key:
+            return {"X-Domino-Api-Key": self.dataset.client.api_key}
+
+        if self.dataset.client.token_file and exists(self.dataset.client.token_file):
+            with open(self.dataset.client.token_file, encoding="ascii") as token_file:
+                jwt = token_file.readline().rstrip()
+            return {"Authorization": f"Bearer {jwt}"}
 
         if self.dataset.client.token_url is not None:
             try:
@@ -131,20 +140,9 @@ class _File:
             except httpx.HTTPStatusError:
                 pass
             else:
-                headers = {"Authorization": f"Bearer {jwt}"}
+                return {"Authorization": f"Bearer {jwt}"}
 
-        if self.dataset.client.token_file and exists(self.dataset.client.token_file):
-            with open(self.dataset.client.token_file, encoding="ascii") as token_file:
-                jwt = token_file.readline().rstrip()
-            headers = {"Authorization": f"Bearer {jwt}"}
-
-        if self.dataset.client.api_key:
-            headers = {"X-Domino-Api-Key": self.dataset.client.api_key}
-
-        if self.dataset.client.token is not None:
-            headers = {"Authorization": f"Bearer {self.dataset.client.token}"}
-
-        return headers
+        return {}
 
 
 @attr.s
