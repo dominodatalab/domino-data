@@ -133,8 +133,8 @@ class _File:
 
         if self.dataset.client.token_url is not None:
             try:
-                jwt = get_jwt_token(client.token_url)
-                return {AUTHORIZATION_HEADER: f"Bearer {jwt}"}
+                jwt = get_jwt_token(self.dataset.client.token_url)
+                return {"Authorization": f"Bearer {jwt}"}
             except httpx.HTTPStatusError:
                 # Log the error and return empty headers
                 logger.opt(exception=True).warning("Failed to get JWT token from token URL")
