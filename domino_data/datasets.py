@@ -138,6 +138,7 @@ class _File:
             except httpx.HTTPStatusError:
                 # Log the error and return empty headers
                 logger.opt(exception=True).warning("Failed to get JWT token from token URL")
+                pass
 
         if self.dataset.client.api_key:
             return {"X-Domino-Api-Key": self.dataset.client.api_key}
