@@ -126,9 +126,6 @@ class _File:
         if self.dataset.client.token is not None:
             return {"Authorization": f"Bearer {self.dataset.client.token}"}
 
-        if self.dataset.client.api_key:
-            return {"X-Domino-Api-Key": self.dataset.client.api_key}
-
         if self.dataset.client.token_file and exists(self.dataset.client.token_file):
             with open(self.dataset.client.token_file, encoding="ascii") as token_file:
                 jwt = token_file.readline().rstrip()
@@ -141,6 +138,9 @@ class _File:
             except httpx.HTTPStatusError:
                 # Log the error and return empty headers
                 logger.opt(exception=True).warning("Failed to get JWT token from token URL")
+
+        if self.dataset.client.api_key:
+            return {"X-Domino-Api-Key": self.dataset.client.api_key}
 
         return {}
 
