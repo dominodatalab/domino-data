@@ -88,14 +88,15 @@ class ProxyClient(AuthenticatedClient):
 
     def _get_auth_headers(self) -> Dict[str, str]:
         headers = {}
-        if self.api_key:
-            headers["X-Domino-Api-Key"] = self.api_key
         if self.client_source:
             headers["X-Domino-Client-Source"] = self.client_source
         if self.run_id:
             headers["X-Domino-Run-Id"] = self.run_id
         if self.token is not None:
             headers["Authorization"] = f"Bearer {self.token}"
+            return headers
+        if self.api_key:
+            headers["X-Domino-Api-Key"] = self.api_key
             return headers
 
         if self.token_url is not None:
