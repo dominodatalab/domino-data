@@ -96,6 +96,7 @@ class ProxyClient(AuthenticatedClient):
             headers["X-Domino-Run-Id"] = self.run_id
         if self.token is not None:
             headers["Authorization"] = f"Bearer {self.token}"
+            return headers
 
         if self.token_url is not None:
             try:

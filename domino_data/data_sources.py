@@ -140,7 +140,6 @@ class _Object:
         if not self.include_auth_headers:
             return {}
 
-        headers = {}
         client = self.datasource.client
 
         if client.token is not None:
@@ -159,7 +158,7 @@ class _Object:
                 # Log the error and return empty headers
                 logger.opt(exception=True).warning("Failed to get JWT token from token URL")
 
-        return headers
+        return {}
 
     def get(self) -> bytes:
         """Get object content as bytes."""
