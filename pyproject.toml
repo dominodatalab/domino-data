@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "dominodatalab-data"
-version = "6.7.1"
+version = "6.7.2"
 description = "Domino Data API for interacting with Domino Data features"
 readme = "README.md"
 authors = [
@@ -78,6 +78,7 @@ pytest-recording = "^0.12.2"
 pyupgrade = "^2.38.4"
 respx = "^0.20.1"
 safety = ">=3"
+authlib = ">=1.6.4"
 sphinx-rtd-theme = "^1.2.2"
 types-PyYAML = "^6.0.12.11"
 types-python-dateutil = "^2.8.19.14"
