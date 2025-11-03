@@ -72,7 +72,7 @@ def test_remotefs_client_list_volumes():
     assert len(volumes) == 2
     assert volumes[0].id == "vol-1"
     assert volumes[1].id == "vol-2"
-    client.volumes_api.volumes_get.assert_called_once_with()
+    client.volumes_api.volumes_get.assert_called_once_with(status=["Active"])
 
 
 def test_remotefs_client_list_volumes_with_pagination():
@@ -88,7 +88,7 @@ def test_remotefs_client_list_volumes_with_pagination():
     volumes = client.list_volumes(offset=10, limit=5)
 
     assert len(volumes) == 1
-    client.volumes_api.volumes_get.assert_called_once_with(offset=10, limit=5)
+    client.volumes_api.volumes_get.assert_called_once_with(status=["Active"], offset=10, limit=5)
 
 
 def test_remotefs_client_list_volumes_returns_empty_list_when_no_data():
