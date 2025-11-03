@@ -103,7 +103,7 @@ class RemoteFSClient:
         Returns:
             List of volumes.
         """
-        kwargs = {}
+        kwargs = {"status": ["Active"]}
         if offset is not None:
             kwargs["offset"] = offset
         if limit is not None:
