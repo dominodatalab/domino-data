@@ -466,6 +466,32 @@ def test_object_store_list_objects():
     assert objs[0].key == "gabrieltest.csv"
 
 
+def test_object_store_list_objects_handles_none():
+    """Object datasource returns empty list when client.list_keys returns None."""
+    from unittest.mock import Mock
+
+    # Create a mock client
+    mock_client = Mock()
+    mock_client.list_keys.return_value = None
+
+    # Create an ObjectStoreDatasource with the mock client
+    s3d = ds.ObjectStoreDatasource(
+        auth_type="oauth",
+        client=mock_client,
+        config={},
+        datasource_type="S3Config",
+        identifier="test-id",
+        name="test-datasource",
+        owner="test-owner",
+    )
+
+    # Call list_objects - should return empty list instead of raising TypeError
+    objs = s3d.list_objects()
+
+    assert objs == []
+    mock_client.list_keys.assert_called_once()
+
+
 @pytest.mark.vcr
 def test_object_store_upload_file(tmp_path):
     """Object datasource can put file content to object."""

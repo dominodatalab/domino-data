@@ -217,6 +217,9 @@ components:
             - OAuthToken
             - ClientIdSecret
             - PersonalToken
+            - CertAuth
+            - KeyPair
+            - CustomDSN
         config:
           $ref: '#/components/schemas/DatasourceConfig'
         dataSourceType:
@@ -229,6 +232,7 @@ components:
             - DatabricksConfig
             - DatasetConfig
             - DB2Config
+            - DB2NativeConfig
             - DruidConfig
             - GCSConfig
             - GenericJDBCConfig
@@ -253,6 +257,7 @@ components:
             - TeradataConfig
             - TrinoConfig
             - VerticaConfig
+            - NetAppVolumeConfig
         description:
           type: string
           nullable: true

@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "dominodatalab-data"
-version = "6.2.0"
+version = "6.7.3"
 description = "Domino Data API for interacting with Domino Data features"
 readme = "README.md"
 authors = [
@@ -22,6 +22,7 @@ packages = [
     { include = "datasource_api_client" },
     { include = "training_set_api_client" },
     { include = "feature_store_api_client" },
+    { include = "remotefs_api_client" },
 ]
 
 # Keywords description https://python-poetry.org/docs/pyproject/#keywords
@@ -51,6 +52,8 @@ loguru = "^0.5.3"
 backoff = ">=1.11.1"
 bson = "^0.5.10"
 urllib3 = ">=1.26.19,<3"
+setuptools = ">=78.1.1"
+h11 = ">=0.16.0"
 
 [tool.poetry.group.dev.dependencies]
 Sphinx = "^5.3.0"
@@ -75,6 +78,7 @@ pytest-recording = "^0.12.2"
 pyupgrade = "^2.38.4"
 respx = "^0.20.1"
 safety = ">=3"
+authlib = ">=1.6.4"
 sphinx-rtd-theme = "^1.2.2"
 types-PyYAML = "^6.0.12.11"
 types-python-dateutil = "^2.8.19.14"

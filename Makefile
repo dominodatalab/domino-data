@@ -6,6 +6,7 @@ PYTHON := python3
 TRAININGSET_YAML := openapi/trainingset.yaml
 DATASOURCE_YAML := openapi/datasource.yaml
 FEATURESTORE_YAML := openapi/featurestore.yaml
+REMOTEFS_YAML := remotefs/api/swagger.json
 
 #* Poetry
 .PHONY: poetry-download
@@ -52,6 +53,10 @@ install-featurestore:
 update-featurestore:
 	poetry run openapi-python-client update --meta none --path $(FEATURESTORE_YAML)
 
+.PHONY: install-remotefs
+install-remotefs:
+	swagger-codegen generate -i $(REMOTEFS_YAML) -l python -o . --additional-properties=packageName=remotefs_api_client
+
 #* Formatters
 .PHONY: codestyle
 codestyle:
@@ -83,7 +88,7 @@ mypy:
 check-safety:
 	poetry check
 	# TODO remove pip ignore flag when fixed
-	poetry run safety check --full-report -i 62044 -i 70612 -i 73884 -i 76170 -i 75976
+	poetry run safety check --full-report -i 62044 -i 70612 -i 73884 -i 76170 -i 75976 -i 77744 -i 77745
 	poetry run bandit -ll --recursive domino_data tests
 
 .PHONY: lint

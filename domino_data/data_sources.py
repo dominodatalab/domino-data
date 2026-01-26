@@ -10,6 +10,7 @@ import os
 import tempfile
 from datetime import date, datetime
 from decimal import Decimal
+from os.path import exists
 
 import attr
 import backoff
@@ -44,6 +45,7 @@ from .transfer import MAX_WORKERS, BlobTransfer
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
+AUTHORIZATION_HEADER = "Authorization"
 
 CREDENTIAL_TYPE = "credential"
 CONFIGURATION_TYPE = "configuration"
@@ -125,6 +127,7 @@ class _Object:
 
     datasource: "ObjectStoreDatasource" = attr.ib(repr=False)
     key: str = attr.ib()
+    include_auth_headers: bool = attr.ib(default=False, repr=False)
 
     def http(self) -> httpx.Client:
         """Get datasource http client."""
@@ -134,10 +137,40 @@ class _Object:
         """Get datasource http pool manager."""
         return self.datasource.pool_manager()
 
+    def _get_headers(self) -> dict:
+        """Get auth headers if needed for direct storage access.
+
+        When include_auth_headers is True, this method retrieves authentication headers
+        This is used for volume operations that need to authenticate directly to webvfs.
+        """
+        if not self.include_auth_headers:
+            return {}
+
+        client = self.datasource.client
+
+        if client.token is not None:
+            return {AUTHORIZATION_HEADER: f"Bearer {client.token}"}
+
+        if client.token_file and exists(client.token_file):
+            with open(client.token_file, encoding="ascii") as token_file:
+                jwt = token_file.readline().rstrip()
+            return {AUTHORIZATION_HEADER: f"Bearer {jwt}"}
+
+        if client.token_url is not None:
+            try:
+                jwt = get_jwt_token(client.token_url)
+                return {AUTHORIZATION_HEADER: f"Bearer {jwt}"}
+            except httpx.HTTPStatusError:
+                # Log the error and return empty headers
+                logger.opt(exception=True).warning("Failed to get JWT token from token URL")
+
+        return {}
+
     def get(self) -> bytes:
         """Get object content as bytes."""
         url = self.datasource.get_key_url(self.key, False)
-        res = self.http().get(url)
+        headers = self._get_headers()
+        res = self.http().get(url, headers=headers)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -157,8 +190,12 @@ class _Object:
             filename: path of file to write content to.
         """
         url = self.datasource.get_key_url(self.key, False)
+        headers = self._get_headers()
         content_size = 0
-        with self.http().stream("GET", url) as stream, open(filename, "wb") as file:
+        with (
+            self.http().stream("GET", url, headers=headers) as stream,
+            open(filename, "wb") as file,
+        ):
             for data in stream.iter_bytes():
                 content_size += len(data)
                 file.write(data)
@@ -179,8 +216,11 @@ class _Object:
             max_workers: max parallelism for high speed download
         """
         url = self.datasource.get_key_url(self.key, False)
+        headers = self._get_headers()
         with open(filename, "wb") as file:
-            blob = BlobTransfer(url, file, max_workers=max_workers, http=self.pool_manager())
+            blob = BlobTransfer(
+                url, file, headers=headers, max_workers=max_workers, http=self.pool_manager()
+            )
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -196,8 +236,9 @@ class _Object:
                 At a minimum, it must implement the write method and must accept bytes.
         """
         url = self.datasource.get_key_url(self.key, False)
+        headers = self._get_headers()
         content_size = 0
-        with self.http().stream("GET", url) as stream:
+        with self.http().stream("GET", url, headers=headers) as stream:
             for data in stream.iter_bytes():
                 content_size += len(data)
                 fileobj.write(data)
@@ -215,7 +256,8 @@ class _Object:
             content: bytes content
         """
         url = self.datasource.get_key_url(self.key, True)
-        res = self.http().put(url, content=content)
+        headers = self._get_headers()
+        res = self.http().put(url, content=content, headers=headers)
         res.raise_for_status()
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
@@ -231,8 +273,9 @@ class _Object:
             filename: path of file to upload.
         """
         url = self.datasource.get_key_url(self.key, True)
+        headers = self._get_headers()
         with open(filename, "rb") as file:
-            res = self.http().put(url, content=file)
+            res = self.http().put(url, content=file, headers=headers)
         res.raise_for_status()
 
         content_size = os.path.getsize(filename)
@@ -249,7 +292,8 @@ class _Object:
             fileobj: bytes-like object or an iterable producing bytes.
         """
         url = self.datasource.get_key_url(self.key, True)
-        res = self.http().put(url, content=fileobj)
+        headers = self._get_headers()
+        res = self.http().put(url, content=fileobj, headers=headers)
         res.raise_for_status()
 
 
@@ -2671,9 +2715,11 @@ class TableQuery:
 class ObjectStoreDatasource(Datasource):
     """Represents a object store type datasource."""
 
-    def Object(self, key: str) -> _Object:  # pylint: disable=invalid-name
+    def Object(
+        self, key: str, include_auth_headers: bool = False
+    ) -> _Object:  # pylint: disable=invalid-name
         """Return an object with given key and datasource client."""
-        return _Object(datasource=self, key=key)
+        return _Object(datasource=self, key=key, include_auth_headers=include_auth_headers)
 
     def list_objects(self, prefix: str = "", page_size: int = 1000) -> List[_Object]:
         """List objects in the object store datasource.
@@ -2692,6 +2738,8 @@ class ObjectStoreDatasource(Datasource):
             config=self._config_override.config(),
             credential=self._get_credential_override(),
         )
+        if not keys:
+            return []
         return [
             _Object(
                 datasource=self,
