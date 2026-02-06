@@ -10,7 +10,7 @@ REMOTEFS_YAML := remotefs/api/swagger.json
 #* Poetry
 .PHONY: poetry-download
 poetry-download:
-	curl -sSL https://install.python-poetry.org | $(PYTHON) - || (cat /home/runner/work/domino-data/domino-data/poetry-installer-error-*.log && exit 1)
+	curl -sSL https://install.python-poetry.org | $(PYTHON) -
 
 .PHONY: poetry-remove
 poetry-remove:
