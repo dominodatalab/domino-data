@@ -5,7 +5,6 @@ PYTHON := python3
 #* OpenAPI variables
 TRAININGSET_YAML := openapi/trainingset.yaml
 DATASOURCE_YAML := openapi/datasource.yaml
-FEATURESTORE_YAML := openapi/featurestore.yaml
 REMOTEFS_YAML := remotefs/api/swagger.json
 
 #* Poetry
@@ -44,14 +43,6 @@ install-datasource:
 .PHONY: update-datasource
 update-datasource:
 	poetry run openapi-python-client update --meta none --path $(DATASOURCE_YAML)
-
-.PHONY: install-featurestore
-install-featurestore:
-	poetry run openapi-python-client generate --meta none --path $(FEATURESTORE_YAML)
-
-.PHONY: update-featurestore
-update-featurestore:
-	poetry run openapi-python-client update --meta none --path $(FEATURESTORE_YAML)
 
 .PHONY: install-remotefs
 install-remotefs:
