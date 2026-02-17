@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "dominodatalab-data"
-version = "6.7.3"
+version = "6.7.4"
 description = "Domino Data API for interacting with Domino Data features"
 readme = "README.md"
 authors = [
@@ -21,7 +21,6 @@ packages = [
     { include = "domino_data" },
     { include = "datasource_api_client" },
     { include = "training_set_api_client" },
-    { include = "feature_store_api_client" },
     { include = "remotefs_api_client" },
 ]
 
@@ -36,13 +35,13 @@ classifiers = [  #! Update me
   "Topic :: Software Development :: Libraries :: Python Modules",
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 pandas = ">=1.3.0"
 httpx = ">=0.24.0"
 attrs = ">=20.1.0"
@@ -51,7 +50,7 @@ pyarrow = ">=15.0.2"
 loguru = "^0.5.3"
 backoff = ">=1.11.1"
 bson = "^0.5.10"
-urllib3 = ">=1.26.19,<3"
+urllib3 = ">=2.6.0,<3"
 setuptools = ">=78.1.1"
 h11 = ">=0.16.0"
 
@@ -60,7 +59,7 @@ Sphinx = "^5.3.0"
 bandit = "^1.7.5"
 black = {version = "^24.3.0", allow-prereleases = true}
 darglint = "^1.8.1"
-flake8 = "^4.0.1"
+flake8 = "^6.0.0"
 grpcio = "^1.56.2"
 jinja2 = "^3.1.5"
 isort = {extras = ["colors"], version = "^5.12.0"}
@@ -82,11 +81,7 @@ authlib = ">=1.6.4"
 sphinx-rtd-theme = "^1.2.2"
 types-PyYAML = "^6.0.12.11"
 types-python-dateutil = "^2.8.19.14"
-vcrpy = "^5.0.0"
-
-[tool.poetry.group.featurestore.dependencies]
-feast = ">=0.45.0"
-GitPython = "^3.1.41"
+vcrpy = ">=8.0.0"
 
 [tool.black]
 # https://github.com/psf/black
@@ -127,7 +122,7 @@ color_output = true
 [tool.mypy]
 # mypy configurations: https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
 exclude = 'datasource_api_client/|domino_data/training_sets/|.venv/|tests/|dist/'
-python_version = 3.9
+python_version = 3.10
 pretty = true
 show_traceback = true
 color_output = true
@@ -150,8 +145,3 @@ warn_return_any = true
 warn_unreachable = true
 warn_unused_configs = true
 warn_unused_ignores = true
-
-[tool.coverage.run]
-omit = [
-    "domino_data/_feature_store/run_featurestore_sync.py"
-]
