@@ -11,11 +11,11 @@ python:
       path: .
     - requirements: requirements.txt
 
-# Use python 3.9
+# Use python 3.10
 build:
   os: ubuntu-20.04
   tools:
-    python: "3.9"
+    python: "3.10"
 
 # Fail on warnings to ensure build render properly
 sphinx:

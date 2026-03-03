@@ -71,12 +71,6 @@ def training_set_dir(tmpdir, monkeypatch):
 
 
 @pytest.fixture
-def feast_repo_root_dir(tmpdir, monkeypatch):
-    """Set the right environment variables for feature store repo root dir."""
-    monkeypatch.setenv("DOMINO_FEAST_REPO_ROOT", str(tmpdir))
-
-
-@pytest.fixture
 def env(monkeypatch):
     """Set basic environment variables for mocked tests."""
     monkeypatch.setenv("DOMINO_API_HOST", "http://domino")
