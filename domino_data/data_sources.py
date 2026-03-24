@@ -3352,12 +3352,19 @@ class DataSourceClient:
         credential: Dict[str, Any],
         table_name: str,
         table: "pa.Table",
-        batch_size: int = 10000,
+        batch_size: int = 500,
     ) -> None:
         """Stream an Arrow table to the proxy via DoPut for bulk insert.
 
         The FlightDescriptor.Cmd carries a JSON-encoded FlightPutDescriptor
         matching the structure expected by the Go server.
+
+        batch_size controls how many rows are packed into each Arrow record
+        batch / INSERT statement. The Go proxy builds one multi-row INSERT per
+        batch; DB2 has a ~2 MB SQL statement length limit, so this must be kept
+        small enough that (rows × cols × avg_value_bytes) stays well under that
+        limit. 500 rows is safe for tables up to ~600 columns; reduce further
+        for very wide tables with large text values.
         """
         descriptor_bytes = json.dumps(
             {
