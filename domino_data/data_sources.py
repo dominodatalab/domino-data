@@ -19,6 +19,7 @@ import numpy
 import pandas
 import urllib3
 from httpx._config import DEFAULT_TIMEOUT_CONFIG
+import pyarrow as pa
 from pyarrow import ArrowException, flight, parquet
 
 import domino_data.configuration_gen
@@ -64,6 +65,8 @@ DOMINO_USER_API_KEY = "DOMINO_USER_API_KEY"
 DOMINO_USER_HOST = "DOMINO_USER_HOST"
 DOMINO_TOKEN_DEFAULT_LOCATION = "/var/lib/domino/home/.api/token"
 DOMINO_TOKEN_FILE = "DOMINO_TOKEN_FILE"
+
+_DEFAULT_FLIGHT_TIMEOUT_SECONDS = 14400.0  # 4h dead-man switch; covers longest known analytical queries (~3h)
 
 
 def __getattr__(name: str) -> Any:
@@ -484,62 +487,54 @@ class TabularDatasource(Datasource):
     def wrap_passthrough_query(self, query: str) -> str:
         """
         Wrap a query for database passthrough to bypass query engine optimization.
-        
-        Uses system.query() table function to execute the query directly
-        on the data source, avoiding query engine transformations that may change
-        results or performance characteristics.
-        
+
+        Uses the Trino system.query() table function to execute the query directly
+        on the data source. Only applicable to the legacy Starburst/Trino connector
+        (DB2Config). Not supported on the native DB2 connector (DB2NativeConfig),
+        which connects directly and does not route through Trino.
+
         Args:
             query: The SQL query to wrap
-            
+
         Returns:
             str: Wrapped query using passthrough function
-            
-        Examples:
-            # Force a complex join to execute on the data source
-            complex_query = "SELECT * FROM users u JOIN orders o ON u.id = o.user_id ORDER BY u.created_date"
-            wrapped = ds.wrap_passthrough_query(complex_query)
-            result = ds.query(wrapped)
-            
-            # Use data source-specific (non-ANSI) functions
-            db_specific = "SELECT user_id, REGEXP_EXTRACT(email, '@(.*)') as domain FROM users"
-            wrapped = ds.wrap_passthrough_query(db_specific)
-            result = ds.query(wrapped)
+
+        Raises:
+            DominoError: If called on a DB2NativeConfig datasource.
         """
-        # Escape single quotes in the query
+        if self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value:
+            raise DominoError(
+                "passthrough_query() is not supported on the native DB2 connector (DB2NativeConfig). "
+                "The native connector connects directly to DB2 and does not route through Trino — "
+                "native DB2 SQL functions work directly via query()."
+            )
+
         escaped_query = query.replace("'", "''")
-        
-        # Wrap with system.query table function
         return f"SELECT * FROM TABLE(system.query(query => '{escaped_query}'))"
 
     def passthrough_query(self, query: str) -> Result:
         """
         Execute a query using database passthrough wrapper.
-        
-        This method wraps and executes the query with system.query() to:
-        - Force operations to execute on the data source
-        - Bypass query engine optimization that may change results
-        - Allow use of data source-specific (non-ANSI) functions
-        - Improve performance for complex operations
-        
+
+        Wraps and executes the query with Trino's system.query() table function.
+        Only applicable to the legacy Starburst/Trino connector (DB2Config).
+        On the native DB2 connector (DB2NativeConfig), use query() directly —
+        native DB2 SQL functions are supported without a passthrough wrapper.
+
         Args:
             query: SQL query to execute with passthrough
-            
+
         Returns:
             Result: Query result object
-            
-        Examples:
-            # Use instead of query() for complex operations
-            result = ds.passthrough_query("SELECT * FROM large_table ORDER BY complex_calculation(col1, col2)")
-            
-            # Force predicate pushdown
-            result = ds.passthrough_query("SELECT * FROM table1 t1 JOIN table2 t2 ON t1.id = t2.id WHERE t1.status = 'active'")
+
+        Raises:
+            DominoError: If called on a DB2NativeConfig datasource.
         """
         wrapped_query_str = self.wrap_passthrough_query(query)
-        
+
         if self._debug_sql:
             self._logger.debug(f"Executing passthrough query: {wrapped_query_str}")
-        
+
         return self.query(wrapped_query_str)
     
     def __attrs_post_init__(self):
@@ -1199,17 +1194,34 @@ class TabularDatasource(Datasource):
     
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
-        
+
         Args:
             table_name: Name of the table to check
-            
+
         Returns:
             bool: True if the table exists, False otherwise
         """
         try:
-            escaped_table = self._escape_identifier(table_name)
-            self.query(f"SELECT 1 FROM {escaped_table} LIMIT 1")
-            return True
+            is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
+            if is_db2_native:
+                # Query SYSCAT.TABLES instead of the actual table to avoid opening a
+                # cursor lock that would block an immediately-following DROP TABLE.
+                if '.' in table_name:
+                    parts = table_name.split('.', 1)
+                    schema = parts[0].strip().strip('"').strip('`').strip('[').strip(']').upper()
+                    table = parts[1].strip().strip('"').strip('`').strip('[').strip(']').upper()
+                    sql = (f"SELECT 1 FROM SYSCAT.TABLES WHERE TRIM(TABSCHEMA) = '{schema}'"
+                           f" AND TABNAME = '{table}' FETCH FIRST 1 ROW ONLY")
+                else:
+                    clean = table_name.strip().strip('"').strip('`').strip('[').strip(']').upper()
+                    sql = f"SELECT 1 FROM SYSCAT.TABLES WHERE TABNAME = '{clean}' FETCH FIRST 1 ROW ONLY"
+                result = self.query(sql)
+                df = result.to_pandas()
+                return len(df) > 0
+            else:
+                escaped_table = self._escape_identifier(table_name)
+                self.query(f"SELECT 1 FROM {escaped_table} LIMIT 1")
+                return True
         except DominoError:
             return False
 
@@ -1307,9 +1319,37 @@ class TabularDatasource(Datasource):
                 if if_table_exists == 'fail':
                     raise ValueError(f"Table '{table_name}' already exists.")
                 elif if_table_exists == 'replace':
-                    # Replace existing table
-                    self._drop_and_create_table(table_name, dataframe)
-                    table_created = True
+                    is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
+                    if is_db2_native:
+                        # For DB2 native, DROP TABLE acquires a catalog Z-lock that hangs
+                        # indefinitely when the previous bulk-insert ODBC connection is still
+                        # live in IBM CLI's pool.  TRUNCATE TABLE IMMEDIATE only needs a table
+                        # X-lock and never touches the catalog, so it never hangs.
+                        # _requires_schema_evolution queries SYSCAT.COLUMNS (catalog-only,
+                        # no table lock) and compares column names AND order — column order
+                        # matters because DoPut is positional.
+                        if not self._requires_schema_evolution(table_name, dataframe):
+                            # Schemas match: fast path, no catalog lock, never hangs.
+                            if self._debug_sql:
+                                self._logger.debug(
+                                    f"DB2 replace: schema unchanged, using TRUNCATE IMMEDIATE"
+                                )
+                            self._truncate_table(table_name)
+                            # table_created stays False: table existed, just emptied.
+                        else:
+                            # Schema changed (columns added/removed/reordered): DROP+CREATE
+                            # is unavoidable.  In a real pipeline this happens between runs
+                            # (minutes/hours apart) so IBM CLI ghost connections will have
+                            # timed out long before this DROP is issued.
+                            if self._debug_sql:
+                                self._logger.debug(
+                                    f"DB2 replace: schema changed, using DROP+CREATE"
+                                )
+                            self._drop_and_create_table(table_name, dataframe)
+                            table_created = True
+                    else:
+                        self._drop_and_create_table(table_name, dataframe)
+                        table_created = True
                 elif if_table_exists == 'truncate':
                     # Truncate existing table
                     if not force:
@@ -1350,14 +1390,48 @@ class TabularDatasource(Datasource):
                 self._logger.error(f"Write operation failed: {str(e)}")
                 if "grpc: received message larger than max" in str(e):
                     self._logger.error(f"Suggestion: Try reducing max_message_size_mb parameter or manual chunksize")
-            
+
             raise  # Re-raise after cleanup
+
+    def execute_statement(self, sql: str) -> None:
+        """Execute a DDL or DML statement that does not return a result set.
+
+        Use this for operations like MERGE, UPDATE, DELETE, INSERT, or explicit
+        TRUNCATE where returning a DataFrame is not expected.  Calling
+        ``query(sql).to_pandas()`` on these statements would raise an error
+        because Arrow Flight's DoGet expects a tabular result set.
+
+        Example::
+
+            ds.execute_statement(
+                "MERGE INTO schema.target AS t "
+                "USING schema.source AS s ON t.id = s.id "
+                "WHEN MATCHED THEN UPDATE SET t.val = s.val"
+            )
+        """
+        self._execute_statement(sql)
+
+    def _execute_statement(self, sql: str) -> None:
+        """Execute a DDL or DML statement that may not return a result set.
+
+        Arrow Flight's do_get expects a result set. Native DB2 does not return
+        result sets for DDL (CREATE TABLE, DROP TABLE) or DML (INSERT, TRUNCATE,
+        DELETE). This wrapper catches that specific error and treats it as success,
+        while re-raising all other errors unchanged.
+        """
+        try:
+            self.query(sql)
+        except DominoError as e:
+            if "did not create a result set" not in str(e):
+                raise
+            if self._debug_sql:
+                self._logger.debug("Statement executed successfully (no result set returned)")
 
     def _drop_table_quietly(self, table_name: str) -> None:
         """Attempt to drop table without raising errors."""
         try:
             escaped_table = self._escape_identifier(table_name)
-            self.query(f"DROP TABLE {escaped_table}")
+            self._execute_statement(f"DROP TABLE {escaped_table}")
             if self._debug_sql:
                 self._logger.debug(f"Cleaned up table after failed write: {table_name}")
         except Exception as drop_error:
@@ -1377,7 +1451,7 @@ class TabularDatasource(Datasource):
         
         # Drop existing table
         try:
-            self.query(f"DROP TABLE {escaped_table}")
+            self._execute_statement(f"DROP TABLE {escaped_table}")
         except Exception as e:
             self._logger.warning(f"Error dropping table {table_name}: {str(e)}")
             raise
@@ -1385,31 +1459,63 @@ class TabularDatasource(Datasource):
         # Create new table
         self._create_table(table_name, dataframe)
 
+    def _requires_schema_evolution(self, table_name: str, dataframe: pandas.DataFrame) -> bool:
+        """Check whether the DB2 table schema differs from the incoming DataFrame.
+
+        Compares column names AND column order (via SYSCAT.COLUMNS ORDER BY COLNO).
+        Order matters because DoPut bulk insert is positional — a reordered DataFrame
+        against an unchanged DB2 table would silently put data in the wrong columns.
+
+        Uses a catalog-only query (no lock on the actual table) so it is safe to call
+        immediately before DROP TABLE without introducing a blocking cursor lock.
+
+        Returns True  → schemas differ → DROP + CREATE is required.
+        Returns False → schemas match  → TRUNCATE IMMEDIATE is safe.
+        """
+        try:
+            if '.' in table_name:
+                parts = table_name.split('.', 1)
+                schema = parts[0].strip().strip('"').upper()
+                table = parts[1].strip().strip('"').upper()
+                sql = (f"SELECT COLNAME FROM SYSCAT.COLUMNS "
+                       f"WHERE TRIM(TABSCHEMA) = '{schema}' AND TABNAME = '{table}' "
+                       f"ORDER BY COLNO")
+            else:
+                table = table_name.strip().strip('"').upper()
+                sql = (f"SELECT COLNAME FROM SYSCAT.COLUMNS "
+                       f"WHERE TABNAME = '{table}' ORDER BY COLNO")
+
+            result = self.query(sql)
+            db_cols = [col.strip().upper() for col in result.to_pandas()['COLNAME'].tolist()]
+            df_cols = [str(col).strip().upper() for col in dataframe.columns.tolist()]
+            return db_cols != df_cols  # any difference in names, count, or order → evolve
+        except Exception:
+            return True  # if catalog check fails, assume evolution needed (safe fallback)
+
     def _create_table(self, table_name: str, dataframe: pandas.DataFrame) -> None:
         """Create a new table with the DataFrame's schema."""
         escaped_table = self._escape_identifier(table_name)
         schema = self._generate_schema(dataframe)
         create_query = f"CREATE TABLE {escaped_table} ({schema})"
-        if self._debug_sql:
-            self._logger.debug(f"Executing SQL: {create_query}")
-        self.query(create_query)
+        self._execute_statement(create_query)
 
     def _truncate_table(self, table_name: str) -> None:
         """Truncate an existing table."""
         escaped_table = self._escape_identifier(table_name)
-        
-        # Try TRUNCATE first, fall back to DELETE
-        truncate_query = f"TRUNCATE TABLE {escaped_table}"
-        if self._debug_sql:
-            self._logger.debug(f"Executing SQL: {truncate_query}")
+        is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
+        # DB2 requires IMMEDIATE for a true truncation (no per-row logging, instant).
+        # Without it DB2 logs each deleted row, which is slow and defeats the purpose.
+        truncate_query = (
+            f"TRUNCATE TABLE {escaped_table} IMMEDIATE"
+            if is_db2_native
+            else f"TRUNCATE TABLE {escaped_table}"
+        )
         try:
-            self.query(truncate_query)
-        except Exception as e:
+            self._execute_statement(truncate_query)
+        except Exception:
             # Some databases don't support TRUNCATE, fall back to DELETE
             delete_query = f"DELETE FROM {escaped_table}"
-            if self._debug_sql:
-                self._logger.debug(f"TRUNCATE failed, executing SQL: {delete_query}")
-            self.query(delete_query)
+            self._execute_statement(delete_query)
 
     def calculate_optimal_chunk_size(self, dataframe: pandas.DataFrame, max_message_size_mb: float = 4.0, safety_factor: float = 0.8) -> int:
         """
@@ -1496,22 +1602,6 @@ class TabularDatasource(Datasource):
         
         return estimated_mb
 
-    def set_grpc_message_limits(self, max_message_size_mb: float = 64.0) -> None:
-        """
-        Update the default gRPC message size limits for this datasource.
-        
-        Args:
-            max_message_size_mb: Maximum message size in MB (default 64MB)
-        
-        Note:
-            This affects the auto-optimization calculations for future write operations.
-            The actual gRPC client limits are set at the DataSourceClient level.
-        """
-        self._default_grpc_limit_mb = max_message_size_mb
-        
-        if self._debug_sql:
-            self._logger.debug(f"Updated default gRPC message limit to {max_message_size_mb} MB")
-
     def _check_schema_compatibility(self, table_name: str, dataframe: pandas.DataFrame, force: bool = False) -> None:
         """
         Check schema compatibility between DataFrame and existing table.
@@ -1527,7 +1617,12 @@ class TabularDatasource(Datasource):
         try:
             # Get existing table columns
             escaped_table = self._escape_identifier(table_name)
-            schema_query = f"SELECT * FROM {escaped_table} LIMIT 0"
+            is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
+            schema_query = (
+                f"SELECT * FROM {escaped_table} FETCH FIRST 0 ROWS ONLY"
+                if is_db2_native
+                else f"SELECT * FROM {escaped_table} LIMIT 0"
+            )
             result = self.query(schema_query)
             table_columns = result.to_pandas().columns.tolist()
 
@@ -2048,7 +2143,9 @@ class TabularDatasource(Datasource):
 
     def _insert_dataframe(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
         """Insert DataFrame using bulk methods when possible."""
-        if len(dataframe) > 1000:
+        # Native DB2 must always use its dedicated path — _fallback_bulk_insert uses
+        # self.query() which expects a result set, but native DB2 DML returns none.
+        if self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value or len(dataframe) > 1000:
             self._bulk_insert_dataframe(table_name, dataframe, chunksize)
         else:
             # Use standard chunked inserts for small datasets
@@ -2126,18 +2223,18 @@ class TabularDatasource(Datasource):
             for i in range(0, total_rows, chunksize):
                 chunk = dataframe.iloc[i:i+chunksize]
                 values = ", ".join(
-                    f"({', '.join(map(self._format_value, row))})" 
-                    for _, row in chunk.iterrows()
+                    f"({', '.join(map(self._format_value, row))})"
+                    for row in chunk.values.tolist()
                 )
-                
+
                 insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
-                
+
                 if self._debug_sql and i == 0:
                     self._logger.debug(f"Executing bulk insert for first {len(chunk)} rows")
                     
-                self.query(insert_query)
+                self._execute_statement(insert_query)
                 rows_inserted += len(chunk)
-                
+
                 # Progress for large datasets
                 if self._debug_sql and rows_inserted % 10000 == 0:
                     progress = (rows_inserted / total_rows) * 100
@@ -2341,20 +2438,85 @@ class TabularDatasource(Datasource):
                 os.remove(tmp_path)
 
     def _db2_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
-        """DB2 bulk insert - skip native method for Trino proxy, use optimized standard insert."""
+        """DB2 bulk insert - routes to Trino or native path based on datasource type."""
+        if self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value:
+            self._db2_native_bulk_insert(table_name, dataframe, chunksize)
+        else:
+            self._db2_trino_bulk_insert(table_name, dataframe, chunksize)
+
+    def _db2_trino_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """DB2 bulk insert via Trino proxy (DB2Config) - caps chunk size for Trino query limits."""
         if self._debug_sql:
-            self._logger.info("DB2 uses Trino proxy - using standard bulk insert with optimized chunk size")
+            self._logger.info("DB2 via Trino proxy - using standard bulk insert with optimized chunk size")
             self._logger.info(f"Row count: {len(dataframe):,}, chunk size: {chunksize:,}")
-        
-        # DB2 always uses Trino, which has smaller query limits
-        # Cap chunk size for better performance
+
         trino_chunk_size = min(chunksize, 2000)
-        
+
         if trino_chunk_size != chunksize and self._debug_sql:
             self._logger.debug(f"Reduced chunk size from {chunksize:,} to {trino_chunk_size:,} for Trino")
-        
-        # Directly use fallback with optimized chunk size
+
         self._fallback_bulk_insert(table_name, dataframe, trino_chunk_size)
+
+    def _db2_native_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """DB2 bulk insert via native connector (DB2NativeConfig).
+
+        Streams data as Arrow record batches via Arrow Flight DoPut, bypassing
+        SQL string construction entirely. Falls back to SQL-based inserts if the
+        server does not support DoPut (e.g. older proxy versions).
+        """
+        if self._debug_sql:
+            self._logger.info(f"DB2 native bulk insert (DoPut) into {table_name}")
+            self._logger.info(f"Row count: {len(dataframe):,}")
+
+        try:
+            arrow_table = pa.Table.from_pandas(dataframe, preserve_index=False)
+            self.client.do_put(
+                datasource_id=self.identifier,
+                config=self._config_override.config(),
+                credential=self._get_credential_override(),
+                table_name=table_name,
+                table=arrow_table,
+                batch_size=chunksize,
+            )
+            if self._debug_sql:
+                self._logger.info(f"DB2 DoPut complete: {len(dataframe):,} rows into {table_name}")
+        except flight.FlightUnimplementedError:
+            self._logger.warning("DoPut not supported by server, falling back to SQL inserts")
+            self._db2_native_sql_insert(table_name, dataframe, chunksize)
+        except Exception as e:
+            if "ResourceExhausted" in str(e) or "received message larger than max" in str(e):
+                self._logger.warning(
+                    f"DoPut batch too large for server gRPC limit "
+                    f"(batch_size={chunksize:,} rows). "
+                    f"Reduce chunksize or upgrade datasource-proxy. "
+                    f"Falling back to SQL inserts."
+                )
+            else:
+                self._logger.warning(f"DoPut failed ({type(e).__name__}): {e}, falling back to SQL inserts")
+            self._db2_native_sql_insert(table_name, dataframe, chunksize)
+
+    def _db2_native_sql_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
+        """SQL-based fallback for DB2 native bulk insert (used when DoPut is unavailable)."""
+        escaped_table = self._escape_identifier(table_name)
+        escaped_columns = ', '.join(self._escape_identifier(col) for col in dataframe.columns)
+
+        total_rows = len(dataframe)
+        rows_inserted = 0
+
+        try:
+            for i in range(0, total_rows, chunksize):
+                chunk = dataframe.iloc[i:i + chunksize]
+                values = ", ".join(
+                    f"({', '.join(map(self._format_value, row))})"
+                    for row in chunk.values.tolist()
+                )
+                insert_query = f"INSERT INTO {escaped_table} ({escaped_columns}) VALUES {values}"
+                self._execute_statement(insert_query)
+                rows_inserted += len(chunk)
+
+        except Exception as e:
+            error_msg = f"DB2 native insert failed at row {rows_inserted} of {total_rows}: {str(e)}"
+            raise RuntimeError(error_msg) from e
 
     def _oracle_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
         """Use Oracle's multi-row INSERT ALL for bulk inserts."""
@@ -2472,57 +2634,64 @@ class TabularDatasource(Datasource):
         }
 
         cast_types = cast_map.get(db_type, cast_map['unknown'])
+        is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
 
         # Boolean handling with database-specific logic
         if isinstance(value, bool):
-            if db_type in ['db2']:
-                return f"CAST({1 if value else 0} AS {cast_types['bool']})"
-            elif db_type == 'oracle':
-                return f"CAST({1 if value else 0} AS {cast_types['bool']})"
-            elif db_type == 'sqlserver':
-                return f"CAST({1 if value else 0} AS {cast_types['bool']})"
+            int_val = 1 if value else 0
+            if is_db2_native:
+                # Native DB2: CAST has transient socket-closed issues; integer literal
+                # implicitly converts to the SMALLINT column type
+                return str(int_val)
+            elif db_type in ['db2', 'oracle', 'sqlserver']:
+                return f"CAST({int_val} AS {cast_types['bool']})"
             else:
                 return f"CAST({str(value).upper()} AS {cast_types['bool']})"
 
         # Integer handling
         elif isinstance(value, (int, numpy.integer)):
+            if is_db2_native:
+                return str(int(value))  # bare literal — column type handles implicit conversion
             return f"CAST({value} AS {cast_types['int']})"
 
         # Float handling
         elif isinstance(value, (float, numpy.floating)):
             if numpy.isnan(value) or numpy.isinf(value):
                 return "NULL"
+            if is_db2_native:
+                return repr(float(value))  # bare literal — repr preserves full precision
             return f"CAST({value} AS {cast_types['float']})"
 
         # Datetime handling
         elif isinstance(value, datetime):
             timestamp_str = value.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+            if is_db2_native:
+                return f"'{timestamp_str}'"  # bare string — TIMESTAMP column handles implicit conversion
             return f"CAST('{timestamp_str}' AS {cast_types['datetime']})"
 
         # Date handling
         elif isinstance(value, date):
+            if is_db2_native:
+                return f"'{value.isoformat()}'"  # bare string — DATE column handles implicit conversion
             return f"CAST('{value.isoformat()}' AS {cast_types['date']})"
 
         # Enhanced JSON/Dictionary/List handling with database-specific casting
         elif isinstance(value, (dict, list)):
             json_str = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
             escaped_str = json_str.replace("'", "''")
-            
-            # Database-specific JSON handling - THIS IS THE KEY FIX!
+
             if db_type == 'postgresql':
-                # PostgreSQL requires explicit JSONB casting using :: syntax
                 return f"'{escaped_str}'::jsonb"
             elif db_type == 'mysql':
-                # MySQL can cast to JSON type
                 return f"CAST('{escaped_str}' AS JSON)"
             elif db_type in ['db2', 'oracle']:
-                # DB2 and Oracle use CLOB for JSON storage
+                # Native DB2: implicit CLOB conversion avoids CAST socket-closed issue
+                if is_db2_native:
+                    return f"'{escaped_str}'"
                 return f"CAST('{escaped_str}' AS CLOB)"
             elif db_type == 'sqlserver':
-                # SQL Server uses NVARCHAR(MAX)
                 return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
             else:
-                # Fallback for unknown databases
                 return f"CAST('{escaped_str}' AS VARCHAR(4000))"
 
         # NumPy array handling
@@ -2531,20 +2700,20 @@ class TabularDatasource(Datasource):
                 array_list = value.tolist()
                 json_str = json.dumps(array_list, ensure_ascii=False, separators=(',', ':'))
                 escaped_str = json_str.replace("'", "''")
-                
-                # Use same JSON casting logic as dict/list
+
                 if db_type == 'postgresql':
                     return f"'{escaped_str}'::jsonb"
                 elif db_type == 'mysql':
                     return f"CAST('{escaped_str}' AS JSON)"
                 elif db_type in ['db2', 'oracle']:
+                    if is_db2_native:
+                        return f"'{escaped_str}'"
                     return f"CAST('{escaped_str}' AS CLOB)"
                 elif db_type == 'sqlserver':
                     return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
                 else:
                     return f"CAST('{escaped_str}' AS VARCHAR(4000))"
             except Exception:
-                # Fallback to string representation
                 str_value = str(value)
                 escaped_str = str_value.replace("'", "''")
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
@@ -2553,55 +2722,63 @@ class TabularDatasource(Datasource):
         else:
             str_value = str(value)
             escaped_str = str_value.replace("'", "''")
-            
-            # Handle very long strings that might exceed VARCHAR limits
+
             if len(escaped_str) > 4000:
                 if db_type == 'postgresql':
                     return f"CAST('{escaped_str}' AS TEXT)"
                 elif db_type == 'mysql':
                     return f"CAST('{escaped_str}' AS LONGTEXT)"
                 elif db_type in ['db2', 'oracle']:
+                    if is_db2_native:
+                        return f"'{escaped_str}'"
                     return f"CAST('{escaped_str}' AS CLOB)"
                 elif db_type == 'sqlserver':
                     return f"CAST('{escaped_str}' AS NVARCHAR(MAX))"
                 else:
-                    # Truncate for unknown databases to avoid errors
                     truncated = escaped_str[:3900] + "..."
                     return f"CAST('{truncated}' AS VARCHAR(4000))"
             else:
+                if is_db2_native:
+                    return f"'{escaped_str}'"
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
 
 
 @attr.s
 class TableQuery:
     """Provides a fluent query interface for tables."""
-    
+
     _datasource = attr.ib()
     _table_name = attr.ib()
     _select_clause = attr.ib(default="*")
     _where_clause = attr.ib(default="")
     _order_clause = attr.ib(default="")
-    _limit_clause = attr.ib(default="")
-    _offset_clause = attr.ib(default="")
-    
+    _limit = attr.ib(default=None)
+    _offset = attr.ib(default=None)
+
+    def _is_db2_native(self) -> bool:
+        return (
+            hasattr(self._datasource, 'datasource_type') and
+            self._datasource.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
+        )
+
     def select(self, columns: str):
         """Select specific columns from the table.
-        
+
         Args:
             columns: Comma-separated list of column names
-            
+
         Returns:
             TableQuery: Self for method chaining
         """
         self._select_clause = columns
         return self
-    
+
     def filter(self, condition: str):
         """Filter results based on a condition.
-        
+
         Args:
             condition: SQL WHERE condition
-            
+
         Returns:
             TableQuery: Self for method chaining
         """
@@ -2610,95 +2787,107 @@ class TableQuery:
         else:
             self._where_clause = f"WHERE {condition}"
         return self
-    
+
     def order_by(self, order: str):
         """Order results based on columns.
-        
+
         Args:
             order: SQL ORDER BY expression
-            
+
         Returns:
             TableQuery: Self for method chaining
         """
         self._order_clause = f"ORDER BY {order}"
         return self
-    
+
     def limit(self, limit: int):
         """Limit the number of results returned.
-        
+
         Args:
             limit: Maximum number of rows to return
-            
+
         Returns:
             TableQuery: Self for method chaining
         """
-        self._limit_clause = f"LIMIT {limit}"
+        self._limit = limit
         return self
-    
+
     def offset(self, offset: int):
         """Set the offset for results.
-        
+
         Args:
             offset: Number of rows to skip
-            
+
         Returns:
             TableQuery: Self for method chaining
         """
-        self._offset_clause = f"OFFSET {offset}"
+        self._offset = offset
         return self
-    
+
     def _build_query(self) -> str:
         """Build the SQL query from the components.
-        
+
+        Generates native DB2 pagination syntax (FETCH FIRST / OFFSET ROWS FETCH NEXT)
+        and appends WITH UR for DB2NativeConfig. Uses standard LIMIT/OFFSET for all
+        other datasource types.
+
         Returns:
             str: Complete SQL query
         """
         escaped_table = self._datasource._escape_identifier(self._table_name)
         query_parts = [f"SELECT {self._select_clause} FROM {escaped_table}"]
-        
+
         if self._where_clause:
             query_parts.append(self._where_clause)
-        
+
         if self._order_clause:
             query_parts.append(self._order_clause)
-        
-        if self._limit_clause:
-            query_parts.append(self._limit_clause)
-        
-        if self._offset_clause:
-            query_parts.append(self._offset_clause)
-        
+
+        if self._is_db2_native():
+            if self._offset is not None and self._limit is not None:
+                query_parts.append(f"OFFSET {self._offset} ROWS FETCH NEXT {self._limit} ROWS ONLY")
+            elif self._limit is not None:
+                query_parts.append(f"FETCH FIRST {self._limit} ROWS ONLY")
+            elif self._offset is not None:
+                query_parts.append(f"OFFSET {self._offset} ROWS FETCH NEXT 2147483647 ROWS ONLY")
+            query_parts.append("WITH UR")
+        else:
+            if self._limit is not None:
+                query_parts.append(f"LIMIT {self._limit}")
+            if self._offset is not None:
+                query_parts.append(f"OFFSET {self._offset}")
+
         return " ".join(query_parts)
-    
+
     def all(self):
         """Execute the query and return all results as a DataFrame.
-        
+
         Returns:
             pandas.DataFrame: The query results
         """
         query = self._build_query()
         result = self._datasource.query(query)
         return result.to_pandas()
-    
+
     def first(self):
         """Execute the query and return the first result.
-        
+
         Returns:
             pandas.Series or None: First row as a Series, or None if no results
         """
-        original_limit = self._limit_clause
-        self._limit_clause = "LIMIT 1"
+        original_limit = self._limit
+        self._limit = 1
         try:
             result = self.all()
             if len(result) > 0:
                 return result.iloc[0]
             return None
         finally:
-            self._limit_clause = original_limit
-    
+            self._limit = original_limit
+
     def count(self) -> int:
         """Count the number of rows that would be returned.
-        
+
         Returns:
             int: Row count
         """
@@ -2933,6 +3122,7 @@ class DataSourceClient:
                 ),
                 MetaMiddlewareFactory(client_source=client_source, run_id=run_id),
             ],
+            generic_options=[("grpc.max_receive_message_length", -1)],
         )
 
     def get_datasource(self, name: str) -> Datasource:
@@ -3137,7 +3327,54 @@ class DataSourceClient:
             raise DominoError(_unpack_flight_error(str(exc))) from None
         return Result(self, reader, query)
 
-    @backoff.on_exception(backoff.expo, flight.FlightUnauthenticatedError, max_time=60)
-    def _do_get(self, ticket: str) -> flight.FlightStreamReader:
-        return self.proxy.do_get(flight.Ticket(ticket))
+    @backoff.on_exception(
+        backoff.expo,
+        (flight.FlightUnauthenticatedError, flight.FlightUnavailableError),
+        max_time=60,
+    )
+    def _do_get(self, ticket: str, timeout: Optional[float] = None) -> flight.FlightStreamReader:
+        """Execute a Flight DoGet RPC with an optional deadline.
+
+        Timeout is read from DOMINO_FLIGHT_TIMEOUT (seconds). Defaults to a
+        4-hour dead-man switch to support long-running analytical queries
+        without allowing infinitely hung sockets.
+        """
+        if timeout is None:
+            raw = os.getenv("DOMINO_FLIGHT_TIMEOUT", str(_DEFAULT_FLIGHT_TIMEOUT_SECONDS))
+            timeout = float(raw)
+        options = flight.FlightCallOptions(timeout=timeout)
+        return self.proxy.do_get(flight.Ticket(ticket), options=options)
+
+    def do_put(
+        self,
+        datasource_id: str,
+        config: Dict[str, Any],
+        credential: Dict[str, Any],
+        table_name: str,
+        table: "pa.Table",
+        batch_size: int = 10000,
+    ) -> None:
+        """Stream an Arrow table to the proxy via DoPut for bulk insert.
+
+        The FlightDescriptor.Cmd carries a JSON-encoded FlightPutDescriptor
+        matching the structure expected by the Go server.
+        """
+        descriptor_bytes = json.dumps(
+            {
+                "datasourceId": datasource_id,
+                "configOverwrites": config,
+                "credentialOverwrites": credential,
+                "tableName": table_name,
+            }
+        ).encode()
+        descriptor = flight.FlightDescriptor.for_command(descriptor_bytes)
+        writer, reader = self.proxy.do_put(descriptor, table.schema)
+        try:
+            for batch in table.to_batches(max_chunksize=batch_size):
+                writer.write_batch(batch)
+        finally:
+            writer.close()
+        # Drain the result; server sends a single empty PutResult on success,
+        # or a gRPC error status if the commit failed — do not swallow.
+        reader.read()
     
