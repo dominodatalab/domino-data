@@ -3352,7 +3352,7 @@ class DataSourceClient:
         credential: Dict[str, Any],
         table_name: str,
         table: "pa.Table",
-        batch_size: int = 500,
+        batch_size: Optional[int] = None,
     ) -> None:
         """Stream an Arrow table to the proxy via DoPut for bulk insert.
 
@@ -3360,12 +3360,20 @@ class DataSourceClient:
         matching the structure expected by the Go server.
 
         batch_size controls how many rows are packed into each Arrow record
-        batch / INSERT statement. The Go proxy builds one multi-row INSERT per
-        batch; DB2 has a ~2 MB SQL statement length limit, so this must be kept
-        small enough that (rows × cols × avg_value_bytes) stays well under that
-        limit. 500 rows is safe for tables up to ~600 columns; reduce further
-        for very wide tables with large text values.
+        batch / INSERT statement on the proxy. When None (default), the batch
+        size is derived from the table's actual memory footprint so that each
+        INSERT stays well under DB2's ~2 MB SQL statement limit. Pass an
+        explicit value to override (e.g. when calling do_put directly).
         """
+        if batch_size is None:
+            # Derive batch size from the table's actual memory footprint so each
+            # INSERT stays well under DB2's ~2 MB SQL statement limit.
+            # SQL literals are roughly 2x the Arrow in-memory bytes; target 512 KB
+            # per INSERT to leave a comfortable safety margin.
+            bytes_per_row = max(table.nbytes / max(table.num_rows, 1), 1)
+            sql_bytes_per_row = bytes_per_row * 2
+            batch_size = max(10, min(int(512 * 1024 / sql_bytes_per_row), 5000))
+
         descriptor_bytes = json.dumps(
             {
                 "datasourceId": datasource_id,
