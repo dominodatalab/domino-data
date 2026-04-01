@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import tempfile
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from os.path import exists
 
@@ -96,6 +96,28 @@ def _unpack_flight_error(error: str) -> str:
         return error
 
 
+def _cast_string_date_cols(table: "pa.Table") -> "pa.Table":
+    """Cast utf8 columns that contain date strings to date32.
+
+    Mirrors DominoDataR's .cast_string_date_cols() for Python clients.
+    Some DB2 backends return DATE columns as Arrow utf8 strings in
+    'YYYY-MM-DD' format rather than as date32/date64.  This detects and
+    corrects that so Python users get datetime.date objects rather than
+    raw strings — consistent with how proper DB2 DATE columns arrive.
+
+    Columns whose values do not parse as dates are left unchanged.
+    """
+    for i, col in enumerate(table.columns):
+        if col.type not in (pa.utf8(), pa.large_utf8()):
+            continue
+        try:
+            casted = col.cast(pa.date32())
+        except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
+            continue
+        table = table.set_column(i, table.schema.field(i).name, casted)
+    return table
+
+
 @attr.s
 class Result:
     """Represents a query result."""
@@ -110,7 +132,9 @@ class Result:
         Returns:
             Pandas dataframe loaded with entire resultset
         """
-        return self.reader.read_pandas()
+        table = self.reader.read_all()
+        table = _cast_string_date_cols(table)
+        return table.to_pandas()
 
     def to_parquet(self, where: Any) -> None:
         """Load and serialize the result to a local parquet file.
@@ -1650,8 +1674,6 @@ class TabularDatasource(Datasource):
                             "Forcing write despite schema mismatch: " + " | ".join(error_msg)
                         )
 
-            return
-
             # Check column types (if metadata available)
             try:
                 self._check_column_types(table_name, dataframe, table_columns, force)
@@ -1948,11 +1970,38 @@ class TabularDatasource(Datasource):
         if pandas.api.types.is_float_dtype(dtype):
             return self._get_float_type_by_database()
 
-        # Datetimes with timezone awareness
+        # Datetimes: day-resolution (datetime64[D]) is a pure date — map to DATE, not TIMESTAMP.
+        # All other datetime64 variants (ns, us, ms, s) and tz-aware types map to TIMESTAMP.
         if pandas.api.types.is_datetime64_any_dtype(dtype):
             if hasattr(dtype, 'tz') and dtype.tz is not None:
                 return self._get_timezone_aware_timestamp()
+            if str(dtype) == 'datetime64[D]':
+                return self._type_map.get(date, "DATE")
             return self._type_map.get(datetime, "TIMESTAMP")
+
+        # timedelta64 and complex have no SQL equivalent.  Raise here so CREATE TABLE
+        # does not silently produce a VARCHAR column that _sanitize_for_doput() would
+        # then reject with a confusing error when the insert is attempted.
+        if pandas.api.types.is_timedelta64_dtype(dtype):
+            raise ValueError(
+                "timedelta64 dtype has no SQL equivalent and cannot be written to a database. "
+                "Convert to numeric (total seconds via .dt.total_seconds()) or string first."
+            )
+        if pandas.api.types.is_complex_dtype(dtype):
+            raise ValueError(
+                "complex dtype has no SQL equivalent and cannot be written to a database. "
+                "Convert to string first."
+            )
+
+        # Object dtype: check for Python date/datetime objects before falling back to VARCHAR.
+        # pandas stores datetime.date and datetime.datetime values as object dtype, so
+        # is_object_dtype alone cannot distinguish them from strings.
+        if pandas.api.types.is_object_dtype(dtype) and series is not None:
+            inferred = pandas.api.types.infer_dtype(series.dropna(), skipna=True)
+            if inferred == 'date':
+                return self._type_map.get(date, "DATE")
+            if inferred in ('datetime', 'datetime64'):
+                return self._type_map.get(datetime, "TIMESTAMP")
 
         # Strings and objects: enhanced size-based VARCHAR
         if pandas.api.types.is_string_dtype(dtype) or pandas.api.types.is_object_dtype(dtype):
@@ -2457,6 +2506,68 @@ class TabularDatasource(Datasource):
 
         self._fallback_bulk_insert(table_name, dataframe, trino_chunk_size)
 
+    def _sanitize_for_doput(self, dataframe: pandas.DataFrame) -> pandas.DataFrame:
+        """Prepare a DataFrame for Arrow Flight DoPut.
+
+        Fixes representation issues that are the library's responsibility:
+        - datetime64[ns] columns where all time components are midnight are cast
+          to datetime64[D] (day resolution) so PyArrow infers date32 instead of
+          timestamp[us], avoiding DB2 writing a spurious 00:00:00 time component
+          into DATE columns.
+
+        Raises ValueError for columns whose dtypes have no SQL equivalent
+        (timedelta64, complex, bytes).  These cannot be written to any SQL
+        database and the caller must drop or convert them before calling
+        write_dataframe.
+
+        The original DataFrame is never mutated — a copy is made lazily only
+        when the first column needs coercing.
+        """
+        df = dataframe
+        incompatible = {}
+
+        for col in df.columns:
+            dtype = df[col].dtype
+            if pandas.api.types.is_datetime64_any_dtype(dtype):
+                non_null = df[col].dropna()
+                if len(non_null) == 0:
+                    continue
+                is_pure_date = (
+                    (non_null.dt.hour == 0).all()
+                    and (non_null.dt.minute == 0).all()
+                    and (non_null.dt.second == 0).all()
+                    and (non_null.dt.nanosecond == 0).all()
+                )
+                if is_pure_date:
+                    if df is dataframe:
+                        df = dataframe.copy()
+                    # Convert to Python datetime.date objects so PyArrow infers date32.
+                    # pandas 3.x removed support for astype("datetime64[D]") on Series;
+                    # .dt.date is the compatible path in both pandas 2.x and 3.x.
+                    df[col] = df[col].dt.date
+                    if self._debug_sql:
+                        self._logger.debug(
+                            f"DoPut sanitize: cast {col!r} datetime64 → date objects (pure date → Arrow date32)"
+                        )
+            elif pandas.api.types.is_timedelta64_dtype(dtype):
+                incompatible[col] = str(dtype)
+            elif pandas.api.types.is_complex_dtype(dtype):
+                incompatible[col] = str(dtype)
+            elif dtype == object:
+                non_null = df[col].dropna()
+                if len(non_null) > 0 and isinstance(non_null.iloc[0], bytes):
+                    incompatible[col] = "bytes"
+
+        if incompatible:
+            col_list = ", ".join(f"{c!r} ({t})" for c, t in incompatible.items())
+            raise ValueError(
+                f"DataFrame contains columns with types that have no SQL equivalent "
+                f"and cannot be written to DB2: {col_list}. "
+                f"Drop or convert these columns before calling write_dataframe."
+            )
+
+        return df
+
     def _db2_native_bulk_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
         """DB2 bulk insert via native connector (DB2NativeConfig).
 
@@ -2467,6 +2578,12 @@ class TabularDatasource(Datasource):
         if self._debug_sql:
             self._logger.info(f"DB2 native bulk insert (DoPut) into {table_name}")
             self._logger.info(f"Row count: {len(dataframe):,}")
+
+        # _sanitize_for_doput raises ValueError for columns with no SQL equivalent
+        # (timedelta64, complex, bytes).  This must run outside the try/except so
+        # that ValueError propagates to the caller rather than triggering a silent
+        # fallback to SQL inserts with garbled values.
+        dataframe = self._sanitize_for_doput(dataframe)
 
         try:
             arrow_table = pa.Table.from_pandas(dataframe, preserve_index=False)
@@ -2570,7 +2687,17 @@ class TabularDatasource(Datasource):
         Returns:
             str: SQL expression for the value with appropriate database-specific casting
         """
-        if pandas.isna(value):
+        # Guard NA checks before any isinstance dispatch.
+        # pandas.isna() on a list/dict/array returns an array whose truth value is
+        # ambiguous (ValueError in pandas 3.x), so we check each NA type explicitly.
+        if value is None:
+            return "NULL"
+        # pandas.NA and pandas.NaT are singletons — identity check is safe and fast.
+        if value is pandas.NA or value is pandas.NaT:
+            return "NULL"
+        if isinstance(value, float) and pandas.isna(value):
+            return "NULL"
+        if isinstance(value, numpy.floating) and numpy.isnan(value):
             return "NULL"
 
         db_type = self.get_db_type()
@@ -2636,8 +2763,12 @@ class TabularDatasource(Datasource):
         cast_types = cast_map.get(db_type, cast_map['unknown'])
         is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
 
-        # Boolean handling with database-specific logic
-        if isinstance(value, bool):
+        # Boolean handling with database-specific logic.
+        # numpy.bool_ is NOT a subclass of Python bool in numpy 2.x, so must be
+        # listed explicitly.  Check before (int, numpy.integer) because numpy.bool_
+        # is a subclass of numpy.integer — without this guard it would fall through
+        # to the integer branch and produce 0/1 without the BOOLEAN cast logic.
+        if isinstance(value, (bool, numpy.bool_)):
             int_val = 1 if value else 0
             if is_db2_native:
                 # Native DB2: CAST has transient socket-closed issues; integer literal
@@ -2694,6 +2825,20 @@ class TabularDatasource(Datasource):
             else:
                 return f"CAST('{escaped_str}' AS VARCHAR(4000))"
 
+        # Bytes/bytearray → DB2 hex literal X'...' matching the proxy's bulk_insert format.
+        # str(b'\x00') gives "b'\\x00'" which is not a valid DB2 BLOB literal.
+        elif isinstance(value, (bytes, bytearray)):
+            return f"X'{value.hex()}'"
+
+        # timedelta → total seconds as a numeric literal.
+        # DB2 has no INTERVAL column type for storage; total seconds is the most
+        # portable representation (fits INTEGER/BIGINT/DOUBLE/VARCHAR columns).
+        elif isinstance(value, timedelta):
+            total_seconds = value.total_seconds()
+            if is_db2_native:
+                return repr(total_seconds)
+            return f"CAST({total_seconds} AS {cast_types['float']})"
+
         # NumPy array handling
         elif isinstance(value, numpy.ndarray):
             try:
@@ -2717,6 +2862,13 @@ class TabularDatasource(Datasource):
                 str_value = str(value)
                 escaped_str = str_value.replace("'", "''")
                 return f"CAST('{escaped_str}' AS {cast_types['str']})"
+
+        # Decimal — render as bare numeric literal so DB2 stores exact precision
+        # rather than a VARCHAR that would require implicit string→number casting.
+        elif isinstance(value, Decimal):
+            if is_db2_native:
+                return str(value)
+            return f"CAST({value} AS {cast_types['float']})"
 
         # Enhanced string handling with length considerations
         else:
