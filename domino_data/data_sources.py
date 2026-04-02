@@ -1334,6 +1334,14 @@ class TabularDatasource(Datasource):
             self._logger.debug(f"  Mode: {if_table_exists}")
             self._logger.debug(f"  Auto-optimize: {auto_optimize_chunks}")
 
+        # Sanitize before schema inspection so _create_table sees the correct dtypes.
+        # e.g. midnight-only datetime64[ns] → date objects → Arrow date32 → DB2 DATE.
+        # _sanitize_for_doput also raises ValueError early for unsupported types
+        # (timedelta64, complex, bytes) before any DDL is issued.
+        is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
+        if is_db2_native:
+            dataframe = self._sanitize_for_doput(dataframe)
+
         table_created = False
         try:
             # Check if table exists
@@ -1510,9 +1518,17 @@ class TabularDatasource(Datasource):
                        f"WHERE TABNAME = '{table}' ORDER BY COLNO")
 
             result = self.query(sql)
-            db_cols = [col.strip().upper() for col in result.to_pandas()['COLNAME'].tolist()]
-            df_cols = [str(col).strip().upper() for col in dataframe.columns.tolist()]
-            return db_cols != df_cols  # any difference in names, count, or order → evolve
+            raw_db_cols = [col.strip() for col in result.to_pandas()['COLNAME'].tolist()]
+            # Case-insensitive check for name/count/order differences
+            if [c.upper() for c in raw_db_cols] != [str(c).strip().upper() for c in dataframe.columns]:
+                return True
+            # Also evolve if column casing in DB differs from DataFrame column names.
+            # _escape_identifier preserves the exact DataFrame column name, so a table
+            # created with a previous version (e.g. uppercase "V") will mismatch a
+            # DataFrame with lowercase "v" — INSERT would fail on the stale column name.
+            if raw_db_cols != [str(c).strip() for c in dataframe.columns]:
+                return True
+            return False
         except Exception:
             return True  # if catalog check fails, assume evolution needed (safe fallback)
 
@@ -1571,9 +1587,16 @@ class TabularDatasource(Datasource):
         optimal_rows = int(safe_message_bytes / estimated_serialized_per_row)
         
         # Apply reasonable bounds
-        min_chunk_size = 100    # Don't go too small (too many round trips)
+        min_chunk_size = 1      # Wide tables may need single-row batches
         max_chunk_size = 50000  # Don't go too large (memory concerns)
-        
+
+        # DB2 hard limit: 32,767 parameter markers per statement.
+        # A multi-row INSERT uses ncols × nrows markers, so cap rows accordingly.
+        n_cols = len(dataframe.columns)
+        if n_cols > 0:
+            db2_param_limit = max(1, 32767 // n_cols)
+            optimal_rows = min(optimal_rows, db2_param_limit)
+
         optimal_chunk_size = max(min_chunk_size, min(optimal_rows, max_chunk_size))
         
         if self._debug_sql:
@@ -1834,11 +1857,11 @@ class TabularDatasource(Datasource):
             parts = identifier.split('.', 1)  # Split only on first dot to handle cases like catalog.schema.table
             schema = parts[0].strip()
             table = parts[1].strip()
-            
+
             # Remove existing quotes if present and re-quote properly
             schema = schema.strip('"').strip('`').strip('[').strip(']')
             table = table.strip('"').strip('`').strip('[').strip(']')
-            
+
             # Return properly quoted schema.table using SQL standard double quotes
             return f'"{schema}"."{table}"'
         else:
@@ -2597,11 +2620,11 @@ class TabularDatasource(Datasource):
             )
             if self._debug_sql:
                 self._logger.info(f"DB2 DoPut complete: {len(dataframe):,} rows into {table_name}")
-        except flight.FlightUnimplementedError:
-            self._logger.warning("DoPut not supported by server, falling back to SQL inserts")
-            self._db2_native_sql_insert(table_name, dataframe, chunksize)
         except Exception as e:
-            if "ResourceExhausted" in str(e) or "received message larger than max" in str(e):
+            # FlightUnimplementedError was removed in PyArrow ≥18; detect by name for compatibility.
+            if type(e).__name__ == 'FlightUnimplementedError' or "unimplemented" in str(e).lower():
+                self._logger.warning("DoPut not supported by server, falling back to SQL inserts")
+            elif "ResourceExhausted" in str(e) or "received message larger than max" in str(e):
                 self._logger.warning(
                     f"DoPut batch too large for server gRPC limit "
                     f"(batch_size={chunksize:,} rows). "
