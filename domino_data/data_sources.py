@@ -2611,6 +2611,16 @@ class TabularDatasource(Datasource):
                 non_null = df[col].dropna()
                 if len(non_null) > 0 and isinstance(non_null.iloc[0], bytes):
                     incompatible[col] = "bytes"
+                elif len(non_null) == 0:
+                    # All-None column: pa.Table.from_pandas would infer Arrow null
+                    # type (pa.null()), which some Arrow Flight / DB2 driver versions
+                    # mishandle — records arrive with NumRows()==0, so no rows are
+                    # inserted.  Cast to StringDtype so PyArrow infers pa.large_string()
+                    # with a proper null bitmap instead, which DB2 accepts as NULL in
+                    # any character column.
+                    if df is dataframe:
+                        df = dataframe.copy()
+                    df[col] = pandas.array([None] * len(df), dtype=pandas.StringDtype())
 
         if incompatible:
             col_list = ", ".join(f"{c!r} ({t})" for c, t in incompatible.items())
