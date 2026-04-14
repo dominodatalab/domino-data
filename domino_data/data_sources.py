@@ -2577,12 +2577,6 @@ class TabularDatasource(Datasource):
         The original DataFrame is never mutated — a copy is made lazily only
         when the first column needs coercing.
         """
-        # DB2 folds unquoted identifiers to uppercase (SQL standard). Storing
-        # columns as quoted lowercase (e.g. "id") means `SELECT id FROM t`
-        # resolves to "ID" and raises SQL0206N. Uppercase all column names up
-        # front so the CREATE TABLE, INSERT, and DoPut all use "ID", "METRIC_1"
-        # etc., making plain unquoted SQL work naturally for users.
-        dataframe = dataframe.rename(columns=str.upper)
         df = dataframe
         incompatible = {}
 
