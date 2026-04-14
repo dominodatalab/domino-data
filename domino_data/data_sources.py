@@ -2632,7 +2632,7 @@ class TabularDatasource(Datasource):
                 datasource_id=self.identifier,
                 config=self._config_override.config(),
                 credential=self._get_credential_override(),
-                table_name=table_name,
+                table_name=self._escape_identifier(table_name),
                 table=arrow_table,
                 # Do NOT pass batch_size here. do_put auto-calculates based on
                 # SQL literal size, not DB2 parameter-marker limit. The caller's
