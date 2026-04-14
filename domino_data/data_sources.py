@@ -1402,7 +1402,22 @@ class TabularDatasource(Datasource):
 
             # Insert data with optimized chunk size
             self._insert_dataframe(table_name, dataframe, optimal_chunk_size)
-            
+
+            # Warn DB2 native users when the table name contains lowercase characters.
+            # DB2 stores quoted lowercase identifiers as-is (e.g. "df_1k_narrow"),
+            # so raw SQL without quotes will fold to uppercase and raise SQL0204N.
+            # The SDK always quotes identifiers when building SQL, so ds_read() /
+            # QueryBuilder calls are unaffected — only hand-written query() calls.
+            if self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value:
+                raw_table = table_name.split('.')[-1].strip('"').strip('`').strip('[').strip(']')
+                if any(c.islower() for c in raw_table):
+                    escaped = self._escape_identifier(table_name)
+                    self._logger.warning(
+                        f"Table {escaped} was created with a lowercase name. "
+                        f"When writing raw SQL, use quoted identifiers to avoid SQL0204N: "
+                        f"SELECT * FROM {escaped}"
+                    )
+
             # Performance metrics
             if self._debug_sql:
                 end_time = time.perf_counter()
@@ -2619,7 +2634,11 @@ class TabularDatasource(Datasource):
                 credential=self._get_credential_override(),
                 table_name=table_name,
                 table=arrow_table,
-                batch_size=chunksize,
+                # Do NOT pass batch_size here. do_put auto-calculates based on
+                # SQL literal size, not DB2 parameter-marker limit. The caller's
+                # chunksize is capped at 32767/ncols for the fallback SQL path
+                # (e.g. 54 rows for 600 cols), which would produce 16k+ INSERTs.
+                # Letting do_put auto-size yields ~163 rows/batch → ~5k INSERTs.
             )
             if self._debug_sql:
                 self._logger.info(f"DB2 DoPut complete: {len(dataframe):,} rows into {table_name}")
@@ -3546,11 +3565,12 @@ class DataSourceClient:
         if batch_size is None:
             # Derive batch size from the table's actual memory footprint so each
             # INSERT stays well under DB2's ~2 MB SQL statement limit.
-            # SQL literals are roughly 2x the Arrow in-memory bytes; target 512 KB
-            # per INSERT to leave a comfortable safety margin.
+            # SQL literals are roughly 2x the Arrow in-memory bytes; target 1.5 MB
+            # per INSERT, capped at 50k rows.  Previous 512 KB / 5k cap caused
+            # 16k+ INSERT statements for wide tables (e.g. 600 cols × 900k rows).
             bytes_per_row = max(table.nbytes / max(table.num_rows, 1), 1)
             sql_bytes_per_row = bytes_per_row * 2
-            batch_size = max(10, min(int(512 * 1024 / sql_bytes_per_row), 5000))
+            batch_size = max(10, min(int(1536 * 1024 / sql_bytes_per_row), 50_000))
 
         descriptor_bytes = json.dumps(
             {
