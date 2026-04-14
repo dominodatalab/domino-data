@@ -1512,9 +1512,11 @@ class TabularDatasource(Datasource):
     def _requires_schema_evolution(self, table_name: str, dataframe: pandas.DataFrame) -> bool:
         """Check whether the DB2 table schema differs from the incoming DataFrame.
 
-        Compares column names AND column order (via SYSCAT.COLUMNS ORDER BY COLNO).
+        Compares column names, column order, AND column types (via SYSCAT.COLUMNS).
         Order matters because DoPut bulk insert is positional — a reordered DataFrame
         against an unchanged DB2 table would silently put data in the wrong columns.
+        Type comparison catches e.g. DATE→TIMESTAMP changes that would otherwise be
+        masked by the TRUNCATE optimisation, leaving stale column types in place.
 
         Uses a catalog-only query (no lock on the actual table) so it is safe to call
         immediately before DROP TABLE without introducing a blocking cursor lock.
@@ -1527,16 +1529,19 @@ class TabularDatasource(Datasource):
                 parts = table_name.split('.', 1)
                 schema = parts[0].strip().strip('"').upper()
                 table = parts[1].strip().strip('"').upper()
-                sql = (f"SELECT COLNAME FROM SYSCAT.COLUMNS "
+                sql = (f"SELECT COLNAME, TYPENAME FROM SYSCAT.COLUMNS "
                        f"WHERE TRIM(TABSCHEMA) = '{schema}' AND UPPER(TABNAME) = '{table}' "
                        f"ORDER BY COLNO")
             else:
                 table = table_name.strip().strip('"').upper()
-                sql = (f"SELECT COLNAME FROM SYSCAT.COLUMNS "
+                sql = (f"SELECT COLNAME, TYPENAME FROM SYSCAT.COLUMNS "
                        f"WHERE UPPER(TABNAME) = '{table}' ORDER BY COLNO")
 
             result = self.query(sql)
-            raw_db_cols = [col.strip() for col in result.to_pandas()['COLNAME'].tolist()]
+            df_catalog = result.to_pandas()
+            raw_db_cols = [col.strip() for col in df_catalog['COLNAME'].tolist()]
+            raw_db_types = [t.strip().upper() for t in df_catalog['TYPENAME'].tolist()]
+
             # Case-insensitive check for name/count/order differences
             if [c.upper() for c in raw_db_cols] != [str(c).strip().upper() for c in dataframe.columns]:
                 return True
@@ -1546,6 +1551,14 @@ class TabularDatasource(Datasource):
             # DataFrame with lowercase "v" — INSERT would fail on the stale column name.
             if raw_db_cols != [str(c).strip() for c in dataframe.columns]:
                 return True
+            # Check column types.  Normalize our SQL type to the base name (strip
+            # precision/length — "VARCHAR(255)" → "VARCHAR", "DECIMAL(31,0)" → "DECIMAL")
+            # before comparing with SYSCAT TYPENAME.
+            for db_type, (col, dtype) in zip(raw_db_types, dataframe.dtypes.items()):
+                expected_sql = self._map_dtype_to_sql(dtype, dataframe[col])
+                expected_base = expected_sql.split('(')[0].strip().upper()
+                if db_type != expected_base:
+                    return True
             return False
         except Exception:
             return True  # if catalog check fails, assume evolution needed (safe fallback)
