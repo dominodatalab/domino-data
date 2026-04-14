@@ -1230,15 +1230,18 @@ class TabularDatasource(Datasource):
             if is_db2_native:
                 # Query SYSCAT.TABLES instead of the actual table to avoid opening a
                 # cursor lock that would block an immediately-following DROP TABLE.
+                # Use UPPER(TABNAME) so both quoted-lowercase ("my_tbl" → stored as
+                # my_tbl) and unquoted-uppercase (MY_TBL) tables are found with the
+                # same search.
                 if '.' in table_name:
                     parts = table_name.split('.', 1)
                     schema = parts[0].strip().strip('"').strip('`').strip('[').strip(']').upper()
                     table = parts[1].strip().strip('"').strip('`').strip('[').strip(']').upper()
                     sql = (f"SELECT 1 FROM SYSCAT.TABLES WHERE TRIM(TABSCHEMA) = '{schema}'"
-                           f" AND TABNAME = '{table}' FETCH FIRST 1 ROW ONLY")
+                           f" AND UPPER(TABNAME) = '{table}' FETCH FIRST 1 ROW ONLY")
                 else:
                     clean = table_name.strip().strip('"').strip('`').strip('[').strip(']').upper()
-                    sql = f"SELECT 1 FROM SYSCAT.TABLES WHERE TABNAME = '{clean}' FETCH FIRST 1 ROW ONLY"
+                    sql = f"SELECT 1 FROM SYSCAT.TABLES WHERE UPPER(TABNAME) = '{clean}' FETCH FIRST 1 ROW ONLY"
                 result = self.query(sql)
                 df = result.to_pandas()
                 return len(df) > 0
@@ -1510,12 +1513,12 @@ class TabularDatasource(Datasource):
                 schema = parts[0].strip().strip('"').upper()
                 table = parts[1].strip().strip('"').upper()
                 sql = (f"SELECT COLNAME FROM SYSCAT.COLUMNS "
-                       f"WHERE TRIM(TABSCHEMA) = '{schema}' AND TABNAME = '{table}' "
+                       f"WHERE TRIM(TABSCHEMA) = '{schema}' AND UPPER(TABNAME) = '{table}' "
                        f"ORDER BY COLNO")
             else:
                 table = table_name.strip().strip('"').upper()
                 sql = (f"SELECT COLNAME FROM SYSCAT.COLUMNS "
-                       f"WHERE TABNAME = '{table}' ORDER BY COLNO")
+                       f"WHERE UPPER(TABNAME) = '{table}' ORDER BY COLNO")
 
             result = self.query(sql)
             raw_db_cols = [col.strip() for col in result.to_pandas()['COLNAME'].tolist()]
