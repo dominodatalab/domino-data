@@ -2666,18 +2666,15 @@ class TabularDatasource(Datasource):
             if self._debug_sql:
                 self._logger.info(f"DB2 DoPut complete: {len(dataframe):,} rows into {table_name}")
         except Exception as e:
-            # FlightUnimplementedError was removed in PyArrow ≥18; detect by name for compatibility.
-            if type(e).__name__ == 'FlightUnimplementedError' or "unimplemented" in str(e).lower():
+            err_str = str(e)
+            err_type = type(e).__name__
+            # Fall back to SQL only when DoPut is structurally unavailable on the server
+            # (old proxy that predates DoPut support). All other failures are real errors
+            # that the SQL path would hit too — raise immediately with the original cause.
+            if err_type == 'FlightUnimplementedError' or "unimplemented" in err_str.lower():
                 self._logger.warning("DoPut not supported by server, falling back to SQL inserts")
-            elif "ResourceExhausted" in str(e) or "received message larger than max" in str(e):
-                self._logger.warning(
-                    f"DoPut batch too large for server gRPC limit "
-                    f"(batch_size={chunksize:,} rows). "
-                    f"Reduce chunksize or upgrade datasource-proxy. "
-                    f"Falling back to SQL inserts."
-                )
             else:
-                self._logger.warning(f"DoPut failed ({type(e).__name__}): {e}, falling back to SQL inserts")
+                raise
             self._db2_native_sql_insert(table_name, dataframe, chunksize)
 
     def _db2_native_sql_insert(self, table_name: str, dataframe: pandas.DataFrame, chunksize: int) -> None:
@@ -3573,6 +3570,7 @@ class DataSourceClient:
         table_name: str,
         table: "pa.Table",
         batch_size: Optional[int] = None,
+        mode: str = "append",
     ) -> None:
         """Stream an Arrow table to the proxy via DoPut for bulk insert.
 
@@ -3584,6 +3582,12 @@ class DataSourceClient:
         size is derived from the table's actual memory footprint so that each
         INSERT stays well under DB2's ~2 MB SQL statement limit. Pass an
         explicit value to override (e.g. when calling do_put directly).
+
+        mode controls how the server commits rows into the target table:
+          "append" (default): INSERT rows without touching existing data.
+          "replace": atomically TRUNCATE the target then INSERT all rows.
+        The Python library manages table truncation itself before calling
+        do_put, so "append" is the correct default here.
         """
         if batch_size is None:
             # Derive batch size from the table's actual memory footprint so each
@@ -3601,6 +3605,7 @@ class DataSourceClient:
                 "configOverwrites": config,
                 "credentialOverwrites": credential,
                 "tableName": table_name,
+                "mode": mode,
             }
         ).encode()
         descriptor = flight.FlightDescriptor.for_command(descriptor_bytes)
