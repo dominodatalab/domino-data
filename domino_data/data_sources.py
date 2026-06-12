@@ -1270,13 +1270,22 @@ class TabularDatasource(Datasource):
             table_name: Name of the table to write to
             dataframe: DataFrame containing the data to write
             if_table_exists: Action if table exists:
-                - 'fail': Raise an error if table exists (default)
-                - 'replace': Drop and recreate the table
-                - 'append': Append data to the existing table
-                - 'truncate': Empty the table but keep its structure
+                - 'fail': Raise an error if table exists (default).
+                - 'replace': For DB2 native, truncates the table when the schema is
+                  unchanged, or drops and recreates it when column names, order, or
+                  types differ (e.g. TIMESTAMP → DATE). For other datasources, always
+                  drops and recreates.
+                - 'append': Append rows to the existing table. For DB2 native, raises
+                  ValueError if column types or order differ from the existing table
+                  (use force=True to bypass and append anyway).
+                - 'truncate': Empty the table and refill it. For DB2 native, drops and
+                  recreates the table when column types or order have changed (e.g.
+                  TIMESTAMP → DATE); otherwise truncates in place. Safe to use when
+                  fixing a stale schema — the table is empty either way.
             chunksize: Number of rows to insert in each batch for large DataFrames
             handle_mixed_types: If True, detect and handle mixed types in object columns
-            force: If True, attempt to append data even if schema compatibility issues are detected
+            force: If True, skip schema compatibility and type-mismatch checks. For DB2
+                native append mode, also bypasses the column type/order mismatch error.
 
         Raises:
             ValueError: If operation cannot be completed safely
@@ -1291,7 +1300,7 @@ class TabularDatasource(Datasource):
             # Append data to an existing table (will check schema compatibility)
             datasource.write_dataframe("my_table", df, if_table_exists='append')
 
-            # Truncate an existing table and add new data
+            # Truncate an existing table and add new data (DB2 native: also fixes stale column types)
             datasource.write_dataframe("my_table", df, if_table_exists='truncate')
 
             # Force append even if there are schema compatibility issues (not recommended)
@@ -1354,7 +1363,6 @@ class TabularDatasource(Datasource):
                 if if_table_exists == 'fail':
                     raise ValueError(f"Table '{table_name}' already exists.")
                 elif if_table_exists == 'replace':
-                    is_db2_native = self.datasource_type == DatasourceDtoDataSourceType.DB2NATIVECONFIG.value
                     if is_db2_native:
                         # For DB2 native, DROP TABLE acquires a catalog Z-lock that hangs
                         # indefinitely when the previous bulk-insert ODBC connection is still
@@ -1389,10 +1397,27 @@ class TabularDatasource(Datasource):
                     # Truncate existing table
                     if not force:
                         self._check_schema_compatibility(table_name, dataframe)
-                    self._truncate_table(table_name)
+                    if is_db2_native and self._requires_schema_evolution(table_name, dataframe):
+                        # Column types or order changed (e.g. TIMESTAMP → DATE): DROP+CREATE
+                        # fixes the schema. Safe because the table will be empty either way.
+                        if self._debug_sql:
+                            self._logger.debug(
+                                "DB2 truncate: schema mismatch detected, using DROP+CREATE"
+                            )
+                        self._drop_and_create_table(table_name, dataframe)
+                        table_created = True
+                    else:
+                        self._truncate_table(table_name)
                 elif if_table_exists == 'append':
                     if not force:
                         self._check_schema_compatibility(table_name, dataframe)
+                    if is_db2_native and not force and self._requires_schema_evolution(table_name, dataframe):
+                        raise ValueError(
+                            "Column type or order mismatch detected between the DataFrame "
+                            "and the existing DB2 table (e.g. DATE vs TIMESTAMP). "
+                            "Use if_table_exists='replace' to recreate the table with the "
+                            "correct schema, or force=True to append anyway."
+                        )
                 else:
                     raise ValueError(f"Invalid option for if_table_exists: {if_table_exists}")
             else:
