@@ -1262,6 +1262,7 @@ class TabularDatasource(Datasource):
         force: bool = False,
         auto_optimize_chunks: bool = True,  # New: Enable auto-optimization by default
         max_message_size_mb: float = 4.0,  # New: gRPC message size limit
+        assume_typed: bool = False,  # New: caller guarantees correct dtypes (skip date inference)
     ) -> None:
         """
         Write a DataFrame to a table in the datasource.
@@ -1286,6 +1287,13 @@ class TabularDatasource(Datasource):
             handle_mixed_types: If True, detect and handle mixed types in object columns
             force: If True, skip schema compatibility and type-mismatch checks. For DB2
                 native append mode, also bypasses the column type/order mismatch error.
+            assume_typed: If True, the caller guarantees each column already carries its
+                intended SQL type (e.g. a pure date is an object column of datetime.date,
+                a timestamp is datetime64[ns]). The value-based midnight->date inference in
+                _sanitize_for_doput is then skipped, so a genuine all-midnight TIMESTAMP
+                column is NOT demoted to DATE. Used by the R client (DominoDataR), which
+                types columns natively via Arrow. Pure-Python callers leave this False and
+                the heuristic runs as before. Unsupported-type guards still apply.
 
         Raises:
             ValueError: If operation cannot be completed safely
@@ -1308,7 +1316,12 @@ class TabularDatasource(Datasource):
         """
         import time
         start_time = time.perf_counter()
-        
+
+        # Per-call flag read by _sanitize_for_doput (both call sites) so the caller
+        # need not thread it through the insert chain. When True, the value-based
+        # midnight->date inference is skipped because the caller already typed columns.
+        self._assume_typed = assume_typed
+
         # Determine chunk size strategy
         if chunksize is not None:
             # Manual chunk size provided - use it
@@ -2605,9 +2618,18 @@ class TabularDatasource(Datasource):
         df = dataframe
         incompatible = {}
 
+        # When the caller guarantees correct dtypes (e.g. the R client, which types
+        # columns natively via Arrow and passes dates as object/datetime.date), skip
+        # the value-based midnight->date inference. Otherwise a genuine all-midnight
+        # TIMESTAMP column would be silently demoted to DATE. Unsupported-type guards
+        # and all-None handling below still run either way.
+        flatten_midnight = not getattr(self, "_assume_typed", False)
+
         for col in df.columns:
             dtype = df[col].dtype
             if pandas.api.types.is_datetime64_any_dtype(dtype):
+                if not flatten_midnight:
+                    continue
                 non_null = df[col].dropna()
                 if len(non_null) == 0:
                     continue
