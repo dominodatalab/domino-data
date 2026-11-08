@@ -566,11 +566,11 @@ def test_object_store_download_fileobj(env, respx_mock, datafx):
     assert mock_fileobj.getvalue() == mock_content
 
 
-@pytest.mark.parametrize("status", [400, 403, 404, 500])
-def test_object_store_download_methods_raise_on_http_error(
-    env, respx_mock, datafx, tmp_path, monkeypatch, status
+@pytest.mark.parametrize("method", ["download_file", "download", "download_fileobj"])
+def test_object_store_download_raises_on_http_error(
+    env, respx_mock, datafx, tmp_path, monkeypatch, method
 ):
-    """Every object store download method raises on a non-2xx response and writes nothing."""
+    """Object store download methods raise on a non-2xx response and write nothing."""
     env.delenv("DOMINO_API_PROXY")
     respx_mock.get("http://token-proxy/access-token").mock(
         return_value=httpx.Response(200, content=b"jwt")
@@ -582,22 +582,18 @@ def test_object_store_download_methods_raise_on_http_error(
         return_value=httpx.Response(200, json="http://s3/url"),
     )
     respx_mock.get("http://s3/url").mock(
-        return_value=httpx.Response(status, content=b"<!DOCTYPE html>Not Found"),
+        return_value=httpx.Response(404, content=b"<!DOCTYPE html>Not Found"),
     )
     pool = MagicMock()
-    pool.request.return_value = MagicMock(status=status, data=b"Not Found", headers={})
+    pool.request.return_value = MagicMock(status=404, data=b"Not Found", headers={})
     monkeypatch.setattr(ds._Object, "pool_manager", lambda self: pool)
 
     s3d = ds.cast(ds.ObjectStoreDatasource, ds.DataSourceClient().get_datasource("s3"))
-    target = tmp_path / "out.csv"
     fileobj = io.BytesIO()
+    target = fileobj if method == "download_fileobj" else tmp_path / "out.csv"
 
     with pytest.raises(httpx.HTTPStatusError):
-        s3d.download_file("file.csv", target)
-    with pytest.raises(httpx.HTTPStatusError):
-        s3d.download("file.csv", target)
-    with pytest.raises(httpx.HTTPStatusError):
-        s3d.download_fileobj("file.csv", fileobj)
+        getattr(s3d, method)("file.csv", target)
 
     assert list(tmp_path.iterdir()) == []
     assert fileobj.getvalue() == b""

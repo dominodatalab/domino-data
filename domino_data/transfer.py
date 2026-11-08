@@ -1,9 +1,7 @@
 from typing import BinaryIO, Generator, Iterator, Optional, Tuple, Union
 
 import contextlib
-import io
 import os
-import shutil
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -115,15 +113,10 @@ class BlobTransfer:
         res = self.http.request("GET", self.url, headers=headers, preload_content=False)
         try:
             raise_for_status(res, self.url)
-
-            buffer = io.BytesIO()
-            shutil.copyfileobj(res, buffer)
-
-            buffer.seek(0)
-            with self._lock:
-                self.destination.seek(block[0])
-                shutil.copyfileobj(buffer, self.destination)  # type: ignore
-
-            buffer.close()
+            data = res.read()
         finally:
             res.release_connection()
+
+        with self._lock:
+            self.destination.seek(block[0])
+            self.destination.write(data)

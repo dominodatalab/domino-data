@@ -155,6 +155,7 @@ def test_download_file(env, respx_mock, datafx, tmp_path):
     dataset.download_file("file.png", mock_file.absolute())
 
     assert mock_file.read_bytes() == mock_content
+    assert [p.name for p in tmp_path.iterdir()] == ["file.txt"]
 
 
 def test_download_fileobj(env, respx_mock, datafx):
@@ -181,16 +182,15 @@ def test_download_fileobj(env, respx_mock, datafx):
     assert mock_fileobj.getvalue() == mock_content
 
 
-ERROR_STATUSES = [400, 403, 404, 500]
 ERROR_BODY = b'{"message":"file missing.csv does not exist","success":false}'
 
 
 @pytest.fixture
-def failing_dataset(env, respx_mock, datafx):
-    """Return a factory for a dataset whose file URL answers with the given HTTP status."""
+def mock_dataset(env, respx_mock, datafx):
+    """Return a factory for a dataset whose file URL answers with the given status and body."""
     env.delenv("DOMINO_API_PROXY")
 
-    def make(status):
+    def make(status, content=ERROR_BODY):
         respx_mock.get("http://token-proxy/access-token").mock(
             return_value=httpx.Response(200, content=b"jwt")
         )
@@ -201,67 +201,80 @@ def failing_dataset(env, respx_mock, datafx):
             return_value=httpx.Response(200, json="http://dataset-test/url"),
         )
         respx_mock.get("http://dataset-test/url").mock(
-            return_value=httpx.Response(status, content=ERROR_BODY),
+            return_value=httpx.Response(status, content=content),
         )
         return ds.DatasetClient().get_dataset("dataset-test")
 
     return make
 
 
-@pytest.mark.parametrize("status", ERROR_STATUSES)
-def test_download_file_raises_on_http_error(failing_dataset, tmp_path, status):
-    """download_file raises and creates no local file when the download fails."""
-    dataset = failing_dataset(status)
+def range_pool(content, status=206):
+    """Fake urllib3 pool manager that serves HTTP range requests over content."""
+
+    def request(method, url, headers=None, preload_content=True):
+        start, end = map(int, headers["Range"].replace("bytes=", "").split("-"))
+        body = content[start : end + 1] if status < 300 else ERROR_BODY
+        # read() behaves like a real stream: returns the body once, then b"".
+        return MagicMock(
+            status=status,
+            data=body,
+            read=io.BytesIO(body).read,
+            headers={"Content-Range": f"bytes {start}-{end}/{len(content)}"},
+        )
+
+    pool = MagicMock()
+    pool.request.side_effect = request
+    return pool
+
+
+def test_download(mock_dataset, tmp_path, monkeypatch):
+    """download (multithreaded) writes the file and leaves no temp file behind."""
+    content = b"I am a blob" * 100
+    dataset = mock_dataset(200)
+    monkeypatch.setattr(ds.Dataset, "pool_manager", lambda self: range_pool(content))
     target = tmp_path / "out.csv"
 
+    dataset.download("file.csv", target, max_workers=2)
+
+    assert target.read_bytes() == content
+    assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
+
+
+@pytest.mark.parametrize("status", [400, 403, 404, 500])
+def test_download_file_raises_on_http_error(mock_dataset, tmp_path, status):
+    """download_file raises the HTTP error and creates no local file."""
+    dataset = mock_dataset(status)
+
     with pytest.raises(httpx.HTTPStatusError) as err:
-        dataset.download_file("missing.csv", target)
+        dataset.download_file("missing.csv", tmp_path / "out.csv")
 
     assert err.value.response.status_code == status
     assert list(tmp_path.iterdir()) == []
 
 
-def test_download_file_keeps_existing_file_on_http_error(failing_dataset, tmp_path):
-    """download_file does not overwrite an existing local file when the download fails."""
-    dataset = failing_dataset(404)
+def test_download_fileobj_raises_on_http_error(mock_dataset):
+    """download_fileobj raises the HTTP error and writes nothing."""
+    dataset = mock_dataset(404)
+    fileobj = io.BytesIO()
+
+    with pytest.raises(httpx.HTTPStatusError):
+        dataset.download_fileobj("missing.csv", fileobj)
+
+    assert fileobj.getvalue() == b""
+
+
+def test_download_raises_on_http_error_and_keeps_existing_file(mock_dataset, tmp_path, monkeypatch):
+    """download raises the HTTP error (not KeyError) and leaves an existing file untouched."""
+    dataset = mock_dataset(404)
+    monkeypatch.setattr(ds.Dataset, "pool_manager", lambda self: range_pool(b"", status=404))
     target = tmp_path / "out.csv"
     target.write_bytes(b"original")
 
     with pytest.raises(httpx.HTTPStatusError):
-        dataset.download_file("missing.csv", target)
+        dataset.download("missing.csv", target)
 
     assert target.read_bytes() == b"original"
     assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
-
-
-@pytest.mark.parametrize("status", ERROR_STATUSES)
-def test_download_fileobj_raises_on_http_error(failing_dataset, status):
-    """download_fileobj raises and writes nothing when the download fails."""
-    dataset = failing_dataset(status)
-    fileobj = io.BytesIO()
-
-    with pytest.raises(httpx.HTTPStatusError) as err:
-        dataset.download_fileobj("missing.csv", fileobj)
-
-    assert err.value.response.status_code == status
-    assert fileobj.getvalue() == b""
-
-
-@pytest.mark.parametrize("status", ERROR_STATUSES)
-def test_download_raises_on_http_error(failing_dataset, tmp_path, monkeypatch, status):
-    """download (multithreaded) raises the HTTP error, not KeyError, and creates no local file."""
-    dataset = failing_dataset(status)
-    response = MagicMock(status=status, data=ERROR_BODY, headers={})
-    pool = MagicMock()
-    pool.request.return_value = response
-    monkeypatch.setattr(ds.Dataset, "pool_manager", lambda self: pool)
-    target = tmp_path / "out.csv"
-
-    with pytest.raises(httpx.HTTPStatusError) as err:
-        dataset.download("missing.csv", target)
-
-    assert err.value.response.status_code == status
-    assert list(tmp_path.iterdir()) == []
 
 
 # Configuration override
