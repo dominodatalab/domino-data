@@ -22,55 +22,6 @@ def test_split_range(start, end, step, expected):
     assert expected == list(transfer.split_range(start, end, step))
 
 
-def test_blob_transfer():
-    # Mock the HTTP client to avoid real network calls
-    mock_http = MagicMock(spec=urllib3.PoolManager)
-
-    def mock_request(method, url, headers=None, preload_content=True):
-        # Check if this is the initial size check request
-        if headers and headers.get("Range") == "bytes=0-0":
-            mock_response = MagicMock()
-            mock_response.status = 206
-            mock_response.headers = {"Content-Range": "bytes 0-0/21821"}
-            return mock_response
-
-        # For actual data chunk requests, return a file-like object
-        # that shutil.copyfileobj can read from
-        if headers and "Range" in headers:
-            # Parse the range to determine how much data to return
-            range_header = headers["Range"].replace("bytes=", "")
-            start, end = map(int, range_header.split("-"))
-            size = end - start + 1
-            # Create a BytesIO object that acts as a file-like response
-            data = io.BytesIO(b"x" * size)
-            # Mock the response object with the necessary methods
-            mock_response = MagicMock()
-            mock_response.status = 206
-            mock_response.read = data.read
-            mock_response.__iter__ = lambda self: iter(data)
-            mock_response.release_connection = MagicMock()
-            return mock_response
-
-        # Fallback
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.read = MagicMock(return_value=b"")
-        mock_response.release_connection = MagicMock()
-        return mock_response
-
-    mock_http.request = mock_request
-
-    with io.BytesIO() as dest:
-        transfer.BlobTransfer(
-            "https://murat-secure-test.s3.us-west-2.amazonaws.com/9095835.png",
-            dest,
-            chunk_size=1024,
-            http=mock_http,
-        )
-
-        assert 21821 == len(dest.getvalue())
-
-
 def _response(status, data=b"", headers=None):
     res = MagicMock()
     res.status = status
@@ -78,6 +29,52 @@ def _response(status, data=b"", headers=None):
     res.headers = headers or {}
     res.read = io.BytesIO(data).read
     return res
+
+
+def _range_http(content, fail_from=None):
+    """Fake urllib3 pool serving range requests over content; records each chunk response.
+
+    Args:
+        content: bytes served by the fake blob
+        fail_from: start offset of a chunk that answers with HTTP 500 instead
+
+    Returns:
+        Tuple of the mock pool manager and the list of chunk responses it returned.
+    """
+    chunk_responses = []
+
+    def request(method, url, headers=None, preload_content=True):
+        if headers["Range"] == "bytes=0-0":
+            return _response(206, headers={"Content-Range": f"bytes 0-0/{len(content)}"})
+        start, end = map(int, headers["Range"].replace("bytes=", "").split("-"))
+        if start == fail_from:
+            res = _response(500, b"boom")
+        else:
+            res = _response(206, content[start : end + 1])
+        chunk_responses.append(res)
+        return res
+
+    mock_http = MagicMock(spec=urllib3.PoolManager)
+    mock_http.request = request
+    return mock_http, chunk_responses
+
+
+def test_blob_transfer():
+    """Every chunk lands at its own offset and every chunk connection is released."""
+    # Distinct bytes, so a chunk written at the wrong offset changes the result.
+    content = bytes(i % 251 for i in range(21821))
+    mock_http, chunk_responses = _range_http(content)
+
+    with io.BytesIO() as dest:
+        transfer.BlobTransfer(
+            "http://blob/url", dest, chunk_size=1024, max_workers=4, http=mock_http
+        )
+
+        assert dest.getvalue() == content
+
+    assert len(chunk_responses) == 22
+    for res in chunk_responses:
+        res.release_connection.assert_called_once()
 
 
 def test_blob_transfer_raises_when_size_request_fails():
@@ -94,24 +91,17 @@ def test_blob_transfer_raises_when_size_request_fails():
 
 
 def test_blob_transfer_raises_when_a_part_fails():
-    """A failed range request propagates out of the worker pool instead of being swallowed."""
-    mock_http = MagicMock(spec=urllib3.PoolManager)
-
-    def mock_request(method, url, headers=None, preload_content=True):
-        if headers["Range"] == "bytes=0-0":
-            return _response(206, headers={"Content-Range": "bytes 0-0/4096"})
-        if headers["Range"].startswith("bytes=2048-"):
-            return _response(500, b"boom")
-        start, end = map(int, headers["Range"].replace("bytes=", "").split("-"))
-        return _response(206, b"x" * (end - start + 1))
-
-    mock_http.request = mock_request
+    """A failed chunk propagates out of the worker pool and its connection is still released."""
+    mock_http, chunk_responses = _range_http(b"x" * 4096, fail_from=2048)
 
     with io.BytesIO() as dest:
         with pytest.raises(httpx.HTTPStatusError) as err:
             transfer.BlobTransfer("http://blob/url", dest, chunk_size=1024, http=mock_http)
 
         assert err.value.response.status_code == 500
+
+    for res in chunk_responses:
+        res.release_connection.assert_called_once()
 
 
 def test_atomic_open_keeps_existing_file_on_failure(tmp_path):
