@@ -50,15 +50,16 @@ pyarrow = ">=15.0.2"
 loguru = "^0.5.3"
 backoff = ">=1.11.1"
 bson = "^0.5.10"
-urllib3 = ">=2.6.0,<3"
-setuptools = ">=78.1.1"
+urllib3 = ">=2.8.0,<3"
+setuptools = ">=83.0.0"
 h11 = ">=0.16.0"
 
 [tool.poetry.group.dev.dependencies]
-virtualenv = ">=20.36.1"  # This fixes CVE-2026-22702
+virtualenv = ">=21.7.13"
+wheel = ">=0.46.2"  # seeded into the venv; pin so the safety scan sees a fixed version
 Sphinx = "^5.3.0"
 bandit = "^1.7.5"
-black = {version = "^24.3.0", allow-prereleases = true}
+black = ">=26.3.1"
 darglint = "^1.8.1"
 flake8 = "^6.0.0"
 grpcio = "^1.56.2"
@@ -66,23 +67,23 @@ jinja2 = "^3.1.5"
 isort = {extras = ["colors"], version = "^5.12.0"}
 mypy = "^1.4.1"
 mypy-extensions = "^1.0.0"
-openapi-python-client = ">=0.11.6"
+openapi-python-client = { version = ">=0.29.1", python = ">=3.11" }  # client generation only; 0.29.1+ needs 3.11
 pdbpp = "^0.10.3"
 pre-commit = "^2.21.0"
 pydocstyle = "^6.3.0"
-pyjwt = "^2.10.1"
+pyjwt = "^2.15.1"
 pylint = "^2.17.4"
-pytest = "^7.4.0"
+pytest = ">=9.0.3"
 pytest-cov = "^4.1.0"
 pytest-recording = "^0.12.2"
 pyupgrade = "^2.38.4"
 respx = "^0.20.1"
-safety = ">=3"
-authlib = ">=1.6.6"
+safety = ">=3.8.1"
+authlib = ">=1.6.12"
 sphinx-rtd-theme = "^1.2.2"
 types-PyYAML = "^6.0.12.11"
 types-python-dateutil = "^2.8.19.14"
-vcrpy = ">=8.0.0"
+vcrpy = ">=8.2.1"
 
 [tool.black]
 # https://github.com/psf/black
