@@ -104,6 +104,7 @@ exclude = '''
     | dist
     | env
     | venv
+    | remotefs_api_client
 )/
 '''
 
