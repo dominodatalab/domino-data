@@ -1,10 +1,14 @@
-from typing import BinaryIO, Generator, Optional, Tuple
+from typing import BinaryIO, Generator, Iterator, Optional, Tuple, Union
 
+import contextlib
 import io
+import os
 import shutil
 import threading
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 
+import httpx
 import urllib3
 
 MAX_WORKERS = 10
@@ -37,6 +41,37 @@ def split_range(start: int, end: int, step: int) -> Generator[Tuple[int, int], N
     yield (max_block, end)
 
 
+def raise_for_status(res: urllib3.BaseHTTPResponse, url: str) -> None:
+    """Raise httpx.HTTPStatusError for a non-2xx urllib3 response.
+
+    Uses the same exception type as the httpx-based download methods so callers
+    can handle every download failure the same way.
+    """
+    if 200 <= res.status < 300:
+        return
+    request = httpx.Request("GET", url)
+    httpx.Response(res.status, content=res.data, request=request).raise_for_status()
+
+
+@contextlib.contextmanager
+def atomic_open(filename: Union[str, "os.PathLike[str]"]) -> Iterator[BinaryIO]:
+    """Write to a temp file next to filename and move it into place only on success.
+
+    A failed download leaves no partial or error-page file behind and does not
+    overwrite an existing file at filename.
+    """
+    path = os.fspath(filename)
+    tmp_path = f"{path}.{uuid.uuid4().hex}.part"
+    try:
+        with open(tmp_path, "xb") as file:
+            yield file
+        os.replace(tmp_path, path)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(tmp_path)
+        raise
+
+
 class BlobTransfer:
     def __init__(
         self,
@@ -58,13 +93,15 @@ class BlobTransfer:
         self._lock = threading.Lock()
 
         # Use content_size - 1 because HTTP byte ranges are inclusive (0-indexed)
+        # Consume the results so an exception raised in any worker propagates.
         with ThreadPoolExecutor(max_workers) as pool:
-            pool.map(self._get_part, split_range(0, self.content_size - 1, chunk_size))
+            list(pool.map(self._get_part, split_range(0, self.content_size - 1, chunk_size)))
 
     def _get_content_size(self) -> int:
         headers = self.headers.copy()
         headers["Range"] = "bytes=0-0"
         res = self.http.request("GET", self.url, headers=headers)
+        raise_for_status(res, self.url)
         return int(res.headers["Content-Range"].partition("/")[-1])
 
     def _get_part(self, block: Tuple[int, int]) -> None:
@@ -76,14 +113,17 @@ class BlobTransfer:
         headers = self.headers.copy()
         headers["Range"] = f"bytes={block[0]}-{block[1]}"
         res = self.http.request("GET", self.url, headers=headers, preload_content=False)
+        try:
+            raise_for_status(res, self.url)
 
-        buffer = io.BytesIO()
-        shutil.copyfileobj(res, buffer)
+            buffer = io.BytesIO()
+            shutil.copyfileobj(res, buffer)
 
-        buffer.seek(0)
-        with self._lock:
-            self.destination.seek(block[0])
-            shutil.copyfileobj(buffer, self.destination)  # type: ignore
+            buffer.seek(0)
+            with self._lock:
+                self.destination.seek(block[0])
+                shutil.copyfileobj(buffer, self.destination)  # type: ignore
 
-        buffer.close()
-        res.release_connection()
+            buffer.close()
+        finally:
+            res.release_connection()

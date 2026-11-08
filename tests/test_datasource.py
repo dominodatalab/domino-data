@@ -2,6 +2,7 @@
 
 import io
 import json
+from unittest.mock import MagicMock
 
 import httpx
 import pyarrow
@@ -563,6 +564,43 @@ def test_object_store_download_fileobj(env, respx_mock, datafx):
     s3d.download_fileobj("file.png", mock_fileobj)
 
     assert mock_fileobj.getvalue() == mock_content
+
+
+@pytest.mark.parametrize("status", [400, 403, 404, 500])
+def test_object_store_download_methods_raise_on_http_error(
+    env, respx_mock, datafx, tmp_path, monkeypatch, status
+):
+    """Every object store download method raises on a non-2xx response and writes nothing."""
+    env.delenv("DOMINO_API_PROXY")
+    respx_mock.get("http://token-proxy/access-token").mock(
+        return_value=httpx.Response(200, content=b"jwt")
+    )
+    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
+        return_value=httpx.Response(200, json=datafx("s3")),
+    )
+    respx_mock.post("http://proxy/objectstore/key").mock(
+        return_value=httpx.Response(200, json="http://s3/url"),
+    )
+    respx_mock.get("http://s3/url").mock(
+        return_value=httpx.Response(status, content=b"<!DOCTYPE html>Not Found"),
+    )
+    pool = MagicMock()
+    pool.request.return_value = MagicMock(status=status, data=b"Not Found", headers={})
+    monkeypatch.setattr(ds._Object, "pool_manager", lambda self: pool)
+
+    s3d = ds.cast(ds.ObjectStoreDatasource, ds.DataSourceClient().get_datasource("s3"))
+    target = tmp_path / "out.csv"
+    fileobj = io.BytesIO()
+
+    with pytest.raises(httpx.HTTPStatusError):
+        s3d.download_file("file.csv", target)
+    with pytest.raises(httpx.HTTPStatusError):
+        s3d.download("file.csv", target)
+    with pytest.raises(httpx.HTTPStatusError):
+        s3d.download_fileobj("file.csv", fileobj)
+
+    assert list(tmp_path.iterdir()) == []
+    assert fileobj.getvalue() == b""
 
 
 @pytest.mark.usefixtures("env")

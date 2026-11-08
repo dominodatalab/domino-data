@@ -35,7 +35,7 @@ from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient, get_j
 from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
 from .meta import MetaMiddlewareFactory
-from .transfer import MAX_WORKERS, BlobTransfer
+from .transfer import MAX_WORKERS, BlobTransfer, atomic_open
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
@@ -186,13 +186,12 @@ class _Object:
         url = self.datasource.get_key_url(self.key, False)
         headers = self._get_headers()
         content_size = 0
-        with (
-            self.http().stream("GET", url, headers=headers) as stream,
-            open(filename, "wb") as file,
-        ):
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                file.write(data)
+        with self.http().stream("GET", url, headers=headers) as stream:
+            stream.raise_for_status()
+            with atomic_open(filename) as file:
+                for data in stream.iter_bytes():
+                    content_size += len(data)
+                    file.write(data)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -211,7 +210,7 @@ class _Object:
         """
         url = self.datasource.get_key_url(self.key, False)
         headers = self._get_headers()
-        with open(filename, "wb") as file:
+        with atomic_open(filename) as file:
             blob = BlobTransfer(
                 url, file, headers=headers, max_workers=max_workers, http=self.pool_manager()
             )
@@ -233,6 +232,7 @@ class _Object:
         headers = self._get_headers()
         content_size = 0
         with self.http().stream("GET", url, headers=headers) as stream:
+            stream.raise_for_status()
             for data in stream.iter_bytes():
                 content_size += len(data)
                 fileobj.write(data)
