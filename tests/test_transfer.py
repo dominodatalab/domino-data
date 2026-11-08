@@ -116,3 +116,27 @@ def test_atomic_open_keeps_existing_file_on_failure(tmp_path):
 
     assert target.read_bytes() == b"original"
     assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
+
+
+@pytest.mark.parametrize(
+    "body,expected",
+    [
+        (b'{"message":"file x.csv does not exist","success":false}', "file x.csv does not exist"),
+        (b"<Error><Code>NoSuchKey</Code></Error>", "<Error><Code>NoSuchKey</Code></Error>"),
+        (b"", ""),
+        (b"<html>" + b"x" * 500, "<html>" + "x" * 194 + "..."),
+    ],
+)
+def test_error_detail(body, expected):
+    """The server's reason is taken from a JSON message, else the start of the raw body."""
+    assert transfer._error_detail(body) == expected  # pylint: disable=protected-access
+
+
+def test_raise_for_status_without_body_keeps_httpx_message():
+    """With no body to add, the plain httpx error is raised unchanged."""
+    response = httpx.Response(500, request=httpx.Request("GET", "http://blob/url"))
+
+    with pytest.raises(httpx.HTTPStatusError) as err:
+        transfer.raise_for_status(response)
+
+    assert "Server response" not in str(err.value)

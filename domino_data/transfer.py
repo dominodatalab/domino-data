@@ -1,6 +1,7 @@
 from typing import BinaryIO, Generator, Iterator, Optional, Tuple, Union
 
 import contextlib
+import json
 import os
 import threading
 import uuid
@@ -39,16 +40,60 @@ def split_range(start: int, end: int, step: int) -> Generator[Tuple[int, int], N
     yield (max_block, end)
 
 
-def raise_for_status(res: urllib3.BaseHTTPResponse, url: str) -> None:
+MAX_ERROR_DETAIL = 200
+
+
+def _error_detail(body: bytes) -> str:
+    """Extract a short, readable reason from an error response body.
+
+    Prefers the "message" field of a JSON body (what Domino returns), and falls back
+    to the start of the raw text, e.g. an XML error from object storage.
+    """
+    text = body.decode("utf-8", errors="replace").strip()
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        parsed = None
+    if isinstance(parsed, dict):
+        for key in ("message", "error", "detail"):
+            if isinstance(parsed.get(key), str):
+                text = parsed[key]
+                break
+    text = " ".join(text.split())
+    return text if len(text) <= MAX_ERROR_DETAIL else text[:MAX_ERROR_DETAIL] + "..."
+
+
+def raise_for_status(response: httpx.Response) -> None:
+    """Raise httpx.HTTPStatusError for a non-2xx response, including the server's reason.
+
+    httpx's own message only has the status and URL; the reason (for example
+    "file x.csv does not exist") is in the body, so read it and append it.
+    """
+    if response.is_success:
+        return
+    response.read()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as err:
+        detail = _error_detail(response.content)
+        if not detail:
+            raise
+        raise httpx.HTTPStatusError(
+            f"{err}\nServer response: {detail}", request=err.request, response=err.response
+        ) from None
+
+
+def raise_for_urllib3_status(res: urllib3.BaseHTTPResponse, url: str) -> None:
     """Raise httpx.HTTPStatusError for a non-2xx urllib3 response.
 
-    Uses the same exception type as the httpx-based download methods so callers
-    can handle every download failure the same way.
+    Uses the same exception type and message as the httpx-based download methods so
+    callers can handle every download failure the same way.
     """
     if 200 <= res.status < 300:
         return
-    request = httpx.Request("GET", url)
-    httpx.Response(res.status, content=res.data, request=request).raise_for_status()
+    raise_for_status(
+        httpx.Response(res.status, content=res.data, request=httpx.Request("GET", url))
+    )
 
 
 @contextlib.contextmanager
@@ -99,7 +144,7 @@ class BlobTransfer:
         headers = self.headers.copy()
         headers["Range"] = "bytes=0-0"
         res = self.http.request("GET", self.url, headers=headers)
-        raise_for_status(res, self.url)
+        raise_for_urllib3_status(res, self.url)
         return int(res.headers["Content-Range"].partition("/")[-1])
 
     def _get_part(self, block: Tuple[int, int]) -> None:
@@ -112,7 +157,7 @@ class BlobTransfer:
         headers["Range"] = f"bytes={block[0]}-{block[1]}"
         res = self.http.request("GET", self.url, headers=headers, preload_content=False)
         try:
-            raise_for_status(res, self.url)
+            raise_for_urllib3_status(res, self.url)
             data = res.read()
         finally:
             res.release_connection()

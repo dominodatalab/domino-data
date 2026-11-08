@@ -249,6 +249,7 @@ def test_download_file_raises_on_http_error(mock_dataset, tmp_path, status):
         dataset.download_file("missing.csv", tmp_path / "out.csv")
 
     assert err.value.response.status_code == status
+    assert "Server response: file missing.csv does not exist" in str(err.value)
     assert list(tmp_path.iterdir()) == []
 
 
@@ -257,10 +258,18 @@ def test_download_fileobj_raises_on_http_error(mock_dataset):
     dataset = mock_dataset(404)
     fileobj = io.BytesIO()
 
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(httpx.HTTPStatusError, match="file missing.csv does not exist"):
         dataset.download_fileobj("missing.csv", fileobj)
 
     assert fileobj.getvalue() == b""
+
+
+def test_get_raises_with_server_message(mock_dataset):
+    """get raises the HTTP error with the server's reason in the message."""
+    dataset = mock_dataset(400)
+
+    with pytest.raises(httpx.HTTPStatusError, match="file missing.csv does not exist"):
+        dataset.get("missing.csv")
 
 
 def test_download_raises_on_http_error_and_keeps_existing_file(mock_dataset, tmp_path, monkeypatch):
@@ -270,7 +279,7 @@ def test_download_raises_on_http_error_and_keeps_existing_file(mock_dataset, tmp
     target = tmp_path / "out.csv"
     target.write_bytes(b"original")
 
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(httpx.HTTPStatusError, match="file missing.csv does not exist"):
         dataset.download("missing.csv", target)
 
     assert target.read_bytes() == b"original"

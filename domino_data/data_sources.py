@@ -35,7 +35,7 @@ from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient, get_j
 from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
 from .meta import MetaMiddlewareFactory
-from .transfer import MAX_WORKERS, BlobTransfer, atomic_open
+from .transfer import MAX_WORKERS, BlobTransfer, atomic_open, raise_for_status
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 ADLS_HEADERS = {"X-Ms-Blob-Type": "BlockBlob"}
@@ -165,7 +165,7 @@ class _Object:
         url = self.datasource.get_key_url(self.key, False)
         headers = self._get_headers()
         res = self.http().get(url, headers=headers)
-        res.raise_for_status()
+        raise_for_status(res)
 
         self.datasource.client._log_metric(  # pylint: disable=protected-access
             self.datasource.datasource_type,
@@ -187,7 +187,7 @@ class _Object:
         headers = self._get_headers()
         content_size = 0
         with self.http().stream("GET", url, headers=headers) as stream:
-            stream.raise_for_status()
+            raise_for_status(stream)
             with atomic_open(filename) as file:
                 for data in stream.iter_bytes():
                     content_size += len(data)
@@ -232,7 +232,7 @@ class _Object:
         headers = self._get_headers()
         content_size = 0
         with self.http().stream("GET", url, headers=headers) as stream:
-            stream.raise_for_status()
+            raise_for_status(stream)
             for data in stream.iter_bytes():
                 content_size += len(data)
                 fileobj.write(data)
