@@ -10,7 +10,7 @@ RANGE_CONTENT = bytes(i % 251 for i in range(5000))
 class RangeHandler(BaseHTTPRequestHandler):
     """Serves RANGE_CONTENT at /file with HTTP Range support; anything else is a 404."""
 
-    def do_GET(self):  # noqa: N802 - http.server API
+    def do_GET(self):  # name required by http.server: it calls do_<METHOD> per request
         if self.path != "/file":
             self.send_response(404)
             self.end_headers()
