@@ -114,8 +114,7 @@ def caplog(caplog):
 @pytest.fixture
 def range_server():
     """Base URL of a local HTTP server with Range support (see tests/range_server.py)."""
-    # urllib3's default timeout falls back to the socket default, so a stuck request fails
-    # the test after 5s instead of hanging it.
+    # urllib3 uses the socket default timeout, so a stuck request fails instead of hanging.
     previous_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(5)
     server = ThreadingHTTPServer(("127.0.0.1", 0), RangeHandler)
