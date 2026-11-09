@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import httpx
 import pyarrow
 import pytest
+import urllib3
 
 from domino_data import configuration_gen as ds_gen
 from domino_data import datasets as ds
@@ -216,6 +217,7 @@ def range_pool(content, status=206):
         body = content[start : end + 1] if status < 300 else ERROR_BODY
         # read() behaves like a real stream: returns the body once, then b"".
         return MagicMock(
+            spec=urllib3.HTTPResponse,
             status=status,
             data=body,
             read=io.BytesIO(body).read,

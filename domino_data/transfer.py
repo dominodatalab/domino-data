@@ -160,7 +160,7 @@ class BlobTransfer:
             raise_for_urllib3_status(res, self.url)
             data = res.read()
         finally:
-            res.release_connection()
+            res.release_conn()
 
         with self._lock:
             self.destination.seek(block[0])

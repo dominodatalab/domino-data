@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import httpx
 import pyarrow
 import pytest
+import urllib3
 
 from domino_data import configuration_gen as ds_gen
 from domino_data import data_sources as ds
@@ -585,7 +586,9 @@ def test_object_store_download_raises_on_http_error(
         return_value=httpx.Response(404, content=b"<!DOCTYPE html>Not Found"),
     )
     pool = MagicMock()
-    pool.request.return_value = MagicMock(status=404, data=b"Not Found", headers={})
+    pool.request.return_value = MagicMock(
+        spec=urllib3.HTTPResponse, status=404, data=b"Not Found", headers={}
+    )
     monkeypatch.setattr(ds._Object, "pool_manager", lambda self: pool)
 
     s3d = ds.cast(ds.ObjectStoreDatasource, ds.DataSourceClient().get_datasource("s3"))

@@ -1,4 +1,7 @@
 import io
+import re
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import MagicMock
 
 import httpx
@@ -23,7 +26,8 @@ def test_split_range(start, end, step, expected):
 
 
 def _response(status, data=b"", headers=None):
-    res = MagicMock()
+    # spec makes a wrong method name (e.g. release_connection) fail like the real urllib3.
+    res = MagicMock(spec=urllib3.HTTPResponse)
     res.status = status
     res.data = data
     res.headers = headers or {}
@@ -74,7 +78,7 @@ def test_blob_transfer():
 
     assert len(chunk_responses) == 22
     for res in chunk_responses:
-        res.release_connection.assert_called_once()
+        res.release_conn.assert_called_once()
 
 
 def test_blob_transfer_raises_when_size_request_fails():
@@ -101,7 +105,7 @@ def test_blob_transfer_raises_when_a_part_fails():
         assert err.value.response.status_code == 500
 
     for res in chunk_responses:
-        res.release_connection.assert_called_once()
+        res.release_conn.assert_called_once()
 
 
 def test_atomic_open_keeps_existing_file_on_failure(tmp_path):
@@ -140,3 +144,53 @@ def test_raise_for_status_without_body_keeps_httpx_message():
         transfer.raise_for_status(response)
 
     assert "Server response" not in str(err.value)
+
+
+RANGE_CONTENT = bytes(i % 251 for i in range(5000))
+
+
+class _RangeHandler(BaseHTTPRequestHandler):
+    """Serves RANGE_CONTENT at /file with HTTP Range support; anything else is a 404."""
+
+    def do_GET(self):  # noqa: N802 - http.server API
+        if self.path != "/file":
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"404 page not found")
+            return
+        start, end = map(int, re.match(r"bytes=(\d+)-(\d+)", self.headers["Range"]).groups())
+        body = RANGE_CONTENT[start : end + 1]
+        self.send_response(206)
+        self.send_header("Content-Range", f"bytes {start}-{end}/{len(RANGE_CONTENT)}")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):  # silence request logging
+        pass
+
+
+@pytest.fixture
+def range_server():
+    """Real local HTTP server, so BlobTransfer runs against urllib3's actual response API."""
+    server = ThreadingHTTPServer(("127.0.0.1", 0), _RangeHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{server.server_port}"
+    server.shutdown()
+    server.server_close()
+
+
+def test_blob_transfer_real_server(range_server):
+    """A multi-chunk download over real HTTP returns the exact content."""
+    with io.BytesIO() as dest:
+        transfer.BlobTransfer(f"{range_server}/file", dest, chunk_size=1024, max_workers=4)
+
+        assert dest.getvalue() == RANGE_CONTENT
+
+
+def test_blob_transfer_real_server_missing_file(range_server):
+    """A missing file over real HTTP raises HTTPStatusError with the server's reason."""
+    with io.BytesIO() as dest:
+        with pytest.raises(httpx.HTTPStatusError, match="404 page not found"):
+            transfer.BlobTransfer(f"{range_server}/missing", dest, http=urllib3.PoolManager())
