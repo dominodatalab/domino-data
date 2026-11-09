@@ -16,7 +16,7 @@ from domino_data.data_sources import DataSourceClient, ObjectStoreDatasource
 from .auth import AuthenticatedClient, get_jwt_token
 from .configuration_gen import Config, DatasetConfig
 from .logging import logger
-from .transfer import MAX_WORKERS, BlobTransfer
+from .transfer import MAX_WORKERS, BlobTransfer, atomic_open, raise_for_status
 
 ACCEPT_HEADERS = {"Accept": "application/json"}
 
@@ -67,7 +67,7 @@ class _File:
         headers = self._get_headers()
 
         res = self.http().get(url, headers=headers)
-        res.raise_for_status()
+        raise_for_status(res)
 
         return res.content
 
@@ -83,13 +83,12 @@ class _File:
         headers = self._get_headers()
 
         content_size = 0
-        with (
-            self.http().stream("GET", url, headers=headers) as stream,
-            open(filename, "wb") as file,
-        ):
-            for data in stream.iter_bytes():
-                content_size += len(data)
-                file.write(data)
+        with self.http().stream("GET", url, headers=headers) as stream:
+            raise_for_status(stream)
+            with atomic_open(filename) as file:
+                for data in stream.iter_bytes():
+                    content_size += len(data)
+                    file.write(data)
 
     def download(self, filename: str, max_workers: int = MAX_WORKERS) -> None:
         """Download object content to file with multithreaded support.
@@ -102,7 +101,7 @@ class _File:
         """
         url = self.dataset.get_file_url(self.name)
         headers = self._get_headers()
-        with open(filename, "wb") as file:
+        with atomic_open(filename) as file:
             BlobTransfer(
                 url, file, headers=headers, max_workers=max_workers, http=self.pool_manager()
             )
@@ -118,6 +117,7 @@ class _File:
         headers = self._get_headers()
         content_size = 0
         with self.http().stream("GET", url, headers=headers) as stream:
+            raise_for_status(stream)
             for data in stream.iter_bytes():
                 content_size += len(data)
                 fileobj.write(data)

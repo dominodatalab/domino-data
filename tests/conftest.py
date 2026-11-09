@@ -2,10 +2,15 @@
 
 import json
 import logging
+import socket
+import threading
+from http.server import ThreadingHTTPServer
 
 import pyarrow
 import pytest
 from loguru import logger
+
+from tests.range_server import RangeHandler
 
 # TODO This method is deprecated and should be refactored using `env`
 # and respx mocked APIs
@@ -104,3 +109,20 @@ def caplog(caplog):
 
     logger.add(PropogateHandler(), format="{message}")
     yield caplog
+
+
+@pytest.fixture
+def range_server():
+    """Base URL of a local HTTP server with Range support (see tests/range_server.py)."""
+    # urllib3 uses the socket default timeout, so a stuck request fails instead of hanging.
+    previous_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(5)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), RangeHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        socket.setdefaulttimeout(previous_timeout)

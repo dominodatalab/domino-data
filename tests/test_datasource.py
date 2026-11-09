@@ -565,6 +565,37 @@ def test_object_store_download_fileobj(env, respx_mock, datafx):
     assert mock_fileobj.getvalue() == mock_content
 
 
+@pytest.mark.parametrize("method", ["download_file", "download", "download_fileobj"])
+def test_object_store_download_raises_on_http_error(
+    env, respx_mock, datafx, tmp_path, range_server, method
+):
+    """Object store download methods raise with the server's reason and write nothing."""
+    env.delenv("DOMINO_API_PROXY")
+    # download() fetches over urllib3 from the real range_server (which 404s on /missing);
+    # download_file and download_fileobj use httpx, answered here by respx with the same 404.
+    url = f"{range_server}/missing"
+    respx_mock.get("http://token-proxy/access-token").mock(
+        return_value=httpx.Response(200, content=b"jwt")
+    )
+    respx_mock.get("http://domino/v4/datasource/name/s3").mock(
+        return_value=httpx.Response(200, json=datafx("s3")),
+    )
+    respx_mock.post("http://proxy/objectstore/key").mock(
+        return_value=httpx.Response(200, json=url),
+    )
+    respx_mock.get(url).mock(return_value=httpx.Response(404, content=b"404 page not found"))
+
+    s3d = ds.cast(ds.ObjectStoreDatasource, ds.DataSourceClient().get_datasource("s3"))
+    fileobj = io.BytesIO()
+    target = fileobj if method == "download_fileobj" else tmp_path / "out.csv"
+
+    with pytest.raises(httpx.HTTPStatusError, match="404 page not found"):
+        getattr(s3d, method)("file.csv", target)
+
+    assert list(tmp_path.iterdir()) == []
+    assert fileobj.getvalue() == b""
+
+
 @pytest.mark.usefixtures("env")
 def test_credential_override_with_awsiamrole(respx_mock, datafx, monkeypatch):
     """Object datasource can list and get key url using AWSIAMRole."""

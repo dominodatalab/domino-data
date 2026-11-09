@@ -9,6 +9,7 @@ import pytest
 
 from domino_data import configuration_gen as ds_gen
 from domino_data import datasets as ds
+from tests.range_server import RANGE_CONTENT
 
 
 # Get Dataset
@@ -154,6 +155,7 @@ def test_download_file(env, respx_mock, datafx, tmp_path):
     dataset.download_file("file.png", mock_file.absolute())
 
     assert mock_file.read_bytes() == mock_content
+    assert [p.name for p in tmp_path.iterdir()] == ["file.txt"]
 
 
 def test_download_fileobj(env, respx_mock, datafx):
@@ -178,6 +180,94 @@ def test_download_fileobj(env, respx_mock, datafx):
     dataset.download_fileobj("file.png", mock_fileobj)
 
     assert mock_fileobj.getvalue() == mock_content
+
+
+ERROR_BODY = b'{"message":"file missing.csv does not exist","success":false}'
+
+
+@pytest.fixture
+def mock_dataset(env, respx_mock, datafx):
+    """Return a factory for a dataset whose file URL answers with the given status and body.
+
+    httpx requests (get, download_file, download_fileobj) are answered by respx. download()
+    uses urllib3, which respx doesn't intercept, so point url at the range_server fixture.
+    """
+    env.delenv("DOMINO_API_PROXY")
+
+    def make(status, content=ERROR_BODY, url="http://dataset-test/url"):
+        respx_mock.get("http://token-proxy/access-token").mock(
+            return_value=httpx.Response(200, content=b"jwt")
+        )
+        respx_mock.get("http://domino/v4/datasource/name/dataset-test").mock(
+            return_value=httpx.Response(200, json=datafx("dataset")),
+        )
+        respx_mock.post("http://proxy/objectstore/key").mock(
+            return_value=httpx.Response(200, json=url),
+        )
+        respx_mock.get(url).mock(
+            return_value=httpx.Response(status, content=content),
+        )
+        return ds.DatasetClient().get_dataset("dataset-test")
+
+    return make
+
+
+def test_download(mock_dataset, tmp_path, range_server):
+    """download (multithreaded, real HTTP) writes the exact file and leaves no temp file behind."""
+    dataset = mock_dataset(200, url=f"{range_server}/file")
+    target = tmp_path / "out.csv"
+
+    dataset.download("file.csv", target, max_workers=4)
+
+    assert target.read_bytes() == RANGE_CONTENT
+    assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
+
+
+@pytest.mark.parametrize("status", [400, 403, 404, 500])
+def test_download_file_raises_on_http_error(mock_dataset, tmp_path, status):
+    """download_file raises the HTTP error and creates no local file."""
+    dataset = mock_dataset(status)
+
+    with pytest.raises(httpx.HTTPStatusError) as err:
+        dataset.download_file("missing.csv", tmp_path / "out.csv")
+
+    assert err.value.response.status_code == status
+    assert "Server response: file missing.csv does not exist" in str(err.value)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_download_fileobj_raises_on_http_error(mock_dataset):
+    """download_fileobj raises the HTTP error and writes nothing."""
+    dataset = mock_dataset(404)
+    fileobj = io.BytesIO()
+
+    with pytest.raises(httpx.HTTPStatusError, match="file missing.csv does not exist"):
+        dataset.download_fileobj("missing.csv", fileobj)
+
+    assert fileobj.getvalue() == b""
+
+
+def test_get_raises_with_server_message(mock_dataset):
+    """get raises the HTTP error with the server's reason in the message."""
+    dataset = mock_dataset(400)
+
+    with pytest.raises(httpx.HTTPStatusError, match="file missing.csv does not exist"):
+        dataset.get("missing.csv")
+
+
+def test_download_raises_on_http_error_and_keeps_existing_file(
+    mock_dataset, tmp_path, range_server
+):
+    """download raises the HTTP error (not KeyError) and leaves an existing file untouched."""
+    dataset = mock_dataset(404, url=f"{range_server}/missing")
+    target = tmp_path / "out.csv"
+    target.write_bytes(b"original")
+
+    with pytest.raises(httpx.HTTPStatusError, match="404 page not found"):
+        dataset.download("missing.csv", target)
+
+    assert target.read_bytes() == b"original"
+    assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
 
 
 # Configuration override
