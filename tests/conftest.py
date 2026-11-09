@@ -2,6 +2,7 @@
 
 import json
 import logging
+import socket
 import threading
 from http.server import ThreadingHTTPServer
 
@@ -113,9 +114,16 @@ def caplog(caplog):
 @pytest.fixture
 def range_server():
     """Base URL of a local HTTP server with Range support (see tests/range_server.py)."""
+    # urllib3's default timeout falls back to the socket default, so a stuck request fails
+    # the test after 5s instead of hanging it.
+    previous_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(5)
     server = ThreadingHTTPServer(("127.0.0.1", 0), RangeHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    yield f"http://127.0.0.1:{server.server_port}"
-    server.shutdown()
-    server.server_close()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        socket.setdefaulttimeout(previous_timeout)
