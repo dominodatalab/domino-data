@@ -146,6 +146,7 @@ def test_raise_for_status_without_body_keeps_httpx_message():
     assert "Server response" not in str(err.value)
 
 
+# Non-repeating within a 1 KB chunk (256 would repeat), so a misplaced chunk changes the bytes.
 RANGE_CONTENT = bytes(i % 251 for i in range(5000))
 
 
