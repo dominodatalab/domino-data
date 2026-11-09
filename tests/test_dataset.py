@@ -2,15 +2,14 @@
 
 import io
 import json
-from unittest.mock import MagicMock
 
 import httpx
 import pyarrow
 import pytest
-import urllib3
 
 from domino_data import configuration_gen as ds_gen
 from domino_data import datasets as ds
+from tests.range_server import RANGE_CONTENT
 
 
 # Get Dataset
@@ -188,10 +187,14 @@ ERROR_BODY = b'{"message":"file missing.csv does not exist","success":false}'
 
 @pytest.fixture
 def mock_dataset(env, respx_mock, datafx):
-    """Return a factory for a dataset whose file URL answers with the given status and body."""
+    """Return a factory for a dataset whose file URL answers with the given status and body.
+
+    httpx requests (get, download_file, download_fileobj) are answered by respx. download()
+    uses urllib3, which respx doesn't intercept, so point url at the range_server fixture.
+    """
     env.delenv("DOMINO_API_PROXY")
 
-    def make(status, content=ERROR_BODY):
+    def make(status, content=ERROR_BODY, url="http://dataset-test/url"):
         respx_mock.get("http://token-proxy/access-token").mock(
             return_value=httpx.Response(200, content=b"jwt")
         )
@@ -199,9 +202,9 @@ def mock_dataset(env, respx_mock, datafx):
             return_value=httpx.Response(200, json=datafx("dataset")),
         )
         respx_mock.post("http://proxy/objectstore/key").mock(
-            return_value=httpx.Response(200, json="http://dataset-test/url"),
+            return_value=httpx.Response(200, json=url),
         )
-        respx_mock.get("http://dataset-test/url").mock(
+        respx_mock.get(url).mock(
             return_value=httpx.Response(status, content=content),
         )
         return ds.DatasetClient().get_dataset("dataset-test")
@@ -209,36 +212,14 @@ def mock_dataset(env, respx_mock, datafx):
     return make
 
 
-def range_pool(content, status=206):
-    """Fake urllib3 pool manager that serves HTTP range requests over content."""
-
-    def request(method, url, headers=None, preload_content=True):
-        start, end = map(int, headers["Range"].replace("bytes=", "").split("-"))
-        body = content[start : end + 1] if status < 300 else ERROR_BODY
-        # read() behaves like a real stream: returns the body once, then b"".
-        return MagicMock(
-            spec=urllib3.HTTPResponse,
-            status=status,
-            data=body,
-            read=io.BytesIO(body).read,
-            headers={"Content-Range": f"bytes {start}-{end}/{len(content)}"},
-        )
-
-    pool = MagicMock()
-    pool.request.side_effect = request
-    return pool
-
-
-def test_download(mock_dataset, tmp_path, monkeypatch):
-    """download (multithreaded) writes the file and leaves no temp file behind."""
-    content = b"I am a blob" * 100
-    dataset = mock_dataset(200)
-    monkeypatch.setattr(ds.Dataset, "pool_manager", lambda self: range_pool(content))
+def test_download(mock_dataset, tmp_path, range_server):
+    """download (multithreaded, real HTTP) writes the exact file and leaves no temp file behind."""
+    dataset = mock_dataset(200, url=f"{range_server}/file")
     target = tmp_path / "out.csv"
 
-    dataset.download("file.csv", target, max_workers=2)
+    dataset.download("file.csv", target, max_workers=4)
 
-    assert target.read_bytes() == content
+    assert target.read_bytes() == RANGE_CONTENT
     assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
 
 
@@ -274,14 +255,15 @@ def test_get_raises_with_server_message(mock_dataset):
         dataset.get("missing.csv")
 
 
-def test_download_raises_on_http_error_and_keeps_existing_file(mock_dataset, tmp_path, monkeypatch):
+def test_download_raises_on_http_error_and_keeps_existing_file(
+    mock_dataset, tmp_path, range_server
+):
     """download raises the HTTP error (not KeyError) and leaves an existing file untouched."""
-    dataset = mock_dataset(404)
-    monkeypatch.setattr(ds.Dataset, "pool_manager", lambda self: range_pool(b"", status=404))
+    dataset = mock_dataset(404, url=f"{range_server}/missing")
     target = tmp_path / "out.csv"
     target.write_bytes(b"original")
 
-    with pytest.raises(httpx.HTTPStatusError, match="file missing.csv does not exist"):
+    with pytest.raises(httpx.HTTPStatusError, match="404 page not found"):
         dataset.download("missing.csv", target)
 
     assert target.read_bytes() == b"original"

@@ -2,12 +2,10 @@
 
 import io
 import json
-from unittest.mock import MagicMock
 
 import httpx
 import pyarrow
 import pytest
-import urllib3
 
 from domino_data import configuration_gen as ds_gen
 from domino_data import data_sources as ds
@@ -569,10 +567,13 @@ def test_object_store_download_fileobj(env, respx_mock, datafx):
 
 @pytest.mark.parametrize("method", ["download_file", "download", "download_fileobj"])
 def test_object_store_download_raises_on_http_error(
-    env, respx_mock, datafx, tmp_path, monkeypatch, method
+    env, respx_mock, datafx, tmp_path, range_server, method
 ):
-    """Object store download methods raise on a non-2xx response and write nothing."""
+    """Object store download methods raise with the server's reason and write nothing."""
     env.delenv("DOMINO_API_PROXY")
+    # download() fetches over urllib3 from the real range_server (which 404s on /missing);
+    # download_file and download_fileobj use httpx, answered here by respx with the same 404.
+    url = f"{range_server}/missing"
     respx_mock.get("http://token-proxy/access-token").mock(
         return_value=httpx.Response(200, content=b"jwt")
     )
@@ -580,22 +581,15 @@ def test_object_store_download_raises_on_http_error(
         return_value=httpx.Response(200, json=datafx("s3")),
     )
     respx_mock.post("http://proxy/objectstore/key").mock(
-        return_value=httpx.Response(200, json="http://s3/url"),
+        return_value=httpx.Response(200, json=url),
     )
-    respx_mock.get("http://s3/url").mock(
-        return_value=httpx.Response(404, content=b"<!DOCTYPE html>Not Found"),
-    )
-    pool = MagicMock()
-    pool.request.return_value = MagicMock(
-        spec=urllib3.HTTPResponse, status=404, data=b"Not Found", headers={}
-    )
-    monkeypatch.setattr(ds._Object, "pool_manager", lambda self: pool)
+    respx_mock.get(url).mock(return_value=httpx.Response(404, content=b"404 page not found"))
 
     s3d = ds.cast(ds.ObjectStoreDatasource, ds.DataSourceClient().get_datasource("s3"))
     fileobj = io.BytesIO()
     target = fileobj if method == "download_fileobj" else tmp_path / "out.csv"
 
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(httpx.HTTPStatusError, match="404 page not found"):
         getattr(s3d, method)("file.csv", target)
 
     assert list(tmp_path.iterdir()) == []

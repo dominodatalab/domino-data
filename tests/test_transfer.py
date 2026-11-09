@@ -1,7 +1,4 @@
 import io
-import re
-import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import MagicMock
 
 import httpx
@@ -9,6 +6,7 @@ import pytest
 import urllib3
 
 from domino_data import transfer
+from tests.range_server import RANGE_CONTENT
 
 
 @pytest.mark.parametrize(
@@ -81,19 +79,6 @@ def test_blob_transfer():
         res.release_conn.assert_called_once()
 
 
-def test_blob_transfer_raises_when_size_request_fails():
-    """A failed size request raises HTTPStatusError instead of KeyError: 'Content-Range'."""
-    mock_http = MagicMock(spec=urllib3.PoolManager)
-    mock_http.request = MagicMock(return_value=_response(404, b'{"message":"nope"}'))
-
-    with io.BytesIO() as dest:
-        with pytest.raises(httpx.HTTPStatusError) as err:
-            transfer.BlobTransfer("http://blob/url", dest, http=mock_http)
-
-        assert err.value.response.status_code == 404
-        assert dest.getvalue() == b""
-
-
 def test_blob_transfer_raises_when_a_part_fails():
     """A failed chunk propagates out of the worker pool and its connection is still released."""
     mock_http, chunk_responses = _range_http(b"x" * 4096, fail_from=2048)
@@ -128,7 +113,7 @@ def test_atomic_open_keeps_existing_file_on_failure(tmp_path):
         (b'{"message":"file x.csv does not exist","success":false}', "file x.csv does not exist"),
         (b"<Error><Code>NoSuchKey</Code></Error>", "<Error><Code>NoSuchKey</Code></Error>"),
         (b"", ""),
-        (b"<html>" + b"x" * 500, "<html>" + "x" * 194 + "..."),
+        (b"<html>" + b"x" * 500, ("<html>" + "x" * 500)[: transfer.MAX_ERROR_DETAIL] + "..."),
     ],
 )
 def test_error_detail(body, expected):
@@ -146,42 +131,6 @@ def test_raise_for_status_without_body_keeps_httpx_message():
     assert "Server response" not in str(err.value)
 
 
-# Non-repeating within a 1 KB chunk (256 would repeat), so a misplaced chunk changes the bytes.
-RANGE_CONTENT = bytes(i % 251 for i in range(5000))
-
-
-class _RangeHandler(BaseHTTPRequestHandler):
-    """Serves RANGE_CONTENT at /file with HTTP Range support; anything else is a 404."""
-
-    def do_GET(self):  # noqa: N802 - http.server API
-        if self.path != "/file":
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b"404 page not found")
-            return
-        start, end = map(int, re.match(r"bytes=(\d+)-(\d+)", self.headers["Range"]).groups())
-        body = RANGE_CONTENT[start : end + 1]
-        self.send_response(206)
-        self.send_header("Content-Range", f"bytes {start}-{end}/{len(RANGE_CONTENT)}")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def log_message(self, *args):  # silence request logging
-        pass
-
-
-@pytest.fixture
-def range_server():
-    """Real local HTTP server, so BlobTransfer runs against urllib3's actual response API."""
-    server = ThreadingHTTPServer(("127.0.0.1", 0), _RangeHandler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    yield f"http://127.0.0.1:{server.server_port}"
-    server.shutdown()
-    server.server_close()
-
-
 def test_blob_transfer_real_server(range_server):
     """A multi-chunk download over real HTTP returns the exact content."""
     with io.BytesIO() as dest:
@@ -191,7 +140,9 @@ def test_blob_transfer_real_server(range_server):
 
 
 def test_blob_transfer_real_server_missing_file(range_server):
-    """A missing file over real HTTP raises HTTPStatusError with the server's reason."""
+    """A missing file raises HTTPStatusError with the server's reason (not KeyError) and writes nothing."""
     with io.BytesIO() as dest:
         with pytest.raises(httpx.HTTPStatusError, match="404 page not found"):
             transfer.BlobTransfer(f"{range_server}/missing", dest, http=urllib3.PoolManager())
+
+        assert dest.getvalue() == b""
