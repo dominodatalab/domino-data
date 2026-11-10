@@ -49,7 +49,7 @@ def env_setup(monkeypatch):
 
 @pytest.fixture
 def flight_server(env):
-    """Set a dummy flight server to test do_get."""
+    """Set a dummy flight server to test do_get and do_put."""
 
     class FlightServer(pyarrow.flight.FlightServerBase):
         """Dummy flight server."""
@@ -61,6 +61,14 @@ def flight_server(env):
         def do_get(self, context, ticket):
             """Dummy method."""
             return self.do_get_callback(context, ticket)
+
+        def do_put_callback(self, context, descriptor, reader, writer):
+            """To be replaced"""
+            raise NotImplementedError
+
+        def do_put(self, context, descriptor, reader, writer):
+            """Dummy method."""
+            return self.do_put_callback(context, descriptor, reader, writer)
 
     server = FlightServer(location="grpc://localhost:8080")
 

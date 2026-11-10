@@ -11,6 +11,7 @@ import attr
 import backoff
 import httpx
 import pandas
+import pyarrow
 import urllib3
 from httpx._config import DEFAULT_TIMEOUT_CONFIG
 from pyarrow import ArrowException, flight, parquet
@@ -31,6 +32,14 @@ from datasource_api_client.models import (
     ProxyErrorResponse,
 )
 
+from ._tabular_write import (
+    PutDescriptor,
+    WriteMode,
+    record_batches,
+    rows_written,
+    stamp_max_bytes,
+    to_arrow,
+)
 from .auth import AuthenticatedClient, AuthMiddlewareFactory, ProxyClient, get_jwt_token
 from .configuration_gen import Config, CredElem, DatasourceConfig, find_datasource_klass
 from .logging import logger
@@ -466,6 +475,60 @@ class TabularDatasource(Datasource):
             credential=self._get_credential_override(),
         )
 
+    def write_dataframe(
+        self,
+        table_name: str,
+        dataframe: pandas.DataFrame,
+        if_table_exists: WriteMode = "fail",
+    ) -> int:
+        """Write a DataFrame to a table in one all-or-nothing transaction.
+
+        If the write fails for any reason, the table is left exactly as it was. A retry after
+        an ambiguous failure of an append can duplicate rows, so check the table first.
+
+        Column names are kept exactly as they are in the DataFrame, including their case.
+        Column types come from the dtypes. Columns of datetime.date values become DATE and
+        datetime64 columns become TIMESTAMP. The index is not written.
+
+        To run DDL or DML such as dropping a table or granting access, use query().
+
+        Args:
+            table_name: table as you would write it in SQL for this data source. Unquoted
+                names follow the database's case rules, so my_table is MY_TABLE on DB2. A
+                quoted name such as "Schema"."my_table" is exact.
+            dataframe: rows to write
+            if_table_exists: what to do when the table exists. fail raises. append adds the
+                rows. truncate deletes the existing rows and keeps the table definition,
+                grants, keys and indexes. replace makes the table hold exactly this DataFrame.
+                It keeps the table, its grants, keys and indexes when its columns can hold
+                the DataFrame and recreates it otherwise. truncate and replace refuse a table
+                that other tables reference by foreign key. Every mode creates a missing table.
+
+        Returns:
+            Number of rows written
+
+        Raises:
+            DominoError: if the DataFrame cannot be converted to Arrow, the data source does not
+                support writes, or the proxy rejects or fails the write
+        """
+        try:
+            table = to_arrow(dataframe)
+        except (
+            pyarrow.ArrowInvalid,
+            pyarrow.ArrowTypeError,
+            pyarrow.ArrowNotImplementedError,
+        ) as exc:
+            logger.exception(exc)
+            raise DominoError(f"The DataFrame cannot be converted to Arrow: {exc}") from None
+        return self.client.write_table(
+            self.identifier,
+            table_name,
+            table,
+            if_table_exists,
+            config=self._config_override.config(),
+            credential=self._get_credential_override(),
+        )
+
 
 @attr.s
 class ObjectStoreDatasource(Datasource):
@@ -893,6 +956,72 @@ class DataSourceClient:
             raise DominoError(_unpack_flight_error(str(exc))) from None
         return Result(self, reader, query)
 
+    def write_table(  # pylint: disable=too-many-arguments
+        self,
+        datasource_id: str,
+        table_name: str,
+        table: pyarrow.Table,
+        mode: WriteMode,
+        config: Dict[str, str],
+        credential: Dict[str, str],
+    ) -> int:
+        """Write an Arrow table to a table of a datasource.
+
+        Args:
+            datasource_id: unique identifier of a datasource
+            table_name: name of the target table as written in SQL
+            table: rows to write
+            mode: what to do when the target table exists
+            config: overwrite configuration dictionary
+            credential: overwrite credential dictionary
+
+        Returns:
+            Number of rows the proxy wrote
+
+        Raises:
+            DominoError: if the proxy does not support writes or fails the write
+        """
+        logger.info("write_table", datasource_id=datasource_id, table_name=table_name, mode=mode)
+
+        descriptor = PutDescriptor(
+            datasource_id=datasource_id,
+            table_name=table_name,
+            mode=mode,
+            row_count=table.num_rows,
+            config=config,
+            credential=credential,
+        )
+        try:
+            self._set_proxy()
+            metadata = self._do_put(descriptor, stamp_max_bytes(table))
+        except pyarrow.ArrowNotImplementedError as exc:
+            logger.exception(exc)
+            raise DominoError(
+                "This data source type or this Domino version does not support writing "
+                f"DataFrames: {_unpack_flight_error(str(exc))}"
+            ) from None
+        except (flight.FlightError, ArrowException) as exc:
+            logger.exception(exc)
+            raise DominoError(_unpack_flight_error(str(exc))) from None
+        try:
+            return rows_written(metadata)
+        except ValueError as exc:
+            logger.exception(exc)
+            raise DominoError(f"The proxy did not report the rows written: {exc}") from None
+
     @backoff.on_exception(backoff.expo, flight.FlightUnauthenticatedError, max_time=60)
     def _do_get(self, ticket: str) -> flight.FlightStreamReader:
         return self.proxy.do_get(flight.Ticket(ticket))
+
+    @backoff.on_exception(backoff.expo, flight.FlightUnauthenticatedError, max_time=60)
+    def _do_put(self, descriptor: PutDescriptor, table: pyarrow.Table) -> Optional[pyarrow.Buffer]:
+        writer, reader = self.proxy.do_put(
+            flight.FlightDescriptor.for_command(descriptor.to_json()), table.schema
+        )
+        try:
+            for batch in record_batches(table):
+                writer.write_batch(batch)
+            writer.done_writing()
+            return reader.read()
+        finally:
+            writer.close()
