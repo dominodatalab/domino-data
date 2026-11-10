@@ -1,4 +1,16 @@
-"""Datasource module."""
+"""NetApp volume module.
+
+Identifiers:
+    - Volume ID: UUID of the volume. Its unique name is `netapp-volume-{name}-{volume ID}`.
+    - Snapshot ID: UUID of one snapshot, as returned by the volumes API and by
+      `NetAppVolumeClient.list_snapshots`.
+    - Snapshot version: integer that the data proxy uses to address a snapshot of a volume.
+      `RemotefsSnapshot.version` holds it next to the snapshot ID.
+
+Reading a file from a snapshot, given its volume ID and snapshot ID:
+    volume = NetAppVolumeClient().get_volume_snapshot(snapshot_id, volume_id=volume_id)
+    data = volume.File(filename).get()
+"""
 
 from typing import Any, List, Optional
 
@@ -150,12 +162,67 @@ class RemoteFSClient:
         """
         return self.volumes_api.volumes_unique_name_unique_name_get(unique_name)
 
+    def get_volume_by_id(self, volume_id: str) -> RemotefsVolume:
+        """Fetch a volume by ID.
+
+        Args:
+            volume_id: volume ID (UUID)
+
+        Returns:
+            remotefs volume.
+        """
+        return self.volumes_api.volumes_id_get(volume_id)
+
+    def get_snapshot_by_id(self, snapshot_id: str) -> RemotefsSnapshot:
+        """Fetch a snapshot by ID.
+
+        Args:
+            snapshot_id: snapshot ID (UUID)
+
+        Returns:
+            remotefs snapshot.
+        """
+        return self.snapshots_api.snapshots_id_get(snapshot_id)
+
 
 @attr.s
 class Volume(ObjectStoreDatasource):
     """Represents a Domino volume."""
 
     volume_client: "NetAppVolumeClient" = attr.ib(repr=False)
+
+    def pin_snapshot(self, snapshot_id: str) -> None:
+        """Pin later reads to a snapshot of this volume.
+
+        Resolves the snapshot ID (UUID) to the snapshot version the data proxy addresses.
+        A subfolder set earlier through `update` is kept. Call `reset_config` to go back to
+        the live volume.
+
+        Args:
+            snapshot_id: snapshot ID (UUID), as in `NetAppVolumeClient.list_snapshots`
+
+        Raises:
+            ValueError: if the snapshot does not belong to this volume
+        """
+        remotefs_client = self.volume_client.remotefs_client
+        snapshot = remotefs_client.get_snapshot_by_id(snapshot_id)
+        # The data source record already carries the volume ID, so only look the volume up
+        # when it does not.
+        volume_id = self.config.get("volumeID")
+        if volume_id is None:
+            volume_id = remotefs_client.get_volume_by_unique_name(unique_name=self.name).id
+        if snapshot.volume_id != volume_id:
+            raise ValueError(f"snapshot {snapshot_id} does not belong to volume {self.name}")
+        self._pin_snapshot_version(snapshot.version)
+
+    def _pin_snapshot_version(self, snapshot_version: int) -> None:
+        """Pin later reads to a snapshot version, keeping any subfolder override."""
+        subfolder = getattr(self._config_override, "subfolder", None)
+        self.update(
+            domino_data.configuration_gen.NetAppVolumeConfig(
+                snapshot_version=str(snapshot_version), subfolder=subfolder
+            )
+        )
 
     def Object(
         self, key: str, include_auth_headers: bool = True
@@ -276,6 +343,46 @@ class NetAppVolumeClient:
             volume_client=self,
         )
 
+    def get_volume_by_id(self, volume_id: str) -> Volume:
+        """Fetch a volume by ID.
+
+        Args:
+            volume_id: volume ID (UUID)
+
+        Returns:
+            Volume entity with given ID
+        """
+        logger.info("get_volume_by_id", volume_id=volume_id)
+
+        remotefs_volume = self.remotefs_client.get_volume_by_id(volume_id)
+        return self.get_volume(remotefs_volume.unique_name)
+
+    def get_volume_snapshot(self, snapshot_id: str, volume_id: Optional[str] = None) -> Volume:
+        """Fetch a volume with reads pinned to one of its snapshots.
+
+        Takes a snapshot ID and, optionally, its volume ID. The snapshot
+        ID (UUID) is resolved to the snapshot version the data proxy addresses.
+
+        Args:
+            snapshot_id: snapshot ID (UUID)
+            volume_id: optional volume ID (UUID) to check the snapshot against
+
+        Returns:
+            Volume entity pinned to the snapshot
+
+        Raises:
+            ValueError: if volume_id is given and the snapshot belongs to another volume
+        """
+        logger.info("get_volume_snapshot", snapshot_id=snapshot_id, volume_id=volume_id)
+
+        snapshot = self.remotefs_client.get_snapshot_by_id(snapshot_id)
+        if volume_id is not None and snapshot.volume_id != volume_id:
+            raise ValueError(f"snapshot {snapshot_id} does not belong to volume {volume_id}")
+
+        volume = self.get_volume_by_id(snapshot.volume_id)
+        volume._pin_snapshot_version(snapshot.version)  # pylint: disable=protected-access
+        return volume
+
     @backoff.on_exception(backoff.expo, UnauthenticatedError, max_time=60)
     def list_files(
         self,
@@ -370,6 +477,8 @@ class NetAppVolumeClient:
         limit: Optional[int] = None,
     ) -> List[RemotefsSnapshot]:
         """List volume snapshots that a user has access to.
+
+        Each snapshot has an `id` (UUID) and a `version` (integer).
 
         Args:
             volume_unique_name: unique name of a volume (optional filter)
