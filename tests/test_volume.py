@@ -2,6 +2,8 @@
 
 from unittest.mock import Mock, patch
 
+import pytest
+
 from domino_data import netapp_volumes as vol
 
 
@@ -14,12 +16,27 @@ def create_mock_volume(volume_id="vol-1", unique_name="test-volume"):
     return mock_vol
 
 
-def create_mock_snapshot(snapshot_id="snap-1", volume_id="vol-1"):
+def create_mock_snapshot(snapshot_id="snap-1", volume_id="vol-1", version=1):
     """Create a mock RemotefsSnapshot object."""
     mock_snap = Mock()
     mock_snap.id = snapshot_id
     mock_snap.volume_id = volume_id
+    mock_snap.version = version
     return mock_snap
+
+
+def create_volume(volume_client=None, name="test-volume"):
+    """Create a Volume for tests."""
+    return vol.Volume(
+        auth_type="oauth",
+        client=Mock(),
+        config={},
+        datasource_type="NetAppVolumeConfig",
+        identifier="vol-id",
+        name=name,
+        owner="test-owner",
+        volume_client=volume_client or Mock(),
+    )
 
 
 def create_mock_response(data):
@@ -159,6 +176,38 @@ def test_remotefs_client_get_volume_by_unique_name():
     assert volume.id == "vol-1"
     assert volume.unique_name == "test-volume"
     client.volumes_api.volumes_unique_name_unique_name_get.assert_called_once_with("test-volume")
+
+
+def test_remotefs_client_get_volume_by_id():
+    """RemoteFSClient can get a volume by ID."""
+    client = vol.RemoteFSClient(
+        token="test-token", token_file=None, token_url=None, base_url="http://remotefs/v1"
+    )
+
+    client.volumes_api.volumes_id_get = Mock(
+        return_value=create_mock_volume("vol-1", "test-volume")
+    )
+
+    volume = client.get_volume_by_id("vol-1")
+
+    assert volume.id == "vol-1"
+    client.volumes_api.volumes_id_get.assert_called_once_with("vol-1")
+
+
+def test_remotefs_client_get_snapshot_by_id():
+    """RemoteFSClient can get a snapshot by ID."""
+    client = vol.RemoteFSClient(
+        token="test-token", token_file=None, token_url=None, base_url="http://remotefs/v1"
+    )
+
+    client.snapshots_api.snapshots_id_get = Mock(
+        return_value=create_mock_snapshot("snap-1", "vol-1", 3)
+    )
+
+    snapshot = client.get_snapshot_by_id("snap-1")
+
+    assert snapshot.version == 3
+    client.snapshots_api.snapshots_id_get.assert_called_once_with("snap-1")
 
 
 # NetAppVolumeClient Tests
@@ -344,3 +393,161 @@ def test_domino_error():
     error = vol.DominoError("test error")
     assert isinstance(error, Exception)
     assert str(error) == "test error"
+
+
+def test_volume_pin_snapshot_resolves_snapshot_version():
+    """Volume.pin_snapshot pins the version of the snapshot and keeps the subfolder."""
+    volume_client = Mock()
+    volume_client.remotefs_client.get_volume_by_unique_name.return_value = create_mock_volume(
+        "vol-1", "test-volume"
+    )
+    volume_client.remotefs_client.get_snapshot_by_id.return_value = create_mock_snapshot(
+        "snap-1", "vol-1", 3
+    )
+    volume = create_volume(volume_client)
+    volume.update(vol.NetAppVolumeConfig(subfolder="data"))
+
+    volume.pin_snapshot("snap-1")
+
+    assert volume._config_override.config() == {"snapshotVersion": "3", "subfolder": "data"}
+    volume_client.remotefs_client.get_volume_by_unique_name.assert_called_once_with(
+        unique_name="test-volume"
+    )
+    volume_client.remotefs_client.get_snapshot_by_id.assert_called_once_with("snap-1")
+
+
+def test_volume_pin_snapshot_uses_volume_id_from_config_without_volume_lookup():
+    """Volume.pin_snapshot skips the remotefs volume lookup when the data source has volumeID."""
+    volume_client = Mock()
+    volume_client.remotefs_client.get_snapshot_by_id.return_value = create_mock_snapshot(
+        "snap-1", "vol-1", 3
+    )
+    volume = create_volume(volume_client)
+    volume.config = {"volumeID": "vol-1"}
+
+    volume.pin_snapshot("snap-1")
+
+    assert volume._config_override.config() == {"snapshotVersion": "3"}
+    volume_client.remotefs_client.get_volume_by_unique_name.assert_not_called()
+
+
+def test_volume_pin_snapshot_rejects_snapshot_of_another_volume_from_config():
+    """Volume.pin_snapshot compares against the volumeID in the data source config."""
+    volume_client = Mock()
+    volume_client.remotefs_client.get_snapshot_by_id.return_value = create_mock_snapshot(
+        "snap-1", "vol-2", 3
+    )
+    volume = create_volume(volume_client)
+    volume.config = {"volumeID": "vol-1"}
+
+    with pytest.raises(ValueError, match="does not belong to volume test-volume"):
+        volume.pin_snapshot("snap-1")
+
+    assert volume._config_override.config() == {}
+    volume_client.remotefs_client.get_volume_by_unique_name.assert_not_called()
+
+
+def test_volume_pin_snapshot_rejects_snapshot_of_another_volume():
+    """Volume.pin_snapshot raises when the snapshot belongs to another volume."""
+    volume_client = Mock()
+    volume_client.remotefs_client.get_volume_by_unique_name.return_value = create_mock_volume(
+        "vol-1", "test-volume"
+    )
+    volume_client.remotefs_client.get_snapshot_by_id.return_value = create_mock_snapshot(
+        "snap-1", "vol-2", 3
+    )
+    volume = create_volume(volume_client)
+
+    with pytest.raises(ValueError, match="does not belong to volume test-volume"):
+        volume.pin_snapshot("snap-1")
+
+    assert volume._config_override.config() == {}
+
+
+def test_volume_client_get_volume_by_id(monkeypatch):
+    """NetAppVolumeClient can get a volume by ID."""
+    monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
+
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient"),
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
+        client = vol.NetAppVolumeClient()
+        client.remotefs_client.get_volume_by_id = Mock(
+            return_value=create_mock_volume("vol-1", "netapp-volume-test-vol-1")
+        )
+        client.get_volume = Mock(return_value="volume")
+
+        volume = client.get_volume_by_id("vol-1")
+
+        assert volume == "volume"
+        client.remotefs_client.get_volume_by_id.assert_called_once_with("vol-1")
+        client.get_volume.assert_called_once_with("netapp-volume-test-vol-1")
+
+
+def test_volume_client_get_volume_snapshot(monkeypatch):
+    """NetAppVolumeClient returns the volume pinned to the version of the snapshot."""
+    monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
+
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient"),
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
+        client = vol.NetAppVolumeClient()
+        client.remotefs_client.get_snapshot_by_id = Mock(
+            return_value=create_mock_snapshot("snap-1", "vol-1", 3)
+        )
+        volume = create_volume(client)
+        client.get_volume_by_id = Mock(return_value=volume)
+
+        pinned = client.get_volume_snapshot("snap-1", volume_id="vol-1")
+
+        assert pinned is volume
+        assert volume._config_override.config() == {"snapshotVersion": "3"}
+        client.remotefs_client.get_snapshot_by_id.assert_called_once_with("snap-1")
+        client.get_volume_by_id.assert_called_once_with("vol-1")
+
+
+def test_volume_client_get_volume_snapshot_without_volume_id(monkeypatch):
+    """NetAppVolumeClient finds the volume from the snapshot when no volume ID is given."""
+    monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
+
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient"),
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
+        client = vol.NetAppVolumeClient()
+        client.remotefs_client.get_snapshot_by_id = Mock(
+            return_value=create_mock_snapshot("snap-1", "vol-1", 5)
+        )
+        volume = create_volume(client)
+        client.get_volume_by_id = Mock(return_value=volume)
+
+        client.get_volume_snapshot("snap-1")
+
+        assert volume._config_override.config() == {"snapshotVersion": "5"}
+        client.get_volume_by_id.assert_called_once_with("vol-1")
+
+
+def test_volume_client_get_volume_snapshot_rejects_other_volume(monkeypatch):
+    """NetAppVolumeClient raises when the snapshot belongs to another volume."""
+    monkeypatch.setenv("DOMINO_REMOTE_FILE_SYSTEM_HOSTPORT", "http://remotefs")
+
+    with (
+        patch("domino_data.netapp_volumes.AuthenticatedClient"),
+        patch("domino_data.netapp_volumes.DataSourceClient"),
+        patch("domino_data.netapp_volumes.RemoteFSClient"),
+    ):
+        client = vol.NetAppVolumeClient()
+        client.remotefs_client.get_snapshot_by_id = Mock(
+            return_value=create_mock_snapshot("snap-1", "vol-2", 3)
+        )
+        client.get_volume_by_id = Mock()
+
+        with pytest.raises(ValueError, match="does not belong to volume vol-1"):
+            client.get_volume_snapshot("snap-1", volume_id="vol-1")
+
+        client.get_volume_by_id.assert_not_called()
