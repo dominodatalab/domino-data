@@ -2,8 +2,10 @@
 
 import io
 import json
+import threading
 
 import httpx
+import pandas
 import pyarrow
 import pytest
 
@@ -284,6 +286,283 @@ def test_client_retries_on_unauthenticated(flight_server):
     ds.DataSourceClient().execute("id", "SELECT 1", {}, {})
 
     assert counter == 2
+
+
+# Write DataFrame
+
+
+def make_tabular_datasource(client=None):
+    return ds.TabularDatasource(
+        auth_type="Basic",
+        client=client or ds.DataSourceClient(),
+        config={},
+        datasource_type="DB2NativeConfig",
+        identifier="ds-id",
+        name="warehouse",
+        owner="owner",
+    )
+
+
+def put_result(rows):
+    return pyarrow.py_buffer(json.dumps({"rowsWritten": rows}).encode())
+
+
+def test_write_dataframe_sends_descriptor_schema_and_all_rows(flight_server):
+    """Client sends the golden descriptor, the schema and every row."""
+
+    received = {}
+
+    def callback(_, descriptor, reader, writer):
+        received["command"] = descriptor.command
+        received["table"] = reader.read_all()
+        writer.write(put_result(3))
+
+    flight_server.do_put_callback = callback
+    dataframe = pandas.DataFrame({"id": [1, 2, 3], "name": ["Zürich", "a", None]})
+
+    make_tabular_datasource().write_dataframe("Sales.daily", dataframe, if_table_exists="append")
+
+    assert received["command"] == (
+        b'{"datasourceId": "ds-id", "configOverwrites": {}, "credentialOverwrites": {},'
+        b' "tableName": "Sales.daily", "mode": "append", "rowCount": 3}'
+    )
+    assert received["table"].column("id").to_pylist() == [1, 2, 3]
+    assert received["table"].column("name").to_pylist() == ["Zürich", "a", None]
+    assert received["table"].schema.field("name").metadata[b"domino.maxBytes"] == b"7"
+
+
+def test_write_table_stamps_max_bytes_on_an_arrow_table(flight_server):
+    """An Arrow caller of write_table sends the same schema as write_dataframe."""
+
+    received = {}
+
+    def callback(_, __, reader, writer):
+        received["table"] = reader.read_all()
+        writer.write(put_result(2))
+
+    flight_server.do_put_callback = callback
+    table = pyarrow.table({"name": ["Zürich", "a"], "raw": [b"\x00\x01", b""], "n": [1, 2]})
+
+    rows = ds.DataSourceClient().write_table(
+        "ds-id", "t", table, "append", config={}, credential={}
+    )
+
+    assert rows == 2
+    assert received["table"].schema.field("name").metadata[b"domino.maxBytes"] == b"7"
+    assert received["table"].schema.field("raw").metadata[b"domino.maxBytes"] == b"2"
+    assert received["table"].schema.field("n").metadata is None
+
+
+def test_write_dataframe_conversion_error_becomes_domino_error(flight_server):
+    """Client raises a DominoError for a column Arrow cannot convert."""
+    dataframe = pandas.DataFrame({"mixed": pandas.Series([1, "x", 2.5], dtype=object)})
+
+    with pytest.raises(ds.DominoError) as error:
+        make_tabular_datasource().write_dataframe("t", dataframe)
+
+    assert str(error.value).startswith("The DataFrame cannot be converted to Arrow: ")
+    assert "Conversion failed for column mixed" in str(error.value)
+
+
+def test_write_dataframe_defaults_to_fail_mode(flight_server):
+    """Client asks the proxy to fail on an existing table by default."""
+
+    modes = []
+
+    def callback(_, descriptor, reader, writer):
+        modes.append(json.loads(descriptor.command)["mode"])
+        reader.read_all()
+        writer.write(put_result(1))
+
+    flight_server.do_put_callback = callback
+
+    make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1]}))
+
+    assert modes == ["fail"]
+
+
+def test_write_dataframe_sends_overrides_like_query(flight_server):
+    """Client sends the config and credential overrides in the descriptor."""
+
+    received = {}
+
+    def callback(_, descriptor, reader, writer):
+        received.update(json.loads(descriptor.command))
+        reader.read_all()
+        writer.write(put_result(1))
+
+    flight_server.do_put_callback = callback
+    datasource = make_tabular_datasource()
+    datasource.update(ds_gen.DB2NativeConfig(database="SAMPLE", username="u", password="p"))
+
+    datasource.write_dataframe("t", pandas.DataFrame({"a": [1]}))
+
+    assert received["configOverwrites"] == {"database": "SAMPLE"}
+    assert received["credentialOverwrites"] == {"username": "u", "password": "p"}
+
+
+def test_write_dataframe_returns_rows_written(flight_server):
+    """Client returns the row count reported by the proxy."""
+
+    def callback(_, __, reader, writer):
+        reader.read_all()
+        writer.write(put_result(7))
+
+    flight_server.do_put_callback = callback
+
+    rows = make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1, 2]}))
+
+    assert rows == 7
+
+
+def test_write_dataframe_splits_large_frames_into_batches(flight_server):
+    """Client streams a large frame in several record batches."""
+
+    batch_sizes = []
+
+    def callback(_, __, reader, writer):
+        for chunk in reader:
+            batch_sizes.append(chunk.data.num_rows)
+        writer.write(put_result(sum(batch_sizes)))
+
+    flight_server.do_put_callback = callback
+    dataframe = pandas.DataFrame({"n": range(300_000)})
+
+    rows = make_tabular_datasource().write_dataframe("t", dataframe)
+
+    assert rows == 300_000
+    assert batch_sizes == [131072, 131072, 37856]
+
+
+def test_write_dataframe_empty_frame_sends_schema_and_zero_row_count(flight_server):
+    """Client sends the schema and a zero row count for an empty frame."""
+
+    received = {}
+
+    def callback(_, descriptor, reader, writer):
+        received["row_count"] = json.loads(descriptor.command)["rowCount"]
+        received["table"] = reader.read_all()
+        writer.write(put_result(0))
+
+    flight_server.do_put_callback = callback
+    dataframe = pandas.DataFrame({"id": pandas.Series([], dtype="int64")})
+
+    rows = make_tabular_datasource().write_dataframe("t", dataframe)
+
+    assert rows == 0
+    assert received["row_count"] == 0
+    assert received["table"].schema.names == ["id"]
+    assert received["table"].num_rows == 0
+
+
+def test_write_dataframe_against_proxy_without_do_put_raises_clear_domino_error(flight_server):
+    """Client explains that the proxy or the data source cannot write DataFrames."""
+
+    def callback(_, __, ___, ____):
+        raise NotImplementedError
+
+    flight_server.do_put_callback = callback
+
+    with pytest.raises(ds.DominoError) as error:
+        make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1]}))
+
+    assert str(error.value).startswith(
+        "This data source type or this Domino version does not support writing DataFrames: "
+    )
+
+
+def test_write_dataframe_server_error_becomes_domino_error_without_grpc_context(flight_server):
+    """Client raises a DominoError with the proxy's message."""
+
+    def callback(_, __, reader, ___):
+        reader.read_all()
+        raise pyarrow.flight.FlightServerError("table T already exists")
+
+    flight_server.do_put_callback = callback
+
+    with pytest.raises(ds.DominoError) as error:
+        make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1]}))
+
+    assert "table T already exists" in str(error.value)
+    assert "gRPC client debug context" not in str(error.value)
+
+
+def test_write_dataframe_without_rows_written_raises_domino_error(flight_server):
+    """Client raises when the proxy commits without reporting the row count."""
+
+    def callback(_, __, reader, writer):
+        reader.read_all()
+        writer.write(pyarrow.py_buffer(b"{}"))
+
+    flight_server.do_put_callback = callback
+
+    with pytest.raises(ds.DominoError, match="did not report the rows written"):
+        make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1]}))
+
+
+def test_write_dataframe_retries_unauthenticated(flight_server):
+    """Client retries do_put when getting authentication errors."""
+
+    counter = 0
+
+    def callback(_, __, reader, writer):
+        nonlocal counter
+        counter += 1
+        if counter < 2:
+            raise pyarrow.flight.FlightUnauthenticatedError("is not you")
+        reader.read_all()
+        writer.write(put_result(1))
+
+    flight_server.do_put_callback = callback
+
+    rows = make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1]}))
+
+    assert rows == 1
+    assert counter == 2
+
+
+def test_write_dataframe_does_not_retry_unavailable(flight_server):
+    """Client never retries a write after an unavailable error."""
+
+    counter = 0
+
+    def callback(_, __, ___, ____):
+        nonlocal counter
+        counter += 1
+        raise pyarrow.flight.FlightUnavailableError("gone")
+
+    flight_server.do_put_callback = callback
+
+    with pytest.raises(ds.DominoError):
+        make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1]}))
+
+    assert counter == 1
+
+
+def test_write_dataframe_closes_writer_when_data_fails_mid_write(flight_server, monkeypatch):
+    """Client ends the stream when producing a batch fails."""
+
+    ended = threading.Event()
+
+    def callback(_, __, reader, ___):
+        try:
+            reader.read_all()
+        except pyarrow.ArrowException:
+            pass
+        finally:
+            ended.set()
+
+    def failing_batches(table):
+        yield next(iter(table.to_batches(max_chunksize=1)))
+        raise RuntimeError("bad data")
+
+    flight_server.do_put_callback = callback
+    monkeypatch.setattr(ds, "record_batches", failing_batches)
+
+    with pytest.raises(RuntimeError, match="bad data"):
+        make_tabular_datasource().write_dataframe("t", pandas.DataFrame({"a": [1, 2]}))
+
+    assert ended.wait(timeout=5)
 
 
 # Config
