@@ -3,6 +3,7 @@
 from typing import Any, List, Optional
 
 import os
+import warnings
 from os.path import exists
 
 import attr
@@ -186,11 +187,19 @@ class Dataset:
             page_size: optional number of files to fetch
 
         Returns:
-            List of files
+            List of files, at most page_size. A UserWarning says when more files match.
         """
-        objects = self.datasource.list_objects(prefix=prefix, page_size=page_size)
+        objects = self.datasource.list_objects(prefix=prefix, page_size=page_size + 1)
 
-        return [_File(dataset=self, name=obj.key) for obj in objects]
+        if len(objects) > page_size:
+            warnings.warn(
+                f"Listing stopped at page_size={page_size} but more files match prefix "
+                f"{prefix!r}. Raise page_size to list them.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        return [_File(dataset=self, name=obj.key) for obj in objects[:page_size]]
 
     def get_file_url(self, file_name: str) -> str:
         """Get a signed URL for the given key.
