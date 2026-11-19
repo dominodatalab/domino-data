@@ -212,6 +212,13 @@ def mock_dataset(env, respx_mock, datafx):
     return make
 
 
+def test_file_repr_shows_name(mock_dataset):
+    """A listed file prints with its name, so printing list_files() shows what's in the dataset."""
+    file = ds._File(dataset=mock_dataset(200), name="training/data.csv")
+
+    assert repr(file) == "_File(name='training/data.csv')"
+
+
 def test_download(mock_dataset, tmp_path, range_server):
     """download (multithreaded, real HTTP) writes the exact file and leaves no temp file behind."""
     dataset = mock_dataset(200, url=f"{range_server}/file")

@@ -51,7 +51,7 @@ class _File:
     """Represents a file in a dataset."""
 
     dataset: "Dataset" = attr.ib(repr=False)
-    name: str = attr.ib(repr=False)
+    name: str = attr.ib()
 
     def http(self) -> httpx.Client:
         """Get dataset http client."""
