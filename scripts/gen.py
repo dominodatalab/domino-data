@@ -115,7 +115,9 @@ def _config(elem: ConfigElem) -> Any:
         ELEMENT_TYPE_METADATA: CONFIGURATION_TYPE,
         ELEMENT_VALUE_METADATA: elem,
     }
-    return attr.ib(default=None, kw_only=True, metadata=metadata)
+    return attr.ib(
+        default=None, kw_only=True, metadata=metadata, converter=attr.converters.optional(str)
+    )
 
 
 ''')
