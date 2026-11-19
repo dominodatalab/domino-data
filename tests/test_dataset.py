@@ -1,7 +1,10 @@
 """Dataset tests."""
 
+from types import SimpleNamespace
+
 import io
 import json
+from unittest.mock import MagicMock
 
 import httpx
 import pyarrow
@@ -58,6 +61,37 @@ def test_get_dataset_without_access():
 
 
 # List Files
+
+
+def _dataset_with_files(count):
+    """Dataset whose backend lists at most page_size of `count` files."""
+    datasource = MagicMock()
+    datasource.list_objects.side_effect = lambda prefix, page_size: [
+        SimpleNamespace(key=f"file_{i}.txt") for i in range(min(count, page_size))
+    ]
+    return ds.Dataset(client=MagicMock(), datasource=datasource)
+
+
+def test_list_files_warns_when_more_files_than_page_size():
+    """list_files warns instead of silently dropping files past page_size."""
+    dataset = _dataset_with_files(5)
+
+    with pytest.warns(UserWarning, match="more files match"):
+        files = dataset.list_files("", 3)
+
+    assert [file.name for file in files] == ["file_0.txt", "file_1.txt", "file_2.txt"]
+
+
+def test_list_files_does_not_warn_when_page_size_covers_every_file(recwarn):
+    """list_files stays quiet when the listing is complete, even if page_size equals the count."""
+    dataset = _dataset_with_files(5)
+
+    files = dataset.list_files("", 5)
+
+    assert [file.name for file in files] == [f"file_{i}.txt" for i in range(5)]
+    assert not recwarn.list
+
+
 @pytest.mark.vcr
 def test_list_files():
     """Client get list of files in a dataset."""
